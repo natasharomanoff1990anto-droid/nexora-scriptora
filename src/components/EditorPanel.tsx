@@ -545,7 +545,7 @@ function ChapterView({
 
       {isGenerated && (
         <>
-          <AIRatingCard rating={chapter.aiRating} />
+          <AIRatingCard rating={chapter.aiRating} onImprove={() => onRewrite("deep")} />
           <EditableBlock content={chapter.content} onChange={onUpdateContent} ws={ws} />
 
           {chapter.subchapters.length > 0 && (
@@ -670,7 +670,7 @@ function StatPill({ label, value, highlight = false }: { label: string; value: s
 
 /* ============ AI Rating Card ============ */
 
-function AIRatingCard({ rating }: { rating?: AIQualityRating }) {
+function AIRatingCard({ rating, onImprove }: { rating?: AIQualityRating; onImprove?: () => void }) {
   if (!rating) return null;
 
   const safeScore = Math.max(0, Math.min(5, Number(rating.score || 0)));
@@ -797,6 +797,15 @@ function AIRatingCard({ rating }: { rating?: AIQualityRating }) {
               Recommended next move
             </p>
             <p className="text-sm leading-relaxed text-foreground/80">{nextMove}</p>
+            {onImprove && (
+              <button
+                onClick={onImprove}
+                className="mt-4 inline-flex h-9 items-center justify-center rounded-lg bg-primary px-4 text-xs font-bold text-primary-foreground shadow-sm transition-opacity hover:opacity-90"
+                title="Rewrite this chapter using the current AI diagnosis"
+              >
+                Improve with this diagnosis
+              </button>
+            )}
           </div>
         </div>
 
