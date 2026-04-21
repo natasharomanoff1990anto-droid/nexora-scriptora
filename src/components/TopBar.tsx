@@ -171,6 +171,13 @@ export function TopBar({ config, onUpdateConfig, isGenerating, hasProject, onExp
       <div className="ml-2 shrink-0">
         <PlanBadge tokensUsed={quota?.tokensUsed} />
       </div>
+      <div
+        title="Production build running on Vercel"
+        className="hidden sm:flex h-7 items-center gap-1.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 text-[10px] font-bold tracking-wide text-emerald-600 dark:text-emerald-400 shrink-0"
+      >
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+        LIVE ON VERCEL
+      </div>
       {budget && (
         <div
           title={budget.exceeded ? "Limite parole raggiunto — passa a un piano superiore" : `${budget.used.toLocaleString()} / ${budget.max.toLocaleString()} parole`}
