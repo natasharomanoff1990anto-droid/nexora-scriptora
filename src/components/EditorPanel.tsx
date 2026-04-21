@@ -404,6 +404,19 @@ function ChapterView({
   const [showIntelligence, setShowIntelligence] = useState(false);
 
   const displayedTitle = isGenerated ? (chapter!.title || outline.title) : outline.title;
+  const chapterWordCount = countWords(chapter?.content || "");
+  const chapterCharCount = (chapter?.content || "").length;
+  const subchapterCount = chapter?.subchapters?.length || 0;
+  const qualityScore = chapter?.aiRating?.score;
+  const chapterStatus = isGenerating
+    ? "Generating"
+    : isEvaluating
+      ? "Evaluating"
+      : chapter?.status === "error"
+        ? "Needs retry"
+        : isGenerated
+          ? "Draft ready"
+          : "Not generated";
 
   return (
     <div className="space-y-8">
@@ -494,6 +507,15 @@ function ChapterView({
         ))}
       </div>
 
+      <ManuscriptStatsPro
+        words={chapterWordCount}
+        characters={chapterCharCount}
+        subchapters={subchapterCount}
+        qualityScore={qualityScore}
+        status={chapterStatus}
+        lengthTarget={currentLength}
+      />
+
       {isGenerating && <GenerationProgress onCancel={onCancel} chunkProgress={chunkProgress} />}
       {isEvaluating && <LoadingBanner text={`${t("evaluate")}...`} />}
 
@@ -581,6 +603,66 @@ function ChapterView({
     </div>
   );
 }
+
+
+function countWords(value: string): number {
+  return value
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length;
+}
+
+function ManuscriptStatsPro({
+  words,
+  characters,
+  subchapters,
+  qualityScore,
+  status,
+  lengthTarget,
+}: {
+  words: number;
+  characters: number;
+  subchapters: number;
+  qualityScore?: number;
+  status: string;
+  lengthTarget: string;
+}) {
+  const qualityLabel =
+    typeof qualityScore === "number"
+      ? `${qualityScore}/5`
+      : "Not rated";
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 rounded-2xl border border-border/40 bg-gradient-to-br from-muted/25 to-muted/5 p-4 shadow-sm">
+      <StatPill label="Words" value={words.toLocaleString()} />
+      <StatPill label="Characters" value={characters.toLocaleString()} />
+      <StatPill label="Subchapters" value={subchapters.toString()} />
+      <StatPill label="Quality" value={qualityLabel} highlight={typeof qualityScore === "number" && qualityScore >= 4} />
+      <StatPill label="Status" value={status} />
+      <div className="col-span-2 md:col-span-5 flex items-center justify-between rounded-xl border border-primary/10 bg-primary/5 px-4 py-3">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-primary/70">Editorial Target</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Current chapter mode: <span className="font-semibold text-foreground">{lengthTarget}</span>. Use generation, evaluation, and rewrite controls to push this section toward publishable quality.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatPill({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <div className={cn(
+      "rounded-xl border px-3 py-3",
+      highlight ? "border-primary/30 bg-primary/10" : "border-border/30 bg-card/50"
+    )}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
+      <p className={cn("mt-1 text-sm font-bold", highlight ? "text-primary" : "text-foreground")}>{value}</p>
+    </div>
+  );
+}
+
 
 /* ============ AI Rating Card ============ */
 
