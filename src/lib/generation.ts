@@ -997,7 +997,7 @@ Return ONLY valid JSON.`;
 
 /* ============ Smart Rewrite with Levels ============ */
 
-export type RewriteLevel = "light" | "deep" | "bestseller";
+export type RewriteLevel = "light" | "deep" | "bestseller" | "precision";
 
 function getRewriteLevelInstruction(level: RewriteLevel): string {
   switch (level) {
@@ -1008,6 +1008,17 @@ function getRewriteLevelInstruction(level: RewriteLevel): string {
 - Strengthen transitions between paragraphs
 - Keep the same structure and core ideas
 - Enhance 2-3 key sentences for quotability`;
+    case "precision":
+      return `PRECISION REWRITE — SURGICAL EDITORIAL UPGRADE:
+- Preserve the existing plot, scene order, character intent, and core atmosphere
+- Do NOT flatten the author's voice; protect the best images and strongest sentences
+- Reduce only the excess: overloaded metaphors, repeated emotional beats, vague phrasing
+- Sharpen sensory details, tension, pacing, and psychological subtext
+- Make the family trauma more specific without over-explaining it
+- Strengthen foreshadowing and payoff using details already present in the chapter
+- Improve paragraph rhythm and transitions while keeping the chapter recognizable
+- The result must feel like the same chapter, but cleaner, darker, more precise, and more publishable
+- Never turn subtle horror into melodrama; preserve restraint, dread, and ambiguity`;
     case "deep":
       return `DEEP REWRITE:
 - Restructure paragraphs for better flow and impact

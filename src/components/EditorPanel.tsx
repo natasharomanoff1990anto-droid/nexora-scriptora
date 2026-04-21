@@ -466,6 +466,7 @@ function ChapterView({
                   <div className="absolute right-0 top-10 z-20 bg-card border border-border rounded-xl shadow-xl py-1 w-48">
                     {([
                       { level: "light" as RewriteLevel, label: "Light Polish", desc: "Fix phrasing, tighten prose" },
+                      { level: "precision" as RewriteLevel, label: "Precision Rewrite", desc: "Preserve voice, sharpen tension" },
                       { level: "deep" as RewriteLevel, label: "Deep Rewrite", desc: "Restructure + fresh insights" },
                       { level: "bestseller" as RewriteLevel, label: "Bestseller Upgrade", desc: "Total transformation" },
                     ]).map(opt => (
@@ -545,7 +546,7 @@ function ChapterView({
 
       {isGenerated && (
         <>
-          <AIRatingCard rating={chapter.aiRating} onImprove={() => onRewrite("deep")} />
+          <AIRatingCard rating={chapter.aiRating} onImprove={() => onRewrite("precision")} />
           <EditableBlock content={chapter.content} onChange={onUpdateContent} ws={ws} />
 
           {chapter.subchapters.length > 0 && (
