@@ -672,31 +672,135 @@ function StatPill({ label, value, highlight = false }: { label: string; value: s
 
 function AIRatingCard({ rating }: { rating?: AIQualityRating }) {
   if (!rating) return null;
-  const scoreColor = rating.score >= 4 ? "text-[hsl(var(--success))]" : rating.score >= 3 ? "text-[hsl(var(--warning))]" : "text-destructive";
+
+  const scoreColor = rating.score >= 4
+    ? "text-[hsl(var(--success))]"
+    : rating.score >= 3
+      ? "text-[hsl(var(--warning))]"
+      : "text-destructive";
+
+  const scoreLabel = rating.score >= 4.5
+    ? "Publishable draft"
+    : rating.score >= 4
+      ? "Strong commercial draft"
+      : rating.score >= 3
+        ? "Promising but needs work"
+        : "Needs structural revision";
+
+  const missingItems = splitQualityNotes(rating.missing);
+  const improvementItems = splitQualityNotes(rating.improvements).filter(
+    item => !missingItems.some(m => normalizeQualityNote(m) === normalizeQualityNote(item))
+  );
+
+  const effectiveImprovementItems = improvementItems.length > 0
+    ? improvementItems
+    : missingItems.map(item => `Turn this issue into a concrete revision: ${item}`);
 
   return (
-    <div className="p-5 rounded-xl bg-muted/15 border border-border/40 space-y-3">
-      <div className="flex items-center gap-3">
-        <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">{t("ai_quality_rating")}</span>
-        <div className="flex items-center gap-1">
-          {[1, 2, 3, 4, 5].map(s => (
-            <Star key={s} className={cn("h-4 w-4", s <= rating.score ? `${scoreColor} fill-current` : "text-muted-foreground/20")} />
-          ))}
-          <span className={cn("text-sm font-bold ml-1", scoreColor)}>{rating.score}/5</span>
+    <div className="overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card via-muted/10 to-card shadow-sm">
+      <div className="flex flex-col gap-4 border-b border-border/30 p-5 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-muted-foreground">
+            {t("ai_quality_rating")}
+          </p>
+          <p className="mt-1 text-sm font-medium text-foreground/75">{scoreLabel}</p>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-xl border border-border/40 bg-background/50 px-4 py-3">
+          <div className="flex items-center gap-1">
+            {[1, 2, 3, 4, 5].map(s => (
+              <Star
+                key={s}
+                className={cn(
+                  "h-4 w-4",
+                  s <= Math.round(rating.score)
+                    ? `${scoreColor} fill-current`
+                    : "text-muted-foreground/20"
+                )}
+              />
+            ))}
+          </div>
+          <span className={cn("text-xl font-black tabular-nums", scoreColor)}>
+            {rating.score}/5
+          </span>
         </div>
       </div>
-      <p className="text-sm text-foreground/80 leading-relaxed">{rating.explanation}</p>
-      {rating.missing && (
-        <div>
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t("whats_missing")}</p>
-          <p className="text-xs text-foreground/60 leading-relaxed">{rating.missing}</p>
+
+      <div className="space-y-5 p-5">
+        <div className="rounded-xl border border-border/30 bg-muted/10 p-4">
+          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2">
+            Editorial verdict
+          </p>
+          <p className="text-sm leading-relaxed text-foreground/80">{rating.explanation}</p>
         </div>
-      )}
-      {rating.improvements && (
-        <div>
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">{t("how_to_improve")}</p>
-          <p className="text-xs text-foreground/60 leading-relaxed">{rating.improvements}</p>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <QualityNoteColumn
+            title={t("whats_missing")}
+            subtitle="Issues detected"
+            items={missingItems}
+            emptyText="No major missing elements detected."
+          />
+
+          <QualityNoteColumn
+            title={t("how_to_improve")}
+            subtitle="Next revision moves"
+            items={effectiveImprovementItems}
+            emptyText="No specific revision actions returned."
+          />
         </div>
+      </div>
+    </div>
+  );
+}
+
+function splitQualityNotes(value?: string): string[] {
+  if (!value) return [];
+
+  return value
+    .split(/\n|•|- |\d+\.|(?<=[.!?])\s+(?=[A-ZÀ-Ù])/g)
+    .map(item => item.trim())
+    .filter(item => item.length > 8)
+    .slice(0, 6);
+}
+
+function normalizeQualityNote(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9à-ù]+/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function QualityNoteColumn({
+  title,
+  subtitle,
+  items,
+  emptyText,
+}: {
+  title: string;
+  subtitle: string;
+  items: string[];
+  emptyText: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border/30 bg-background/35 p-4">
+      <div className="mb-3">
+        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{title}</p>
+        <p className="mt-1 text-[11px] text-muted-foreground/70">{subtitle}</p>
+      </div>
+
+      {items.length > 0 ? (
+        <ul className="space-y-2">
+          {items.map((item, i) => (
+            <li key={`${title}-${i}`} className="flex gap-2 text-xs leading-relaxed text-foreground/70">
+              <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/70" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-xs italic text-muted-foreground/60">{emptyText}</p>
       )}
     </div>
   );
