@@ -166,7 +166,7 @@ export default function Home() {
             <Sparkles className="h-3.5 w-3.5 text-primary-foreground" />
           </button>
           <span className="text-sm font-semibold tracking-[0.25em] text-foreground">
-            NEXORA
+            SCRIPTORA
           </span>
           {devOn && (
             <span className="ml-2 rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-primary">
@@ -196,7 +196,7 @@ export default function Home() {
           }`}
           style={{ letterSpacing: "-0.04em" }}
         >
-          NEXORA
+          SCRIPTORA
         </h1>
 
         <p
