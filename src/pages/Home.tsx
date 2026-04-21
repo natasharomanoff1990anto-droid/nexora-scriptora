@@ -34,7 +34,7 @@ function writeConsent(rec: ConsentRecord) {
 }
 
 /**
- * NEXORA — Premium landing.
+ * SCRIPTORA — Premium landing.
  * Flow: utente apre la Home → deve accettare privacy/termini + confermare 16+
  * prima di poter cliccare Start. Dev Mode (5 click sul logo + password) bypassa
  * il consenso per evitare di re-inserirlo ogni volta in sviluppo.
@@ -159,8 +159,8 @@ export default function Home() {
           <button
             type="button"
             onClick={handleLogoClick}
-            aria-label="NEXORA"
-            title="NEXORA"
+            aria-label="SCRIPTORA"
+            title="SCRIPTORA"
             className="grid h-7 w-7 place-items-center rounded-md bg-gradient-to-br from-primary to-accent shadow-lg shadow-primary/30 outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
           >
             <Sparkles className="h-3.5 w-3.5 text-primary-foreground" />
@@ -215,7 +215,7 @@ export default function Home() {
           <button
             onClick={handleStart}
             className="nexora-cta group relative inline-flex h-14 items-center gap-3 overflow-hidden rounded-full bg-gradient-to-r from-primary to-accent px-10 text-base font-semibold text-primary-foreground shadow-[0_10px_40px_-10px_hsl(var(--primary)/0.7)] transition-all duration-300 hover:scale-[1.03] hover:shadow-[0_15px_60px_-10px_hsl(var(--primary)/0.9)] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            aria-label="Start NEXORA"
+            aria-label="Start SCRIPTORA"
           >
             <span className="relative z-10">Start</span>
             <ArrowRight className="relative z-10 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />

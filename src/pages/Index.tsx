@@ -270,7 +270,7 @@ const Index = () => {
           <div className="flex items-center gap-2 min-w-0">
             <BookOpen className="h-4 w-4 text-primary shrink-0" />
             <h1 className="text-xs font-bold text-foreground tracking-wide truncate">
-              {engine.project ? (engine.project.config.title || "Untitled") : "NEXORA"}
+              {engine.project ? (engine.project.config.title || "Untitled") : "SCRIPTORA"}
             </h1>
           </div>
           <button onClick={() => setShowSettings(true)} className="text-muted-foreground hover:text-foreground transition-colors shrink-0" title={t("settings")}>
@@ -436,7 +436,7 @@ const Index = () => {
               <div className="w-full max-w-md rounded-2xl border border-border bg-card/60 p-6 text-center shadow-xl backdrop-blur-sm space-y-4">
                 <BookOpen className="h-10 w-10 text-primary/70 mx-auto" />
                 <div className="space-y-1">
-                  <p className="text-base font-semibold text-foreground">Nexora</p>
+                  <p className="text-base font-semibold text-foreground">Scriptora</p>
                   <p className="text-sm text-muted-foreground">{t("no_project")}</p>
                 </div>
 

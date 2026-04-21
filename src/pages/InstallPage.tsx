@@ -1,4 +1,4 @@
-// InstallPage — guida l'utente a installare NEXORA come app dal browser.
+// InstallPage — guida l'utente a installare SCRIPTORA come app dal browser.
 // Su Android/desktop Chrome usa l'evento beforeinstallprompt nativo.
 // Su iOS mostra istruzioni manuali (Safari → Condividi → Aggiungi a Home).
 
@@ -63,10 +63,10 @@ export default function InstallPage() {
               <Smartphone className="h-7 w-7" />
             </div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
-              Installa NEXORA
+              Installa SCRIPTORA
             </h1>
             <p className="text-sm text-muted-foreground">
-              Aggiungi NEXORA alla schermata Home del tuo dispositivo. Si apre come una vera app, senza barra del browser.
+              Aggiungi SCRIPTORA alla schermata Home del tuo dispositivo. Si apre come una vera app, senza barra del browser.
             </p>
           </div>
 
@@ -75,7 +75,7 @@ export default function InstallPage() {
               <CheckCircle2 className="h-8 w-8 text-primary mx-auto" />
               <p className="text-sm font-semibold text-foreground">Già installata</p>
               <p className="text-xs text-muted-foreground">
-                Stai usando NEXORA in modalità app. Puoi chiudere questa pagina.
+                Stai usando SCRIPTORA in modalità app. Puoi chiudere questa pagina.
               </p>
             </div>
           ) : isIOS ? (
@@ -104,7 +104,7 @@ export default function InstallPage() {
                   <span className="h-6 w-6 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-bold shrink-0">
                     3
                   </span>
-                  <span>Conferma "Aggiungi" — l'icona NEXORA apparirà sulla Home.</span>
+                  <span>Conferma "Aggiungi" — l'icona SCRIPTORA apparirà sulla Home.</span>
                 </li>
               </ol>
             </div>

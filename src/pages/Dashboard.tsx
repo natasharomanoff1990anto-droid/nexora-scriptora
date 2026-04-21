@@ -255,12 +255,12 @@ export default function Home() {
               }
             }}
             className="group flex items-center gap-2 text-sm select-none"
-            title="NEXORA"
+            title="SCRIPTORA"
           >
             <span className="h-7 w-7 rounded-md bg-primary/15 text-primary flex items-center justify-center group-hover:bg-primary/25 transition-colors">
               <BookOpen className="h-3.5 w-3.5" />
             </span>
-            <span className="font-bold tracking-[0.2em] text-foreground text-[13px]">NEXORA</span>
+            <span className="font-bold tracking-[0.2em] text-foreground text-[13px]">SCRIPTORA</span>
           </button>
 
           {user && (

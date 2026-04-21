@@ -110,7 +110,7 @@ export default function AuthPage() {
           <div className="grid h-7 w-7 place-items-center rounded-md bg-gradient-to-br from-primary to-accent">
             <Sparkles className="h-3.5 w-3.5 text-primary-foreground" />
           </div>
-          <span className="text-sm font-semibold tracking-[0.25em]">NEXORA</span>
+          <span className="text-sm font-semibold tracking-[0.25em]">SCRIPTORA</span>
         </div>
       </header>
 
