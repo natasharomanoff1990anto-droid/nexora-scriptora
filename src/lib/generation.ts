@@ -1009,16 +1009,35 @@ function getRewriteLevelInstruction(level: RewriteLevel): string {
 - Keep the same structure and core ideas
 - Enhance 2-3 key sentences for quotability`;
     case "precision":
-      return `PRECISION REWRITE — SURGICAL EDITORIAL UPGRADE:
-- Preserve the existing plot, scene order, character intent, and core atmosphere
-- Do NOT flatten the author's voice; protect the best images and strongest sentences
-- Reduce only the excess: overloaded metaphors, repeated emotional beats, vague phrasing
-- Sharpen sensory details, tension, pacing, and psychological subtext
-- Make the family trauma more specific without over-explaining it
-- Strengthen foreshadowing and payoff using details already present in the chapter
-- Improve paragraph rhythm and transitions while keeping the chapter recognizable
-- The result must feel like the same chapter, but cleaner, darker, more precise, and more publishable
-- Never turn subtle horror into melodrama; preserve restraint, dread, and ambiguity`;
+      return `PRECISION REWRITE LOCK — SURGICAL EDITORIAL UPGRADE:
+You are NOT writing a new chapter. You are surgically improving the existing chapter.
+
+ABSOLUTE CONTINUITY LOCK:
+- Do NOT change character names.
+- Do NOT introduce new family members or replace existing ones.
+- Do NOT replace key objects, symbols, locations, or supernatural motifs.
+- Do NOT invent a new scene sequence.
+- Do NOT change the ending.
+- Do NOT remove the original final image/payoff.
+- Do NOT change the central mystery.
+- Do NOT transform subtle horror into loud horror.
+- If the original has Marco, Sara and Leo, keep Marco, Sara and Leo.
+- If the original has a stone, keep the stone.
+- If the original has a trapdoor/attic, keep the trapdoor/attic.
+- If the original ends with the stone rolling in the attic, preserve that ending.
+
+WHAT TO IMPROVE:
+- Preserve the existing plot, scene order, character intent, and core atmosphere.
+- Protect the best images and strongest sentences.
+- Reduce only the excess: overloaded metaphors, repeated emotional beats, vague phrasing.
+- Sharpen sensory details, tension, pacing, and psychological subtext.
+- Make the family trauma more specific without over-explaining it.
+- Strengthen foreshadowing and payoff using details already present in the chapter.
+- Improve paragraph rhythm and transitions while keeping the chapter recognizable.
+- The result must feel like the same chapter, but cleaner, darker, more precise, and more publishable.
+
+FINAL RULE:
+Rewrite the existing chapter. Do not create an alternative version. Do not replace its bones. Polish the blade; do not forge a different weapon.`;
     case "deep":
       return `DEEP REWRITE:
 - Restructure paragraphs for better flow and impact
@@ -1065,7 +1084,7 @@ Instruction: "${instruction}"
 ${weaknessTarget}
 
 Current content (to be rewritten):
-${chapter.content.substring(0, 2500)}...
+${level === "precision" ? chapter.content.slice(0, 12000) : `${chapter.content.substring(0, 2500)}...`}
 
 ${contextMemory}
 
