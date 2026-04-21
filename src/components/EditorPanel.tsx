@@ -673,19 +673,40 @@ function StatPill({ label, value, highlight = false }: { label: string; value: s
 function AIRatingCard({ rating }: { rating?: AIQualityRating }) {
   if (!rating) return null;
 
-  const scoreColor = rating.score >= 4
-    ? "text-[hsl(var(--success))]"
-    : rating.score >= 3
-      ? "text-[hsl(var(--warning))]"
-      : "text-destructive";
+  const safeScore = Math.max(0, Math.min(5, Number(rating.score || 0)));
+  const scorePercent = Math.round((safeScore / 5) * 100);
 
-  const scoreLabel = rating.score >= 4.5
-    ? "Publishable draft"
-    : rating.score >= 4
-      ? "Strong commercial draft"
-      : rating.score >= 3
-        ? "Promising but needs work"
-        : "Needs structural revision";
+  const scoreTone = safeScore >= 4.5
+    ? {
+        label: "Excellent",
+        verdict: "Publish-ready candidate",
+        color: "text-[hsl(var(--success))]",
+        border: "border-[hsl(var(--success))]/30",
+        bg: "bg-[hsl(var(--success))]/10",
+      }
+    : safeScore >= 4
+      ? {
+          label: "Strong",
+          verdict: "Strong commercial draft",
+          color: "text-[hsl(var(--success))]",
+          border: "border-[hsl(var(--success))]/25",
+          bg: "bg-[hsl(var(--success))]/8",
+        }
+      : safeScore >= 3
+        ? {
+            label: "Needs Work",
+            verdict: "Promising, but revision is required",
+            color: "text-[hsl(var(--warning))]",
+            border: "border-[hsl(var(--warning))]/30",
+            bg: "bg-[hsl(var(--warning))]/10",
+          }
+        : {
+            label: "Critical",
+            verdict: "Structural revision required",
+            color: "text-destructive",
+            border: "border-destructive/30",
+            bg: "bg-destructive/10",
+          };
 
   const missingItems = splitQualityNotes(rating.missing);
   const improvementItems = splitQualityNotes(rating.improvements).filter(
@@ -694,57 +715,102 @@ function AIRatingCard({ rating }: { rating?: AIQualityRating }) {
 
   const effectiveImprovementItems = improvementItems.length > 0
     ? improvementItems
-    : missingItems.map(item => `Turn this issue into a concrete revision: ${item}`);
+    : missingItems.map(item => `Convert this weakness into a targeted rewrite: ${item}`);
+
+  const nextMove =
+    effectiveImprovementItems[0]
+      || missingItems[0]
+      || "Run a focused rewrite pass to sharpen structure, emotional payoff, and reader momentum.";
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border/40 bg-gradient-to-br from-card via-muted/10 to-card shadow-sm">
-      <div className="flex flex-col gap-4 border-b border-border/30 p-5 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-muted-foreground">
-            {t("ai_quality_rating")}
-          </p>
-          <p className="mt-1 text-sm font-medium text-foreground/75">{scoreLabel}</p>
-        </div>
-
-        <div className="flex items-center gap-3 rounded-xl border border-border/40 bg-background/50 px-4 py-3">
-          <div className="flex items-center gap-1">
-            {[1, 2, 3, 4, 5].map(s => (
-              <Star
-                key={s}
-                className={cn(
-                  "h-4 w-4",
-                  s <= Math.round(rating.score)
-                    ? `${scoreColor} fill-current`
-                    : "text-muted-foreground/20"
-                )}
-              />
-            ))}
+    <div className="overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-card via-primary/5 to-card shadow-sm">
+      <div className="border-b border-border/30 p-5">
+        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-muted-foreground">
+                Editorial Intelligence Report
+              </p>
+              <span className={cn(
+                "rounded-full border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.16em]",
+                scoreTone.border,
+                scoreTone.bg,
+                scoreTone.color
+              )}>
+                {scoreTone.label}
+              </span>
+            </div>
+            <p className="mt-2 text-sm font-semibold text-foreground">{scoreTone.verdict}</p>
+            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">
+              AI Quality Rating converts the chapter diagnosis into clear editorial priorities, so every rewrite has a precise target instead of vague improvement.
+            </p>
           </div>
-          <span className={cn("text-xl font-black tabular-nums", scoreColor)}>
-            {rating.score}/5
-          </span>
+
+          <div className="w-full rounded-xl border border-border/40 bg-background/55 p-4 md:w-64">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map(s => (
+                  <Star
+                    key={s}
+                    className={cn(
+                      "h-4 w-4",
+                      s <= Math.round(safeScore)
+                        ? `${scoreTone.color} fill-current`
+                        : "text-muted-foreground/20"
+                    )}
+                  />
+                ))}
+              </div>
+              <span className={cn("text-xl font-black tabular-nums", scoreTone.color)}>
+                {safeScore.toFixed(1)}/5
+              </span>
+            </div>
+
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{ width: `${scorePercent}%` }}
+              />
+            </div>
+
+            <div className="mt-2 flex justify-between text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+              <span>Draft</span>
+              <span>Publishable</span>
+            </div>
+          </div>
         </div>
       </div>
 
       <div className="space-y-5 p-5">
-        <div className="rounded-xl border border-border/30 bg-muted/10 p-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2">
-            Editorial verdict
-          </p>
-          <p className="text-sm leading-relaxed text-foreground/80">{rating.explanation}</p>
+        <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+          <div className="rounded-xl border border-border/30 bg-background/40 p-4">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground mb-2">
+              Editorial verdict
+            </p>
+            <p className="text-sm leading-relaxed text-foreground/80">
+              {rating.explanation || "No editorial explanation returned yet."}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary mb-2">
+              Recommended next move
+            </p>
+            <p className="text-sm leading-relaxed text-foreground/80">{nextMove}</p>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
           <QualityNoteColumn
             title={t("whats_missing")}
-            subtitle="Issues detected"
+            subtitle="Diagnosis — what weakens the chapter"
             items={missingItems}
             emptyText="No major missing elements detected."
           />
 
           <QualityNoteColumn
             title={t("how_to_improve")}
-            subtitle="Next revision moves"
+            subtitle="Action plan — what to rewrite next"
             items={effectiveImprovementItems}
             emptyText="No specific revision actions returned."
           />
