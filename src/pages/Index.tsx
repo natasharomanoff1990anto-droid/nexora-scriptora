@@ -229,6 +229,7 @@ const Index = () => {
             onAutoRewrite={engine.autoRewriteToThreshold}
             onGenerateSubchapter={engine.generateSingleSubchapter}
             onUpdateChapterContent={engine.updateChapterContent}
+            onUpdateChapterRating={engine.updateChapterRating}
             onUpdateChapterTitle={engine.updateChapterTitle}
             onUpdateSubchapterContent={engine.updateSubchapterContent}
             onUpdateSubchapterTitle={engine.updateSubchapterTitle}
@@ -406,6 +407,7 @@ const Index = () => {
                   onAutoRewrite={engine.autoRewriteToThreshold}
                   onGenerateSubchapter={engine.generateSingleSubchapter}
                   onUpdateChapterContent={engine.updateChapterContent}
+            onUpdateChapterRating={engine.updateChapterRating}
                   onUpdateChapterTitle={engine.updateChapterTitle}
                   onUpdateSubchapterContent={engine.updateSubchapterContent}
                   onUpdateSubchapterTitle={engine.updateSubchapterTitle}
@@ -513,6 +515,7 @@ const Index = () => {
           isBookGenerating={engine.isAnythingGenerating}
           onUpdateConfig={engine.updateConfig}
           onUpdateChapterContent={engine.updateChapterContent}
+            onUpdateChapterRating={engine.updateChapterRating}
           onSaveProject={async () => {
             if (engine.project) await saveProjectAsync(engine.project);
             await refreshProjects();

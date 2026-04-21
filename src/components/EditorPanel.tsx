@@ -23,6 +23,7 @@ interface EditorPanelProps {
   onAutoRewrite?: (index: number, threshold: number) => void;
   onGenerateSubchapter: (chapterIndex: number, subIndex: number) => void;
   onUpdateChapterContent: (chapterIndex: number, content: string) => void;
+  onUpdateChapterRating?: (chapterIndex: number, rating: AIQualityRating) => void;
   onUpdateChapterTitle?: (chapterIndex: number, title: string) => void;
   onUpdateSubchapterContent: (chapterIndex: number, subIndex: number, content: string) => void;
   onUpdateSubchapterTitle?: (chapterIndex: number, subIndex: number, title: string) => void;
@@ -43,7 +44,7 @@ export function EditorPanel({
   onGenerateNext, onGenerateChapter, onRegenerateChapter,
   onRewriteChapter, onEvaluateChapter, onGenerateSubchapter,
   onAutoRewrite,
-  onUpdateChapterContent, onUpdateChapterTitle, onUpdateSubchapterContent, onUpdateSubchapterTitle,
+  onUpdateChapterContent, onUpdateChapterRating, onUpdateChapterTitle, onUpdateSubchapterContent, onUpdateSubchapterTitle,
   onSetChapterLengthOverride, isGeneratingSection,
   onCancelGeneration,
   chunkProgress,
@@ -134,6 +135,7 @@ export function EditorPanel({
                   onAutoRewrite={onAutoRewrite ? (threshold: number) => onAutoRewrite(view.chapterIndex, threshold) : undefined}
                   onGenerateSubchapter={(subIdx) => onGenerateSubchapter(view.chapterIndex, subIdx)}
                   onUpdateContent={(content) => onUpdateChapterContent(view.chapterIndex, content)}
+                  onUpdateRating={onUpdateChapterRating ? (rating: AIQualityRating) => onUpdateChapterRating(view.chapterIndex, rating) : undefined}
                   onUpdateTitle={onUpdateChapterTitle ? (title: string) => onUpdateChapterTitle(view.chapterIndex, title) : undefined}
                   onUpdateSubContent={(subIdx, content) => onUpdateSubchapterContent(view.chapterIndex, subIdx, content)}
                   onUpdateSubTitle={onUpdateSubchapterTitle ? (subIdx: number, title: string) => onUpdateSubchapterTitle(view.chapterIndex, subIdx, title) : undefined}
@@ -381,7 +383,7 @@ function FrontMatterView({ project, frontMatter, phase, isGenerating, onGenerate
 function ChapterView({
   project, chapterIndex, outline, chapter, isGenerating, isEvaluating,
   onGenerate, onRegenerate, onRewrite, onEvaluate, onAutoRewrite, onGenerateSubchapter,
-  onUpdateContent, onUpdateTitle, onUpdateSubContent, onUpdateSubTitle, onSetLengthOverride, isGeneratingSection, onCancel, chunkProgress, ws,
+  onUpdateContent, onUpdateRating, onUpdateTitle, onUpdateSubContent, onUpdateSubTitle, onSetLengthOverride, isGeneratingSection, onCancel, chunkProgress, ws,
 }: {
   project: BookProject; chapterIndex: number;
   outline: { title: string; summary: string }; chapter: Chapter | undefined;
@@ -390,6 +392,7 @@ function ChapterView({
   onAutoRewrite?: (threshold: number) => void;
   onGenerateSubchapter: (subIdx: number) => void;
   onUpdateContent: (content: string) => void;
+  onUpdateRating?: (rating: AIQualityRating) => void;
   onUpdateTitle?: (title: string) => void;
   onUpdateSubContent: (subIdx: number, content: string) => void;
   onUpdateSubTitle?: (subIdx: number, title: string) => void;
@@ -598,6 +601,7 @@ function ChapterView({
           chapterIndex={chapterIndex}
           onClose={() => setShowIntelligence(false)}
           onApplyContent={(newContent) => onUpdateContent(newContent)}
+          onApplyRating={onUpdateRating}
         />
       )}
     </div>
@@ -704,6 +708,7 @@ function SubchapterView({
   chapterIndex: number; subIndex: number; chapterTitle: string;
   sub: { title: string; content: string }; isGenerating: boolean;
   onUpdateContent: (content: string) => void;
+  onUpdateRating?: (rating: AIQualityRating) => void;
   onUpdateTitle?: (title: string) => void;
   ws: WritingSettings;
 }) {

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Sparkles, X, Loader2, AlertCircle, Check, Scissors, Flame, Wand2, Trash2, RefreshCw, TrendingUp, Swords, ArrowRight, ChevronDown, Eye, Lock, Bot, EyeOff, Quote, Zap } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { BookProject } from "@/types/book";
+import { BookProject, AIQualityRating } from "@/types/book";
 import { useDomination } from "@/contexts/DominationContext";
 import { usePlan, PLAN_LIMITS } from "@/lib/plan";
 import { isDevMode } from "@/lib/dev-mode";
@@ -15,6 +15,7 @@ interface ChapterIntelligencePanelProps {
   chapterIndex: number;
   onClose: () => void;
   onApplyContent: (newContent: string) => void;
+  onApplyRating?: (rating: AIQualityRating) => void;
 }
 
 type FixAction = "tighten" | "rewrite" | "compress" | "intensify" | "remove";
@@ -94,7 +95,7 @@ const LEVEL_STYLE = {
   weak: { dot: "bg-rose-500", label: "🔴 Weak", border: "border-l-rose-500" },
 };
 
-export function ChapterIntelligencePanel({ project, chapterIndex, onClose, onApplyContent }: ChapterIntelligencePanelProps) {
+export function ChapterIntelligencePanel({ project, chapterIndex, onClose, onApplyContent, onApplyRating }: ChapterIntelligencePanelProps) {
   const chapter = project.chapters[chapterIndex];
   const { startDominate, startPatch, getJob, applyJob, dismissJob } = useDomination();
 
@@ -121,6 +122,21 @@ export function ChapterIntelligencePanel({ project, chapterIndex, onClose, onApp
   // Free/Beta/Pro see the paywall exactly like real users on those tiers.
   const canDominate = PLAN_LIMITS[plan].canDominate;
 
+  const patchEvaluationToRating = (evaluation: PatchResult["evaluation"]): AIQualityRating | undefined => {
+    if (!evaluation || typeof evaluation.score !== "number") return undefined;
+
+    const normalizedScore = Math.max(1, Math.min(5, Math.round((evaluation.score / 2) * 10) / 10));
+    const strengths = evaluation.strengths?.length ? `Strengths: ${evaluation.strengths.join(" · ")}` : "";
+    const improvements = evaluation.improvements?.length ? evaluation.improvements.join("\n") : "No specific improvements returned by the patch engine.";
+
+    return {
+      score: normalizedScore,
+      explanation: `${evaluation.commercialLevel || "Patch evaluation"} — source score ${evaluation.score}/10. ${strengths}`.trim(),
+      missing: improvements,
+      improvements,
+    };
+  };
+
   const runPatch = async () => {
     await startPatch(project, chapterIndex);
   };
@@ -129,6 +145,9 @@ export function ChapterIntelligencePanel({ project, chapterIndex, onClose, onApp
     applyJob(patchJob.id, (text) => {
       setWorkingContent(text);
       onApplyContent(text);
+
+      const rating = patchEvaluationToRating(patchResult?.evaluation ?? null);
+      if (rating) onApplyRating?.(rating);
     });
   };
   const discardPatch = () => {

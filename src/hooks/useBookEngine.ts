@@ -420,6 +420,19 @@ export function useBookEngine(syncCallbacks?: SyncCallbacks) {
     });
   }, [updateAndSave]);
 
+  const updateChapterRating = useCallback((chapterIndex: number, rating: AIQualityRating) => {
+    updateAndSave(p => {
+      const chapters = [...p.chapters];
+      if (!chapters[chapterIndex]) return p;
+      chapters[chapterIndex] = {
+        ...chapters[chapterIndex],
+        aiRating: rating,
+        qualityRating: rating.score,
+      };
+      return { ...p, chapters };
+    });
+  }, [updateAndSave]);
+
   const updateChapterTitle = useCallback((chapterIndex: number, title: string) => {
     updateAndSave(p => {
       const chapters = [...p.chapters];
@@ -651,7 +664,7 @@ export function useBookEngine(syncCallbacks?: SyncCallbacks) {
     project, messages, isAnythingGenerating, generatingSet, chunkProgress,
     startNewBook, generateNext, generateSingleChapter, generateSingleSubchapter,
     regenerateChapter, rewriteChapterWithDepth, evaluateChapter, autoRewriteToThreshold,
-    updateConfig, updateChapterContent, updateChapterTitle, updateSubchapterContent, updateSubchapterTitle,
+    updateConfig, updateChapterContent, updateChapterRating, updateChapterTitle, updateSubchapterContent, updateSubchapterTitle,
     updateBlueprintField, updateBlueprintOutlineTitle, updateBlueprintOutlineSummary,
     updateFrontMatterField, updateBackMatterField,
     setChapterLengthOverride,
