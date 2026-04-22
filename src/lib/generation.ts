@@ -689,9 +689,12 @@ Write in ${config.language}.${adaptiveSuffix}`;
     // SMART COMPLETION GATE:
     // The chapter target is guidance, not a prison.
     // But the engine must stop when the chapter is already complete enough.
-    const minAcceptableWords = Math.max(650, Math.floor(targetWords * 0.88));
-    const idealStopWords = Math.max(900, Math.floor(targetWords * 1.05));
-    const hardStopWords = Math.max(1200, Math.floor(targetWords * 1.22));
+    const minAcceptableWords = Math.max(650, Math.floor(targetWords * 0.82));
+    const idealStopWords = Math.max(900, Math.floor(targetWords * 0.95));
+    const hardStopWords = Math.min(
+      Math.max(1200, Math.floor(targetWords * 1.08)),
+      1500,
+    );
 
     const endingSample = accumulatedContent.slice(-900).toLowerCase();
     const hasEndingShape =
@@ -706,9 +709,7 @@ Write in ${config.language}.${adaptiveSuffix}`;
     }
 
     if (updatedWords >= hardStopWords) {
-      if (DEV_DEBUG_STREAM) {
-        console.log(`[Nexora] Hard stop: ${updatedWords}/${targetWords} words.`);
-      }
+      console.log(`[Nexora] Hard stop: ${updatedWords}/${targetWords} words. Chapter accepted.`);
       break;
     }
 
