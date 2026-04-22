@@ -713,7 +713,7 @@ Return ONLY this internal subchapter prose.`;
       if (onDelta) {
         sectionText = await callDeepSeekStream(system, sectionPrompt, 0.82, sectionMaxTokens, async (_chunk, acc) => {
           await onDelta((fullText + "\n\n" + acc).trim());
-        }, `auto_bestseller_chapter_${chapterIndex + 1}_subchapter_${sectionIndex + 1}`);
+        }, "deepseek-chat", `auto_bestseller_chapter_${chapterIndex + 1}_subchapter_${sectionIndex + 1}`);
       } else {
         sectionText = await callDeepSeek(system, sectionPrompt, false, 0.82, sectionMaxTokens);
       }
