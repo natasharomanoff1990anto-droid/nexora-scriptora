@@ -587,6 +587,9 @@ async function writeChapter(
   const chapterLengthMode = input.chapterLengthMode || "standard";
   const chapterStructure = input.chapterStructure || "subchapters";
 
+  const structureMode = String((input as any).bookStructure || "subchapters");
+  const chapterLengthMode = String((input as any).chapterLengthMode || "standard");
+
   const structureDirective =
     chapterStructure === "professional"
       ? `PROFESSIONAL STRUCTURE REQUIRED:
@@ -647,9 +650,6 @@ Return ONLY the chapter prose. No chapter title line, no preamble, no meta.`;
   // Safer token budget for Auto Bestseller chapters.
   // Huge single-shot generations can stall near the end, especially around 65–80%.
   // We keep enough room for a strong chapter, but avoid endless final-token waiting.
-  const structureMode = String((input as any).bookStructure || "subchapters");
-  const chapterLengthMode = String((input as any).chapterLengthMode || "standard");
-
   // HARD FIX:
   // Auto Bestseller must NOT write long chapters in one single DeepSeek run.
   // Long single-shot chapters stall around 55–75%.
