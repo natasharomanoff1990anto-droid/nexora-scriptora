@@ -168,31 +168,40 @@ export default function Home() {
   };
 
   const launchOneClick = async () => {
-    if (idea.trim().length < 6) return;
+    if (!heroValid) return;
     setLaunching(true);
-    let i = intent;
-    if (!i) i = await detectIntent();
-    if (!i) { setLaunching(false); return; }
+    try {
+      let i = intent;
+      if (!i) i = await detectIntent();
+      if (!i) return;
 
-    const best = Math.max(0, Math.min(2, i.bestTitleIndex || 0));
-    sessionStorage.setItem(
-      "nexora-auto-brief",
-      JSON.stringify({
-        idea: idea.trim(),
-        genre: i.genre,
-        subcategory: i.subcategory,
-        targetAudience: i.targetAudience,
-        tone: i.tone,
-        language: bookLang,
-        numberOfChapters: i.numberOfChapters,
-        level: i.level,
-        readerPromise: i.readerPromise,
-        prefilledTitle: i.suggestedTitles?.[best],
-        prefilledSubtitle: i.suggestedSubtitles?.[best],
-        autoStart: true,
-      })
-    );
-    navigate("/auto-bestseller");
+      sessionStorage.setItem(
+        "nexora-auto-brief",
+        JSON.stringify({
+          idea: idea.trim(),
+          genre: i.genre,
+          subcategory: i.subcategory,
+          targetAudience: i.targetAudience || "General readers",
+          tone: i.tone || "natural",
+          language: bookLang,
+          numberOfChapters: i.numberOfChapters || 8,
+          level: i.level || "beginner",
+          readerPromise: i.readerPromise,
+          prefilledTitle: i.suggestedTitles?.[i.bestTitleIndex] || i.suggestedTitles?.[0],
+          prefilledSubtitle: i.suggestedSubtitles?.[i.bestTitleIndex] || i.suggestedSubtitles?.[0],
+          totalWordTarget: i.totalWordTarget,
+          autoStart: false,
+        }),
+      );
+
+      setShowIdeaModal(false);
+      toast.info("Brief pronto: scegli lunghezza, capitoli e struttura prima di generare.");
+      navigate("/auto-bestseller");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to prepare bestseller brief");
+    } finally {
+      setLaunching(false);
+    }
   };
 
   const heroValid = idea.trim().length >= 6;
@@ -619,7 +628,7 @@ export default function Home() {
                 className="flex-1 h-11 inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground font-semibold text-sm hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/20"
               >
                 {launching || detecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Flame className="h-4 w-4" />}
-                {launching ? "Launching…" : detecting ? "Detecting…" : "Generate Full Book"}
+                {launching ? "Opening setup…" : detecting ? "Detecting…" : "Configure Full Book"}
               </button>
               {!intent ? (
                 <button
@@ -631,7 +640,7 @@ export default function Home() {
                 </button>
               ) : (
                 <button
-                  onClick={() => { setShowIdeaModal(false); navigate("/auto-bestseller"); }}
+                  onClick={launchOneClick}
                   disabled={launching}
                   className="h-11 px-4 inline-flex items-center justify-center gap-2 rounded-lg bg-secondary text-secondary-foreground font-medium text-sm hover:bg-secondary/80 transition-colors disabled:opacity-50"
                 >
