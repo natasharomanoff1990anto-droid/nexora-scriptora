@@ -647,7 +647,99 @@ Return ONLY the chapter prose. No chapter title line, no preamble, no meta.`;
   // Safer token budget for Auto Bestseller chapters.
   // Huge single-shot generations can stall near the end, especially around 65–80%.
   // We keep enough room for a strong chapter, but avoid endless final-token waiting.
-  const maxTokens = Math.min(4500, Math.ceil(ctx.targetWords * 2.0));
+  const structureMode = String((input as any).bookStructure || "subchapters");
+  const chapterLengthMode = String((input as any).chapterLengthMode || "standard");
+
+  // HARD FIX:
+  // Auto Bestseller must NOT write long chapters in one single DeepSeek run.
+  // Long single-shot chapters stall around 55–75%.
+  // We split each chapter into internal subchapters and generate them one by one.
+  const shouldUseInternalSubchapters =
+    structureMode !== "chapter-only" &&
+    (ctx.targetWords >= 850 || chapterLengthMode !== "short");
+
+  if (shouldUseInternalSubchapters) {
+    const sectionCount =
+      ctx.targetWords <= 1000 ? 2 :
+      ctx.targetWords <= 1600 ? 3 :
+      ctx.targetWords <= 2400 ? 4 : 5;
+
+    const sectionTarget = Math.max(320, Math.ceil(ctx.targetWords / sectionCount));
+    const sectionMaxTokens = Math.min(1800, Math.ceil(sectionTarget * 2.2));
+
+    let fullText = "";
+
+    for (let sectionIndex = 0; sectionIndex < sectionCount; sectionIndex++) {
+      const isOpening = sectionIndex === 0;
+      const isClosing = sectionIndex === sectionCount - 1;
+      const previousSlice = fullText.slice(-1800);
+
+      const sectionRole = isOpening
+        ? "OPENING SUBCHAPTER — hook the reader, establish the chapter conflict, do not over-explain."
+        : isClosing
+          ? "CLOSING SUBCHAPTER — resolve the chapter idea with emotional force and a clean transition."
+          : `DEVELOPMENT SUBCHAPTER ${sectionIndex + 1}/${sectionCount} — deepen one specific angle without repeating previous material.`;
+
+      const sectionPrompt = `${user}
+
+INTERNAL SUBCHAPTER MODE:
+You are NOT writing the whole chapter in one pass.
+You are writing subchapter ${sectionIndex + 1} of ${sectionCount} for Chapter ${chapterIndex + 1}.
+
+SUBCHAPTER ROLE:
+${sectionRole}
+
+TARGET FOR THIS SUBCHAPTER:
+Write approximately ${sectionTarget} words.
+Do NOT try to reach the full chapter target in this pass.
+
+STRUCTURE RULES:
+- Start with a markdown subheading using ##.
+- The subheading must be specific, book-quality, and central to this part.
+- Write only this subchapter.
+- Do not include the chapter title.
+- Do not summarize the whole chapter.
+- Do not repeat previous passages.
+- Keep the prose alive, concrete, and commercially strong.
+${isClosing ? "- Close the chapter cleanly. No cliffhanger unless the genre requires it." : "- End with momentum into the next internal subchapter."}
+
+${previousSlice ? `PREVIOUS INTERNAL SUBCHAPTER ENDING — continue naturally, do not repeat:
+"""
+${previousSlice}
+"""` : ""}
+
+Return ONLY this internal subchapter prose.`;
+
+      let sectionText = "";
+
+      if (onDelta) {
+        sectionText = await callDeepSeekStream(system, sectionPrompt, 0.82, sectionMaxTokens, async (_chunk, acc) => {
+          await onDelta((fullText + "\n\n" + acc).trim());
+        }, `auto_bestseller_chapter_${chapterIndex + 1}_subchapter_${sectionIndex + 1}`);
+      } else {
+        sectionText = await callDeepSeek(system, sectionPrompt, false, 0.82, sectionMaxTokens);
+      }
+
+      sectionText = String(sectionText || "").trim();
+
+      if (!sectionText) {
+        console.warn(`[AutoBestseller] Empty subchapter ${sectionIndex + 1}/${sectionCount} for chapter ${chapterIndex + 1}`);
+        continue;
+      }
+
+      fullText = (fullText + "\n\n" + sectionText).trim();
+
+      if (onDelta) {
+        await onDelta(fullText);
+      }
+    }
+
+    const clean = fullText.trim();
+    if (!clean) throw new Error("Auto Bestseller internal subchapter generation returned empty chapter");
+    return clean;
+  }
+
+  const maxTokens = Math.min(2200, Math.ceil(Math.min(ctx.targetWords, 900) * 2.0));
   if (onDelta) {
     let streamedDraft = "";
     let lastDeltaAt = Date.now();
