@@ -418,10 +418,13 @@ interface ChunkSizeConfig {
 // Timeouts increased — DeepSeek streaming can take 60-90s for LARGE chunks
 // Watchdog in callAIOnce resets on each received byte, so timeout = max IDLE time
 const CHUNK_SIZES: Record<ChunkSize, ChunkSizeConfig> = {
-  LARGE:  { min: 1200, max: 1700, timeout: 150000, label: "Large (1200–1700)" },
-  MEDIUM: { min: 900,  max: 1200, timeout: 120000, label: "Medium (900–1200)" },
-  SMALL:  { min: 600,  max: 900,  timeout: 90000,  label: "Small (600–900)" },
-  MICRO:  { min: 300,  max: 600,  timeout: 60000,  label: "Micro (300–600)" },
+  // Safer production chunking:
+  // DeepSeek can write beautifully, but long final chunks may stall near the end.
+  // Smaller chunks = less drama, more completed chapters.
+  LARGE:  { min: 800, max: 1100, timeout: 240000, label: "Large Safe (800–1100)" },
+  MEDIUM: { min: 600, max: 850,  timeout: 210000, label: "Medium Safe (600–850)" },
+  SMALL:  { min: 400, max: 650,  timeout: 180000, label: "Small Safe (400–650)" },
+  MICRO:  { min: 220, max: 420,  timeout: 120000, label: "Micro Safe (220–420)" },
 };
 
 function selectChunkSize(consecutiveFailures: number): ChunkSize {
@@ -479,7 +482,7 @@ export async function generateChapterChunked(
   let chapterTitle = outline.title;
   let chunkIndex = 0;
   let consecutiveFailures = 0;
-  const maxChunks = Math.ceil(targetWords / 600) + 5; // generous safety cap for adaptive sizing
+  const maxChunks = Math.ceil(targetWords / 400) + 8; // safer cap for smaller chunks and final recovery
 
   if (DEV_DEBUG_STREAM) console.log(`[Nexora] Adaptive chunked generation: target=${targetWords} words, maxChunks=${maxChunks}`);
 
