@@ -1,3 +1,11 @@
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {
+      // Silent fallback: app still works as a normal web app.
+    });
+  });
+}
+
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
