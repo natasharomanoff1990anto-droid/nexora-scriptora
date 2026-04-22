@@ -30,49 +30,49 @@ const TONES = [
 const LANGUAGES = ["English", "Italian", "Spanish", "French", "German", "Portuguese"];
 
 const BOOK_LENGTH_PRESETS = [
-  { value: 8000, label: "Quick Draft · ~8k words" },
-  { value: 15000, label: "Standard Book · ~15k words" },
-  { value: 30000, label: "Pro KDP Book · ~30k words" },
-  { value: 50000, label: "Deep Bestseller · ~50k words" },
+  { value: 8000, label: "Bozza Rapida · ~8k parole" },
+  { value: 15000, label: "Libro Standard · ~15k parole" },
+  { value: 30000, label: "Libro Pro KDP · ~30k parole" },
+  { value: 50000, label: "Bestseller Profondo · ~50k parole" },
 ];
 
 const CHAPTER_LENGTH_MODES = [
-  { value: "short", label: "Short · safer chapters" },
-  { value: "standard", label: "Standard · balanced" },
-  { value: "long", label: "Long · rich chapters" },
+  { value: "short", label: "Breve · più stabile" },
+  { value: "standard", label: "Standard · bilanciato" },
+  { value: "long", label: "Lungo · più ricco" },
 ];
 
 const CHAPTER_STRUCTURES = [
   { value: "simple", label: "Simple chapters" },
-  { value: "subchapters", label: "Chapters with subchapters" },
+  { value: "subchapters", label: "Capitoli with subchapters" },
   { value: "professional", label: "Professional book structure" },
 ];
 
 export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, onGenerateBatch }: Props) {
   const [idea, setIdea] = useState(initialInput?.idea ?? "");
-  const [genre, setGenre] = useState(initialInput?.genre ?? "self-help");
-  const [subcategory, setSubcategory] = useState(initialInput?.subcategory ?? "");
+  const [genre, setGenere] = useState(initialInput?.genre ?? "self-help");
+  const [subcategory, setSottocategoria] = useState(initialInput?.subcategory ?? "");
   const [targetAudience, setTargetAudience] = useState(initialInput?.targetAudience ?? "");
-  const [tone, setTone] = useState(initialInput?.tone ?? "natural");
-  const [language, setLanguage] = useState(initialInput?.language ?? "English");
-  const [numberOfChapters, setNumberOfChapters] = useState(initialInput?.numberOfChapters ?? 8);
+  const [tone, setTono] = useState(initialInput?.tone ?? "natural");
+  const [language, setLingua] = useState(initialInput?.language ?? "English");
+  const [numberOfCapitoli, setNumberOfCapitoli] = useState(initialInput?.numberOfCapitoli ?? 8);
   const [totalWordTarget, setTotalWordTarget] = useState(initialInput?.totalWordTarget ?? 15000);
   const [chapterLengthMode, setChapterLengthMode] = useState<AutoBestsellerInput["chapterLengthMode"]>(initialInput?.chapterLengthMode ?? "standard");
-  const [chapterStructure, setChapterStructure] = useState<AutoBestsellerInput["chapterStructure"]>(initialInput?.chapterStructure ?? "subchapters");
+  const [chapterStruttura, setChapterStruttura] = useState<AutoBestsellerInput["chapterStruttura"]>(initialInput?.chapterStruttura ?? "subchapters");
 
   // Apply external prefill (e.g. from Home or Recent Runs)
   useEffect(() => {
     if (!initialInput) return;
     if (initialInput.idea !== undefined) setIdea(initialInput.idea);
-    if (initialInput.genre !== undefined) setGenre(initialInput.genre);
-    if (initialInput.subcategory !== undefined) setSubcategory(initialInput.subcategory ?? "");
+    if (initialInput.genre !== undefined) setGenere(initialInput.genre);
+    if (initialInput.subcategory !== undefined) setSottocategoria(initialInput.subcategory ?? "");
     if (initialInput.targetAudience !== undefined) setTargetAudience(initialInput.targetAudience);
-    if (initialInput.tone !== undefined) setTone(initialInput.tone);
-    if (initialInput.language !== undefined) setLanguage(initialInput.language);
-    if (initialInput.numberOfChapters !== undefined) setNumberOfChapters(initialInput.numberOfChapters);
+    if (initialInput.tone !== undefined) setTono(initialInput.tone);
+    if (initialInput.language !== undefined) setLingua(initialInput.language);
+    if (initialInput.numberOfCapitoli !== undefined) setNumberOfCapitoli(initialInput.numberOfCapitoli);
     if (initialInput.totalWordTarget !== undefined) setTotalWordTarget(initialInput.totalWordTarget);
     if (initialInput.chapterLengthMode !== undefined) setChapterLengthMode(initialInput.chapterLengthMode);
-    if (initialInput.chapterStructure !== undefined) setChapterStructure(initialInput.chapterStructure);
+    if (initialInput.chapterStruttura !== undefined) setChapterStruttura(initialInput.chapterStruttura);
   }, [initialInput]);
 
   const valid = idea.trim().length > 10 && targetAudience.trim().length > 2;
@@ -84,10 +84,10 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
     targetAudience: targetAudience.trim(),
     tone,
     language,
-    numberOfChapters,
+    numberOfCapitoli,
     totalWordTarget,
     chapterLengthMode,
-    chapterStructure,
+    chapterStruttura,
   });
 
   // Auto-start once when conditions met (e.g. coming from Home with prefilled brief)
@@ -103,15 +103,15 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Flame className="h-5 w-5 text-primary" />
-          Concept Brief
+          Brief Strategico
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div>
-          <Label htmlFor="idea">Idea / Topic</Label>
+          <Label htmlFor="idea">Idea / Argomento</Label>
           <Textarea
             id="idea"
-            placeholder="e.g. A practical guide to overcoming social anxiety using cognitive behavioral techniques"
+            placeholder="Es. Una guida pratica per superare l’ansia sociale con tecniche cognitive e comportamentali"
             value={idea}
             onChange={(e) => setIdea(e.target.value)}
             rows={4}
@@ -121,8 +121,8 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <Label htmlFor="genre">Genre</Label>
-            <Select value={genre} onValueChange={setGenre} disabled={isRunning}>
+            <Label htmlFor="genre">Genere</Label>
+            <Select value={genre} onValueChange={setGenere} disabled={isRunning}>
               <SelectTrigger id="genre"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {GENRES.map((g) => <SelectItem key={g} value={g}>{g}</SelectItem>)}
@@ -130,32 +130,32 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
             </Select>
           </div>
           <div>
-            <Label htmlFor="subcategory">Subcategory <span className="text-muted-foreground text-xs">(optional)</span></Label>
+            <Label htmlFor="subcategory">Sottocategoria <span className="text-muted-foreground text-xs">(opzionale)</span></Label>
             <Input
               id="subcategory"
               value={subcategory}
-              onChange={(e) => setSubcategory(e.target.value)}
-              placeholder="e.g. anxiety, productivity"
+              onChange={(e) => setSottocategoria(e.target.value)}
+              placeholder="Es. ansia, produttività, relazioni, business"
               disabled={isRunning}
             />
           </div>
         </div>
 
         <div>
-          <Label htmlFor="audience">Target Audience</Label>
+          <Label htmlFor="audience">Pubblico di riferimento</Label>
           <Input
             id="audience"
             value={targetAudience}
             onChange={(e) => setTargetAudience(e.target.value)}
-            placeholder="e.g. professionals 25-40 dealing with workplace anxiety"
+            placeholder="Es. professionisti 25-40 anni che vivono ansia sul lavoro"
             disabled={isRunning}
           />
         </div>
 
         <div className="grid grid-cols-3 gap-3">
           <div>
-            <Label htmlFor="tone">Tone</Label>
-            <Select value={tone} onValueChange={setTone} disabled={isRunning}>
+            <Label htmlFor="tone">Tono</Label>
+            <Select value={tone} onValueChange={setTono} disabled={isRunning}>
               <SelectTrigger id="tone"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {TONES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
@@ -163,8 +163,8 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
             </Select>
           </div>
           <div>
-            <Label htmlFor="language">Language</Label>
-            <Select value={language} onValueChange={setLanguage} disabled={isRunning}>
+            <Label htmlFor="language">Lingua</Label>
+            <Select value={language} onValueChange={setLingua} disabled={isRunning}>
               <SelectTrigger id="language"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {LANGUAGES.map((l) => <SelectItem key={l} value={l}>{l}</SelectItem>)}
@@ -172,14 +172,14 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
             </Select>
           </div>
           <div>
-            <Label htmlFor="chapters">Chapters</Label>
+            <Label htmlFor="chapters">Capitoli</Label>
             <Input
               id="chapters"
               type="number"
               min={3}
               max={20}
-              value={numberOfChapters}
-              onChange={(e) => setNumberOfChapters(Math.max(3, Math.min(20, Number(e.target.value) || 8)))}
+              value={numberOfCapitoli}
+              onChange={(e) => setNumberOfCapitoli(Math.max(3, Math.min(20, Number(e.target.value) || 8)))}
               disabled={isRunning}
             />
           </div>
@@ -188,16 +188,16 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
         <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
           <div>
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Book Architecture
+              Architettura del Libro
             </Label>
             <p className="mt-1 text-xs text-muted-foreground">
-              Control the real size and structure before generation. For stability, long chapters are written as internal subchapters.
+              Controlla dimensione reale, ritmo e struttura prima della generazione. Per maggiore stabilità, i capitoli lunghi vengono costruiti come sottocapitoli interni.
             </p>
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <div>
-              <Label htmlFor="book-length">Book Length</Label>
+              <Label htmlFor="book-length">Lunghezza Libro</Label>
               <Select
                 value={String(totalWordTarget)}
                 onValueChange={(v) => setTotalWordTarget(Number(v))}
@@ -213,7 +213,7 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
             </div>
 
             <div>
-              <Label htmlFor="chapter-length-mode">Chapter Length</Label>
+              <Label htmlFor="chapter-length-mode">Lunghezza Capitolo</Label>
               <Select
                 value={chapterLengthMode}
                 onValueChange={(v) => setChapterLengthMode(v as AutoBestsellerInput["chapterLengthMode"])}
@@ -229,10 +229,10 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
             </div>
 
             <div>
-              <Label htmlFor="chapter-structure">Structure</Label>
+              <Label htmlFor="chapter-structure">Struttura</Label>
               <Select
-                value={chapterStructure}
-                onValueChange={(v) => setChapterStructure(v as AutoBestsellerInput["chapterStructure"])}
+                value={chapterStruttura}
+                onValueChange={(v) => setChapterStruttura(v as AutoBestsellerInput["chapterStruttura"])}
                 disabled={isRunning}
               >
                 <SelectTrigger id="chapter-structure"><SelectValue /></SelectTrigger>
@@ -246,13 +246,13 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
           </div>
 
           <div className="rounded-lg bg-background/60 px-3 py-2 text-xs text-muted-foreground">
-            Planned average: <span className="font-semibold text-foreground">
-              ~{Math.max(400, Math.round(totalWordTarget / Math.max(1, numberOfChapters))).toLocaleString()} words/chapter
+            Media prevista: <span className="font-semibold text-foreground">
+              ~{Math.max(400, Math.round(totalWordTarget / Math.max(1, numberOfCapitoli))).toLocaleString()} parole/capitolo
             </span>
             {" · "}
-            {chapterStructure === "subchapters"
-              ? "Each chapter will use internal subchapters."
-              : chapterStructure === "professional"
+            {chapterStruttura === "subchapters"
+              ? "Ogni capitolo userà sottocapitoli interni."
+              : chapterStruttura === "professional"
                 ? "Each chapter will use a complete professional book structure."
                 : "Simple chapter structure."}
           </div>
@@ -265,7 +265,7 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
             onClick={() => onGenerateOne(buildInput())}
           >
             {isRunning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Flame className="mr-2 h-4 w-4" />}
-            Generate Bestseller
+            Genera Bestseller
           </Button>
           <Button
             variant="secondary"
@@ -274,11 +274,11 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
             onClick={() => onGenerateBatch(buildInput(), 10)}
           >
             <Bomb className="mr-2 h-4 w-4" />
-            Generate 10 Books
+            Genera 10 Libri
           </Button>
         </div>
         {!valid && !isRunning && (
-          <p className="text-xs text-muted-foreground">Provide an idea (10+ chars) and target audience to start.</p>
+          <p className="text-xs text-muted-foreground">Inserisci un’idea valida e un pubblico di riferimento per iniziare.</p>
         )}
       </CardContent>
     </Card>
