@@ -686,9 +686,42 @@ Write in ${config.language}.${adaptiveSuffix}`;
       chunkSize,
     });
 
-    // Stop conditions:
-    // Target words are guidance only. Do not stop because of 95%, 105%, or any estimated word wall.
-    // The loop is protected by maxChunks above, so the engine can keep extending naturally without freezing.
+    // SMART COMPLETION GATE:
+    // The chapter target is guidance, not a prison.
+    // But the engine must stop when the chapter is already complete enough.
+    const minAcceptableWords = Math.max(650, Math.floor(targetWords * 0.88));
+    const idealStopWords = Math.max(900, Math.floor(targetWords * 1.05));
+    const hardStopWords = Math.max(1200, Math.floor(targetWords * 1.22));
+
+    const endingSample = accumulatedContent.slice(-900).toLowerCase();
+    const hasEndingShape =
+      /\\b(conclusion|finally|in the end|ultimately|from this moment|this is where|now you|remember|the truth is|and so|because of this|da questo momento|in definitiva|alla fine|ricorda|la verità è|per questo)\\b/i.test(endingSample)
+      || /[.!?][\\s\\n]*$/.test(accumulatedContent.trim());
+
+    if (updatedWords >= idealStopWords && hasEndingShape) {
+      if (DEV_DEBUG_STREAM) {
+        console.log(`[Nexora] Smart stop: ${updatedWords}/${targetWords} words with clean ending.`);
+      }
+      break;
+    }
+
+    if (updatedWords >= hardStopWords) {
+      if (DEV_DEBUG_STREAM) {
+        console.log(`[Nexora] Hard stop: ${updatedWords}/${targetWords} words.`);
+      }
+      break;
+    }
+
+    if (phase === "CLOSURE" && updatedWords >= minAcceptableWords && hasEndingShape) {
+      if (DEV_DEBUG_STREAM) {
+        console.log(`[Nexora] Closure stop: ${updatedWords}/${targetWords} words.`);
+      }
+      break;
+    }
+  }
+
+  if (!accumulatedContent.trim()) {
+    throw new Error("Chapter generation returned empty content.");
   }
 
   // Completion log is essential — kept always on (1 line per chapter).

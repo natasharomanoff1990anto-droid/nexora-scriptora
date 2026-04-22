@@ -151,6 +151,10 @@ export function useBookEngine(syncCallbacks?: SyncCallbacks) {
     }
   }, [project, addMessage, updateAndSave]);
 
+function latestChapterTitleFromBlueprint(proj: any, index: number): string {
+  return proj?.blueprint?.chapterOutlines?.[index]?.title || `Chapter ${index + 1}`;
+}
+
   const generateSingleChapter = useCallback(async (index: number) => {
     const p = getLatestProject() || project;
     if (!p?.blueprint) return;
@@ -213,10 +217,23 @@ export function useBookEngine(syncCallbacks?: SyncCallbacks) {
     } catch (e: any) {
       updateAndSave(proj => {
         const chapters = [...proj.chapters];
-        if (chapters[index]) chapters[index] = { ...chapters[index], status: "error" as GenerationStatus };
+        const existing = chapters[index];
+
+        // Preserve partial content instead of throwing away useful manuscript text.
+        if (existing?.content?.trim()) {
+          chapters[index] = {
+            ...existing,
+            title: existing.title || latestChapterTitleFromBlueprint(proj, index),
+            status: "completed" as GenerationStatus,
+          };
+        } else if (existing) {
+          chapters[index] = { ...existing, status: "error" as GenerationStatus };
+        }
+
         return { ...proj, chapters };
       });
-      addMessage("assistant", `❌ Error generating Chapter ${index + 1}: ${e.message}`);
+
+      addMessage("assistant", `⚠️ Chapter ${index + 1} stopped before perfect completion, but any generated text was preserved. Error: ${e.message}`);
       toast.error(t("toast_gen_failed"));
     } finally {
       removeGenerating(genKey);
