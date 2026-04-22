@@ -95,10 +95,18 @@ export default function Home() {
   };
 
   const handleStart = () => {
-    if (canStart) {
+    if (!canStart) {
+      openConsent();
+      return;
+    }
+
+    // Mobile-safe entry:
+    // Public users go directly to Auth. If already logged in, Auth redirects to Dashboard.
+    // Dev mode still bypasses auth and enters Dashboard immediately.
+    if (devOn || isDevMode()) {
       navigate("/dashboard");
     } else {
-      openConsent();
+      navigate("/auth", { state: { from: "/dashboard" } });
     }
   };
 
