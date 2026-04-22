@@ -10,7 +10,7 @@ import { BookLivePreview, GenerationErrorPanel } from "@/components/AutoBestsell
 import { BatchRun, MultiRunPanel } from "@/components/AutoBestseller/MultiRunPanel";
 import { RecentRunsPanel } from "@/components/AutoBestseller/RecentRunsPanel";
 import { useAutoBestseller } from "@/hooks/useAutoBestseller";
-import { AutoBestsellerInput, AutoBestsellerResult } from "@/services/autoBestsellerService";
+import { AutoBestsellerInput, AutoBestsellerResult, updateRunRow } from "@/services/autoBestsellerService";
 import { autoBestsellerToProject } from "@/lib/auto-bestseller-to-project";
 import { saveProjectAsync } from "@/services/storageService";
 import { LeavePageDialog } from "@/components/AutoBestseller/LeavePageDialog";
@@ -118,7 +118,31 @@ export default function AutoBestsellerPage() {
       e.returnValue = "";
     };
     window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
+  
+  const handleDeleteGeneration = async () => {
+    setSavingDraft(true);
+    try {
+      engine.cancel();
+
+      if (engine.runId) {
+        await updateRunRow(engine.runId, {
+          status: "cancelled",
+          error: "Cancelled by user",
+        } as any);
+      }
+
+      engine.reset();
+      setShowLeaveDialog(false);
+      toast.success("Generazione eliminata");
+    } catch (e) {
+      console.error("Delete generation failed:", e);
+      toast.error("Non sono riuscito a eliminare la generazione");
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  return () => window.removeEventListener("beforeunload", handler);
   }, [engine.isRunning]);
 
   const handleGenerateOne = useCallback(async (input: AutoBestsellerInput) => {
@@ -412,8 +436,9 @@ export default function AutoBestsellerPage() {
         onClose={() => setShowLeaveDialog(false)}
         onContinueInBackground={handleContinueInBackground}
         onSaveDraftAndStop={handleSaveDraftAndStop}
+        onDeleteRun={handleDeleteGeneration}
         saving={savingDraft}
-        hasContent={engine.liveBook.chapters.some((c) => c.phase === "done")}
+        hasContent={engine.liveBook.chapters.length > 0 || engine.isRunning}
         progressPercent={bookProgress.percent}
         progressLabel={`${bookProgress.chaptersDone}/${bookProgress.totalChapters} capitoli completati`}
       />

@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, Save, X, ArrowLeft } from "lucide-react";
+import { Loader2, Save, X, ArrowLeft, Trash2 } from "lucide-react";
 import { ProgressBar } from "@/components/AutoBestseller/ProgressBar";
 
 interface Props {
@@ -8,6 +8,7 @@ interface Props {
   onClose: () => void;
   onContinueInBackground: () => void;
   onSaveDraftAndStop: () => void | Promise<void>;
+  onDeleteRun?: () => void | Promise<void>;
   saving?: boolean;
   hasContent: boolean;
   /** Overall book progress percent (0-100) */
@@ -21,6 +22,7 @@ export function LeavePageDialog({
   onClose,
   onContinueInBackground,
   onSaveDraftAndStop,
+  onDeleteRun,
   saving = false,
   hasContent,
   progressPercent,
@@ -70,7 +72,7 @@ export function LeavePageDialog({
 
           <button
             onClick={() => onSaveDraftAndStop()}
-            disabled={saving || !hasContent}
+            disabled={saving}
             className="group flex w-full items-start gap-3 rounded-lg border border-border bg-card p-3 text-left transition-colors hover:border-amber-500/50 hover:bg-amber-500/5 disabled:opacity-50"
           >
             <div className="mt-0.5 rounded-md bg-amber-500/10 p-2 text-amber-600 dark:text-amber-400">
@@ -81,12 +83,31 @@ export function LeavePageDialog({
                 {saving ? "Salvataggio in corso…" : "Salva bozza e ferma"}
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
-                {hasContent
-                  ? "Salva i capitoli completati come progetto e interrompe la generazione."
-                  : "Disponibile dopo il primo capitolo completato."}
+                "Salva quello che esiste adesso come bozza e interrompe la generazione."
               </p>
             </div>
           </button>
+
+
+          {onDeleteRun && (
+            <button
+              onClick={() => onDeleteRun()}
+              disabled={saving}
+              className="group flex w-full items-start gap-3 rounded-lg border border-destructive/30 bg-card p-3 text-left transition-colors hover:border-destructive/70 hover:bg-destructive/5 disabled:opacity-50"
+            >
+              <div className="mt-0.5 rounded-md bg-destructive/10 p-2 text-destructive">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-destructive">
+                  Elimina generazione
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Ferma lo stream, chiude questa generazione e la rimuove dalla sessione corrente.
+                </p>
+              </div>
+            </button>
+          )}
 
           <button
             onClick={onClose}
