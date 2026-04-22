@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Scriptora</string>
+    <string name="title_activity_main">Scriptora</string>
+    <string name="package_name">com.antoninocampanella.scriptora</string>
+    <string name="custom_url_scheme">com.antoninocampanella.scriptora</string>
+</resources>
