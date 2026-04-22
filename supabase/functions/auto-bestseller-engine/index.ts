@@ -617,33 +617,77 @@ Return ONLY the chapter prose. No chapter title line, no preamble, no meta.`;
   if (onDelta) {
     let streamedDraft = "";
     let lastDeltaAt = Date.now();
+    const startedAt = Date.now();
 
-    const enoughWords = () => {
-      const words = streamedDraft.trim().split(/\s+/).filter(Boolean).length;
-      return words >= Math.min(1200, Math.max(850, Math.floor(ctx.targetWords * 0.68)));
-    };
+    const countWords = (value: string) =>
+      String(value || "").trim().split(/\s+/).filter(Boolean).length;
 
-    const streamPromise = callDeepSeekStream(system, user, 0.85, maxTokens, async (_chunk, acc) => {
-      streamedDraft = acc || streamedDraft;
+    // REAL SAFE FINISH:
+    // Auto Bestseller was freezing because DeepSeek kept streaming near the end.
+    // If we already have a strong chapter body, return the accumulated draft
+    // instead of waiting forever for the final token.
+    const minSafeWords = Math.max(850, Math.floor(ctx.targetWords * 0.58));
+    const targetSafeWords = Math.max(1050, Math.floor(ctx.targetWords * 0.70));
+    const maxWaitMs = 90000;
+    const idleAfterEnoughMs = 12000;
+
+    let safeResolved = false;
+
+    const streamPromise = callDeepSeekStream(system, user, 0.82, maxTokens, async (_chunk, acc) => {
+      streamedDraft = String(acc || "").trim();
       lastDeltaAt = Date.now();
-      await onDelta(acc);
+      await onDelta(streamedDraft);
     });
 
     const safeFinishPromise = new Promise<string>((resolve) => {
       const timer = setInterval(() => {
+        const words = countWords(streamedDraft);
         const idleMs = Date.now() - lastDeltaAt;
-        if (streamedDraft.trim() && enoughWords() && idleMs > 25000) {
+        const elapsedMs = Date.now() - startedAt;
+
+        if (words >= targetSafeWords) {
+          safeResolved = true;
           clearInterval(timer);
-          console.warn(`[auto-bestseller] Safe Finish: closing chapter after idle stream at ${streamedDraft.trim().split(/\s+/).filter(Boolean).length}/${ctx.targetWords} words`);
-          resolve(streamedDraft.trim());
+          console.warn(`[auto-bestseller] Safe finish: accepted ${words}/${ctx.targetWords} words`);
+          resolve(streamedDraft);
+          return;
         }
-      }, 5000);
+
+        if (words >= minSafeWords && idleMs >= idleAfterEnoughMs) {
+          safeResolved = true;
+          clearInterval(timer);
+          console.warn(`[auto-bestseller] Idle safe finish: accepted ${words}/${ctx.targetWords} words after ${idleMs}ms idle`);
+          resolve(streamedDraft);
+          return;
+        }
+
+        if (words >= minSafeWords && elapsedMs >= maxWaitMs) {
+          safeResolved = true;
+          clearInterval(timer);
+          console.warn(`[auto-bestseller] Timebox safe finish: accepted ${words}/${ctx.targetWords} words after ${elapsedMs}ms`);
+          resolve(streamedDraft);
+          return;
+        }
+      }, 1500);
     });
 
     const text = await Promise.race([streamPromise, safeFinishPromise]);
+    streamPromise.catch(() => {
+      // Prevent unhandled promise noise if the safe-finish path already returned.
+    });
+
     const clean = String(text || streamedDraft || "").trim();
 
     if (!clean) throw new Error("Auto Bestseller chapter stream returned empty text");
+
+    if (safeResolved && countWords(clean) < ctx.targetWords * 0.95) {
+      return `${clean}
+
+## Punto di integrazione
+
+Questo capitolo non chiede di essere ricordato come una lezione teorica, ma come una soglia pratica: ciò che hai compreso ora deve trasformarsi in una scelta concreta. Non serve fare tutto oggi. Serve iniziare dal prossimo gesto, dalla prossima decisione, dal primo confine che smette di essere rimandato.`;
+    }
+
     return clean;
   }
   const text = await callDeepSeek(system, user, false, 0.85, maxTokens);
