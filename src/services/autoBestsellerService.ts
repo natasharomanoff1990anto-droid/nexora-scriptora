@@ -14,6 +14,8 @@ export interface AutoBestsellerInput {
   level?: "beginner" | "intermediate" | "advanced";
   readerPromise?: string;
   totalWordTarget?: number;
+  chapterLengthMode?: "short" | "standard" | "long" | "custom";
+  chapterStructure?: "simple" | "subchapters" | "professional";
   prefilledTitle?: string;
   prefilledSubtitle?: string;
 }

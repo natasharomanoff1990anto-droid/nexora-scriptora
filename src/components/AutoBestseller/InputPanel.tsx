@@ -29,6 +29,25 @@ const TONES = [
 
 const LANGUAGES = ["English", "Italian", "Spanish", "French", "German", "Portuguese"];
 
+const BOOK_LENGTH_PRESETS = [
+  { value: 8000, label: "Quick Draft · ~8k words" },
+  { value: 15000, label: "Standard Book · ~15k words" },
+  { value: 30000, label: "Pro KDP Book · ~30k words" },
+  { value: 50000, label: "Deep Bestseller · ~50k words" },
+];
+
+const CHAPTER_LENGTH_MODES = [
+  { value: "short", label: "Short · safer chapters" },
+  { value: "standard", label: "Standard · balanced" },
+  { value: "long", label: "Long · rich chapters" },
+];
+
+const CHAPTER_STRUCTURES = [
+  { value: "simple", label: "Simple chapters" },
+  { value: "subchapters", label: "Chapters with subchapters" },
+  { value: "professional", label: "Professional book structure" },
+];
+
 export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, onGenerateBatch }: Props) {
   const [idea, setIdea] = useState(initialInput?.idea ?? "");
   const [genre, setGenre] = useState(initialInput?.genre ?? "self-help");
@@ -37,6 +56,9 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
   const [tone, setTone] = useState(initialInput?.tone ?? "natural");
   const [language, setLanguage] = useState(initialInput?.language ?? "English");
   const [numberOfChapters, setNumberOfChapters] = useState(initialInput?.numberOfChapters ?? 8);
+  const [totalWordTarget, setTotalWordTarget] = useState(initialInput?.totalWordTarget ?? 15000);
+  const [chapterLengthMode, setChapterLengthMode] = useState<AutoBestsellerInput["chapterLengthMode"]>(initialInput?.chapterLengthMode ?? "standard");
+  const [chapterStructure, setChapterStructure] = useState<AutoBestsellerInput["chapterStructure"]>(initialInput?.chapterStructure ?? "subchapters");
 
   // Apply external prefill (e.g. from Home or Recent Runs)
   useEffect(() => {
@@ -48,6 +70,9 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
     if (initialInput.tone !== undefined) setTone(initialInput.tone);
     if (initialInput.language !== undefined) setLanguage(initialInput.language);
     if (initialInput.numberOfChapters !== undefined) setNumberOfChapters(initialInput.numberOfChapters);
+    if (initialInput.totalWordTarget !== undefined) setTotalWordTarget(initialInput.totalWordTarget);
+    if (initialInput.chapterLengthMode !== undefined) setChapterLengthMode(initialInput.chapterLengthMode);
+    if (initialInput.chapterStructure !== undefined) setChapterStructure(initialInput.chapterStructure);
   }, [initialInput]);
 
   const valid = idea.trim().length > 10 && targetAudience.trim().length > 2;
@@ -60,6 +85,9 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
     tone,
     language,
     numberOfChapters,
+    totalWordTarget,
+    chapterLengthMode,
+    chapterStructure,
   });
 
   // Auto-start once when conditions met (e.g. coming from Home with prefilled brief)
@@ -154,6 +182,79 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
               onChange={(e) => setNumberOfChapters(Math.max(3, Math.min(20, Number(e.target.value) || 8)))}
               disabled={isRunning}
             />
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-border/60 bg-muted/20 p-4 space-y-3">
+          <div>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Book Architecture
+            </Label>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Control the real size and structure before generation. For stability, long chapters are written as internal subchapters.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div>
+              <Label htmlFor="book-length">Book Length</Label>
+              <Select
+                value={String(totalWordTarget)}
+                onValueChange={(v) => setTotalWordTarget(Number(v))}
+                disabled={isRunning}
+              >
+                <SelectTrigger id="book-length"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {BOOK_LENGTH_PRESETS.map((p) => (
+                    <SelectItem key={p.value} value={String(p.value)}>{p.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="chapter-length-mode">Chapter Length</Label>
+              <Select
+                value={chapterLengthMode}
+                onValueChange={(v) => setChapterLengthMode(v as AutoBestsellerInput["chapterLengthMode"])}
+                disabled={isRunning}
+              >
+                <SelectTrigger id="chapter-length-mode"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CHAPTER_LENGTH_MODES.map((p) => (
+                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="chapter-structure">Structure</Label>
+              <Select
+                value={chapterStructure}
+                onValueChange={(v) => setChapterStructure(v as AutoBestsellerInput["chapterStructure"])}
+                disabled={isRunning}
+              >
+                <SelectTrigger id="chapter-structure"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CHAPTER_STRUCTURES.map((p) => (
+                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="rounded-lg bg-background/60 px-3 py-2 text-xs text-muted-foreground">
+            Planned average: <span className="font-semibold text-foreground">
+              ~{Math.max(400, Math.round(totalWordTarget / Math.max(1, numberOfChapters))).toLocaleString()} words/chapter
+            </span>
+            {" · "}
+            {chapterStructure === "subchapters"
+              ? "Each chapter will use internal subchapters."
+              : chapterStructure === "professional"
+                ? "Each chapter will use a complete professional book structure."
+                : "Simple chapter structure."}
           </div>
         </div>
 

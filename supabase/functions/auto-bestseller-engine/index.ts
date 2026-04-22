@@ -584,6 +584,34 @@ async function writeChapter(
       ? "CLOSING CHAPTER — synthesize, give a final actionable framework, leave the reader empowered."
       : `MIDDLE CHAPTER ${chapterIndex + 1}/${total} — build PROGRESSIVELY on previous chapters, introduce a new angle, deepen.`;
 
+  const chapterLengthMode = input.chapterLengthMode || "standard";
+  const chapterStructure = input.chapterStructure || "subchapters";
+
+  const structureDirective =
+    chapterStructure === "professional"
+      ? `PROFESSIONAL STRUCTURE REQUIRED:
+- Write this chapter as a complete professional book chapter.
+- Use 3 to 5 internal sections with markdown ## headings.
+- Each section must have a clear function: hook, explanation, example, practical application, closing synthesis.
+- Avoid one huge uninterrupted block of prose.
+- The table of contents already contains the main chapter; these internal headings make the chapter readable and production-ready.`
+      : chapterStructure === "subchapters"
+        ? `SUBCHAPTER STRUCTURE REQUIRED:
+- Divide this chapter into 3 to 4 internal subchapters using markdown ## headings.
+- Each subchapter should feel like a small complete movement.
+- Keep each section focused, compact, and easy to continue if generation resumes.
+- Avoid writing one long 1500-word monolith.`
+        : `SIMPLE STRUCTURE:
+- Use clean paragraphs and only 1 to 2 markdown ## headings if needed.
+- Keep the chapter focused and readable.`;
+
+  const lengthDirective =
+    chapterLengthMode === "short"
+      ? "Write compactly. Prioritize completion and clarity over expansion."
+      : chapterLengthMode === "long"
+        ? "Write richly, but structure the chapter into clear internal sections so generation remains stable."
+        : "Write with balanced depth and strong pacing.";
+
   const system = `You are a bestselling ${input.genre} author writing for Amazon KDP top-100 competition. Write in ${input.language || "English"}. Voice: ${input.tone || "native to genre"}. Reader level: ${level}. Never generic, never AI-flat, never safe. NEVER repeat content from earlier chapters.`;
   const user = `BOOK: "${title}" — ${subtitle}
 GENRE: ${input.genre}${input.subcategory ? ` (${input.subcategory})` : ""}
@@ -598,6 +626,12 @@ BOOK OVERVIEW: ${blueprint.overview}
 ${previousBlock}${avoidBlock}
 PRACTICAL REQUIREMENT (mandatory):
 ${ctx.practicalDirective}
+
+STRUCTURE REQUIREMENT:
+${structureDirective}
+
+LENGTH MODE:
+${lengthDirective}
 
 WRITE THIS CHAPTER NOW.
 - Target length: ${ctx.targetWords} words (±10%)
