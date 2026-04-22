@@ -503,22 +503,17 @@ export async function generateChapterChunked(
     const currentWords = countWords(accumulatedContent);
     const phase = getChunkPhase(currentWords, targetWords);
     const phaseInstruction = getPhaseInstruction(phase);
-    const remainingWords = targetWords - currentWords;
+    const remainingWords = Math.max(600, targetWords - currentWords);
 
     // Stop if past target
-    if (currentWords >= targetWords * 1.1) {
-      if (DEV_DEBUG_STREAM) console.log(`[Nexora] Target exceeded (${currentWords}/${targetWords}), stopping`);
-      break;
-    }
+    // Target words are guidance only, never a hard wall.
+    // Do not stop just because the estimated chapter target was exceeded.
 
     // Professional continuation guard:
     // Never close the chapter early at 850/1200 words.
     // Keep generating until the real target range is reached.
-    if (chunkIndex > 0 && currentWords >= targetWords * 0.98 && phase === "CLOSURE") {
-      if (DEV_DEBUG_STREAM) {
-        console.log(`[Nexora] Chapter is near target (${currentWords}/${targetWords}); preparing natural closure`);
-      }
-    }
+    // Do not force closure merely because the chapter is near the estimated target.
+    // The continuation loop decides based on safety caps and generated content.
 
     // Adaptive chunk size selection
     const chunkSize = selectChunkSize(consecutiveFailures);
@@ -691,15 +686,9 @@ Write in ${config.language}.${adaptiveSuffix}`;
       chunkSize,
     });
 
-    // Stop conditions
-    if (phase === "CLOSURE" && updatedWords >= targetWords * 0.95) {
-      if (DEV_DEBUG_STREAM) console.log(`[Nexora] Closure phase complete at ${updatedWords} words`);
-      break;
-    }
-    if (updatedWords >= targetWords * 1.05) {
-      if (DEV_DEBUG_STREAM) console.log(`[Nexora] Target reached at ${updatedWords} words`);
-      break;
-    }
+    // Stop conditions:
+    // Target words are guidance only. Do not stop because of 95%, 105%, or any estimated word wall.
+    // The loop is protected by maxChunks above, so the engine can keep extending naturally without freezing.
   }
 
   // Completion log is essential — kept always on (1 line per chapter).
