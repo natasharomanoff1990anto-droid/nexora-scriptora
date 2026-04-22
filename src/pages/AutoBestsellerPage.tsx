@@ -71,7 +71,14 @@ export default function AutoBestsellerPage() {
             prefilledSubtitle: parsed.prefilledSubtitle,
             totalWordTarget: parsed.totalWordTarget,
           };
-          handleGenerateOne(fullInput);
+          // Do NOT auto-start here.
+          // First show the full brief so the user can choose length, chapter mode,
+          // number of chapters and pro structure before generation starts.
+          setPrefill(fullInput);
+          setLastInput(fullInput);
+          setAutoStart(false);
+          setBriefCollapsed(false);
+          toast.info("Brief caricato: scegli lunghezza, capitoli e struttura, poi genera.");
         }
         return;
       } catch { /* ignore */ }
