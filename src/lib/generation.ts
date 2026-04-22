@@ -800,13 +800,22 @@ CRITICAL — BESTSELLER QUALITY TITLES:
 - Titles should be evocative, intriguing, or provocative — NOT generic or descriptive
 - Think bestseller table of contents that sells the book on its own
 
-Return a JSON object with:
-- overview: A 2-3 paragraph overview of the book's thesis and emotional journey (in ${config.language})
+Return a COMPACT valid JSON object with:
+- overview: maximum 900 characters, clear and marketable (in ${config.language})
 - chapterOutlines: Array of {title, summary${config.subchaptersEnabled ? ', subchapters: [{title, summary}]' : ''}} (in ${config.language})
-- themes: Array of core themes (in ${config.language})
-- emotionalArc: Description of the emotional progression (in ${config.language})
+- themes: 4-8 short core themes (in ${config.language})
+- emotionalArc: maximum 700 characters (in ${config.language})
 
-  Return ONLY valid JSON, no markdown.`;
+STRICT JSON SIZE RULES:
+- Each chapter summary must be maximum 260 characters.
+- Each subchapter summary must be maximum 180 characters.
+- Do NOT write long paragraphs inside JSON fields.
+- Do NOT add extra keys.
+- Do NOT include markdown.
+- Do NOT include commentary before or after the JSON.
+- The JSON must be complete and parseable.
+
+Return ONLY valid JSON, no markdown.`;
 
   const result = await callBlueprintFast(
     getSystemPrompt(config, genreLock) + " You are creating a book architecture optimized for the genre profile above.",
