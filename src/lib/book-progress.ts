@@ -4,7 +4,7 @@ import type { LiveBook } from "@/hooks/useAutoBestseller";
  * Estimate of words per chapter when no explicit target is provided.
  * Used only for the per-chapter progress bar, never persisted.
  */
-const DEFAULT_WORDS_PER_CHAPTER = 1500;
+const DEFAULT_WORDS_PER_CHAPTER = 3500;
 
 /** Count words by simple whitespace split — fast and good enough for progress UI. */
 export function countWords(text: string | undefined | null): number {

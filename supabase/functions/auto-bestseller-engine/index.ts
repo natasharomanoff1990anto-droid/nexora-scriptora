@@ -64,7 +64,7 @@ function distributeChapterWords(totalChapters: number, totalTarget: number): num
   const sum = weights.reduce((a, b) => a + b, 0);
   return weights.map((w) => {
     const raw = Math.round((w / sum) * totalTarget);
-    return Math.max(1500, Math.min(4000, raw));
+    return Math.max(1800, Math.min(9000, raw));
   });
 }
 
@@ -601,7 +601,7 @@ async function writeChapter(
 - Divide this chapter into 3 to 4 internal subchapters using markdown ## headings.
 - Each subchapter should feel like a small complete movement.
 - Keep each section focused, compact, and easy to continue if generation resumes.
-- Avoid writing one long 1500-word monolith.`
+- Avoid writing one flat monolith. Structure the chapter into strong, readable sections with clear progression.`
         : `SIMPLE STRUCTURE:
 - Use clean paragraphs and only 1 to 2 markdown ## headings if needed.
 - Keep the chapter focused and readable.`;

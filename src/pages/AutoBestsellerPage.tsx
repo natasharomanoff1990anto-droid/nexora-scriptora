@@ -468,54 +468,50 @@ export default function AutoBestsellerPage() {
         </section>
 
       {engine.isRunning && (
-        <div className="fixed bottom-4 right-4 z-50 w-[min(92vw,360px)] rounded-2xl border border-border bg-card/95 p-4 shadow-2xl backdrop-blur">
-          <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="fixed right-4 top-20 z-40 w-[min(92vw,260px)] rounded-full border border-primary/25 bg-background/90 px-3 py-2 shadow-lg backdrop-blur">
+          <div className="flex items-center justify-between gap-2">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Scrittura automatica in corso
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Auto-writing
               </p>
-              <p className="text-sm font-bold text-foreground">
-                Tempo trascorso: {elapsedLabel}
+              <p className="text-xs font-bold text-foreground">
+                {elapsedLabel}
               </p>
             </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <div className="hidden h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary sm:flex">
               ✒️
             </div>
           </div>
 
-          <div className="mb-3 h-2 overflow-hidden rounded-full bg-muted">
+          <div className="mt-2 h-1 overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full bg-primary transition-all duration-700"
               style={{ width: `${Math.min(95, Math.max(8, bookProgress.percent || 8))}%` }}
             />
           </div>
 
-          <div className="flex gap-2">
+          <div className="mt-2 flex gap-1">
             <Button
               variant="destructive"
               size="sm"
-              className="flex-1"
+              className="flex-1 rounded-full text-xs"
               onClick={() => {
                 engine.cancel();
                 setShowLeaveDialog(false);
                 toast.info("Generazione fermata. Puoi ripartire da una nuova bozza.");
               }}
             >
-              Ferma ora
+              Ferma
             </Button>
             <Button
               variant="outline"
               size="sm"
-              className="flex-1"
+              className="flex-1 rounded-full text-xs"
               onClick={() => setShowLeaveDialog(true)}
             >
               Opzioni
             </Button>
           </div>
-
-          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-            Se un capitolo resta troppo a lungo senza avanzare, il sistema ora lo chiude e passa al successivo.
-          </p>
         </div>
       )}
 
