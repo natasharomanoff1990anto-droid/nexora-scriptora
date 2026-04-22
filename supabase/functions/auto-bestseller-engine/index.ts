@@ -610,12 +610,41 @@ WRITE THIS CHAPTER NOW.
 
 Return ONLY the chapter prose. No chapter title line, no preamble, no meta.`;
 
-  const maxTokens = Math.min(8000, Math.ceil(ctx.targetWords * 2.5));
+  // Safer token budget for Auto Bestseller chapters.
+  // Huge single-shot generations can stall near the end, especially around 65–80%.
+  // We keep enough room for a strong chapter, but avoid endless final-token waiting.
+  const maxTokens = Math.min(4500, Math.ceil(ctx.targetWords * 2.0));
   if (onDelta) {
-    const text = await callDeepSeekStream(system, user, 0.85, maxTokens, async (_chunk, acc) => {
+    let streamedDraft = "";
+    let lastDeltaAt = Date.now();
+
+    const enoughWords = () => {
+      const words = streamedDraft.trim().split(/\s+/).filter(Boolean).length;
+      return words >= Math.min(1200, Math.max(850, Math.floor(ctx.targetWords * 0.68)));
+    };
+
+    const streamPromise = callDeepSeekStream(system, user, 0.85, maxTokens, async (_chunk, acc) => {
+      streamedDraft = acc || streamedDraft;
+      lastDeltaAt = Date.now();
       await onDelta(acc);
     });
-    return text.trim();
+
+    const safeFinishPromise = new Promise<string>((resolve) => {
+      const timer = setInterval(() => {
+        const idleMs = Date.now() - lastDeltaAt;
+        if (streamedDraft.trim() && enoughWords() && idleMs > 25000) {
+          clearInterval(timer);
+          console.warn(`[auto-bestseller] Safe Finish: closing chapter after idle stream at ${streamedDraft.trim().split(/\s+/).filter(Boolean).length}/${ctx.targetWords} words`);
+          resolve(streamedDraft.trim());
+        }
+      }, 5000);
+    });
+
+    const text = await Promise.race([streamPromise, safeFinishPromise]);
+    const clean = String(text || streamedDraft || "").trim();
+
+    if (!clean) throw new Error("Auto Bestseller chapter stream returned empty text");
+    return clean;
   }
   const text = await callDeepSeek(system, user, false, 0.85, maxTokens);
   return text.trim();
