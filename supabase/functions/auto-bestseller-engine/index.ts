@@ -819,6 +819,30 @@ Questo capitolo non chiede di essere ricordato come una lezione teorica, ma come
 }
 
 // Compress a chapter into editorial memory (summary + concept list)
+
+async function withStageTimeout<T>(
+  label: string,
+  promise: Promise<T>,
+  timeoutMs = 45000,
+  fallback?: T,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((resolve, reject) => {
+        timer = setTimeout(() => {
+          console.warn(`[AutoBestseller] ${label} timed out after ${timeoutMs}ms`);
+          if (fallback !== undefined) resolve(fallback);
+          else reject(new Error(`${label} timed out`));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 async function summarizeChapter(chapterTitle: string, chapterText: string): Promise<{ summary: string; concepts: string[] }> {
   try {
     const truncated = chapterText.slice(0, 6000);
@@ -1085,6 +1109,7 @@ Length: ~800 words. Self-contained, no preamble. Plain prose, no JSON.`;
     // ====== Phase D: MEMORY — best-effort ======
     try {
       const mem = await summarizeChapter(outline.title, refined.finalText);
+      console.log(`[AutoBestseller] Moving to next chapter after ${chapterTitle}`);
       previousSummaries.push(mem.summary);
       for (const c of mem.concepts) {
         if (!coveredConcepts.includes(c)) coveredConcepts.push(c);
