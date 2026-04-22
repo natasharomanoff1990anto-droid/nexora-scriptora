@@ -392,7 +392,7 @@ function getPhaseInstruction(phase: ChunkPhase): string {
     case "TRANSITION":
       return "Begin guiding toward resolution. Tie threads together. Start the emotional convergence toward the chapter's conclusion.";
     case "CLOSURE":
-      return "Write a powerful, satisfying ending. Create emotional payoff. The final paragraph must feel inevitable and resonant. DO NOT expand further — CLOSE the chapter.";
+      return "Write toward a powerful, satisfying ending only when the chapter genuinely feels complete. Create emotional payoff, but do not rush closure or cut the chapter short.";
   }
 }
 
@@ -495,9 +495,9 @@ export async function generateChapterChunked(
   let chapterTitle = outline.title;
   let chunkIndex = 0;
   let consecutiveFailures = 0;
-  const maxChunks = Math.ceil(targetWords / 400) + 8; // safer cap for smaller chunks and final recovery
+  const maxChunks = Math.max(80, Math.ceil(targetWords / 250) + 30); // safety cap only: prevents infinite loops, never acts as chapter-length wall
 
-  if (DEV_DEBUG_STREAM) console.log(`[Nexora] Adaptive chunked generation: target=${targetWords} words, maxChunks=${maxChunks}`);
+  if (DEV_DEBUG_STREAM) console.log(`[Nexora] Adaptive chunked generation: target=${targetWords} words, safetyMaxChunks=${maxChunks}`);
 
   while (chunkIndex < maxChunks) {
     const currentWords = countWords(accumulatedContent);
@@ -678,7 +678,7 @@ Write in ${config.language}.${adaptiveSuffix}`;
     // Report progress
     onChunkProgress?.({
       chunkIndex,
-      totalChunks: Math.ceil(targetWords / 1400),
+      totalChunks: maxChunks,
       currentWords: updatedWords,
       targetWords,
       phase,
