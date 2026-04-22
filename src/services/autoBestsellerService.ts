@@ -98,7 +98,10 @@ export function runAutoBestsellerStream(
     try {
       const resp = await fetch(url, {
         method: "GET",
-        headers: { Accept: "text/event-stream", Authorization: `Bearer ${PUBLISHABLE_KEY}` },
+        headers: {
+          Accept: "text/event-stream",
+          apikey: PUBLISHABLE_KEY,
+        },
         signal: controller.signal,
       });
       if (!resp.ok || !resp.body) {
