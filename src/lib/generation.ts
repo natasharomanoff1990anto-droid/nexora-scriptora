@@ -511,9 +511,12 @@ export async function generateChapterChunked(
       break;
     }
 
-    // Stop if CLOSURE was already written
-    if (phase === "CLOSURE" && currentWords >= targetWords * 0.9 && chunkIndex > 1) {
-      if (DEV_DEBUG_STREAM) console.log(`[Nexora] Closure already written, stopping`);
+    // Safe Finish Guard:
+    // If we are already in the closing phase and the chapter has enough body,
+    // stop instead of asking DeepSeek for another risky final chunk.
+    // This prevents the classic "stuck near the end" problem.
+    if (phase === "CLOSURE" && currentWords >= targetWords * 0.72 && chunkIndex > 0) {
+      console.warn(`[Nexora] Safe Finish Guard: closing chapter at ${currentWords}/${targetWords} words`);
       break;
     }
 
