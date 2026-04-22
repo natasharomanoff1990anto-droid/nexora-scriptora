@@ -842,6 +842,46 @@ Return JSON: { "summary": "2-3 sentence factual recap of what this chapter actua
   }
 }
 
+
+async function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  const timeout = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${ms}ms`));
+    }, ms);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+async function refineChapterSafe(input: OrchestratorInput, chapterTitle: string, chapterText: string) {
+  try {
+    return await withTimeout(
+      refineChapter(input, chapterTitle, chapterText),
+      25000,
+      "Auto Bestseller refining"
+    );
+  } catch (e) {
+    console.warn("[Auto Bestseller] Refining skipped, using original draft:", e instanceof Error ? e.message : e);
+    return {
+      content: chapterText,
+      coachReport: {
+        skipped: true,
+        reason: e instanceof Error ? e.message : "Refining timeout",
+        note: "Refining was skipped to keep book generation moving."
+      },
+      voice: null,
+      rewriteConfidence: 0,
+      finalScore: 7.5
+    };
+  }
+}
+
 async function refineChapter(input: OrchestratorInput, chapterTitle: string, chapterText: string) {
   let coachReport: any = null;
   let autoFixBlock = "";
@@ -1027,7 +1067,7 @@ Length: ~800 words. Self-contained, no preamble. Plain prose, no JSON.`;
     await send("chapter", { index: i, total, phase: "refining", title: outline.title });
     let refined: { finalText: string; coachReport?: any; voice?: any; rewriteConfidence: number; finalScore: number };
     try {
-      refined = await refineChapter(input, outline.title, draft);
+      refined = await refineChapterSafe(input, outline.title, draft);
     } catch (e) {
       console.error(`[runPipeline] refineChapter ch${i + 1} failed — using draft as-is:`, e);
       refined = { finalText: draft, rewriteConfidence: 0.5, finalScore: 6 };
