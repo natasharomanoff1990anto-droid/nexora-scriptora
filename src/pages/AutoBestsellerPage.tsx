@@ -47,6 +47,33 @@ export default function AutoBestsellerPage() {
   const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
 
+  const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
+  const [elapsedMs, setElapsedMs] = useState(0);
+
+  useEffect(() => {
+    if (!engine.isRunning) {
+      setRunStartedAt(null);
+      setElapsedMs(0);
+      return;
+    }
+
+    const started = runStartedAt ?? Date.now();
+    if (!runStartedAt) setRunStartedAt(started);
+
+    const timer = window.setInterval(() => {
+      setElapsedMs(Date.now() - started);
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [engine.isRunning, runStartedAt]);
+
+  const elapsedLabel = (() => {
+    const total = Math.max(0, Math.floor(elapsedMs / 1000));
+    const min = Math.floor(total / 60);
+    const sec = total % 60;
+    return `${min}:${String(sec).padStart(2, "0")}`;
+  })();
+
   // Pick up brief from Home OR re-attach to an active run from a previous navigation
   useEffect(() => {
     const raw = sessionStorage.getItem("nexora-auto-brief");
@@ -439,6 +466,59 @@ export default function AutoBestsellerPage() {
             </div>
           )}
         </section>
+
+      {engine.isRunning && (
+        <div className="fixed bottom-4 right-4 z-50 w-[min(92vw,360px)] rounded-2xl border border-border bg-card/95 p-4 shadow-2xl backdrop-blur">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Scrittura automatica in corso
+              </p>
+              <p className="text-sm font-bold text-foreground">
+                Tempo trascorso: {elapsedLabel}
+              </p>
+            </div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+              ✒️
+            </div>
+          </div>
+
+          <div className="mb-3 h-2 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-700"
+              style={{ width: `${Math.min(95, Math.max(8, bookProgress.percent || 8))}%` }}
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              variant="destructive"
+              size="sm"
+              className="flex-1"
+              onClick={() => {
+                engine.cancel();
+                setShowLeaveDialog(false);
+                toast.info("Generazione fermata. Puoi ripartire da una nuova bozza.");
+              }}
+            >
+              Ferma ora
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={() => setShowLeaveDialog(true)}
+            >
+              Opzioni
+            </Button>
+          </div>
+
+          <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+            Se un capitolo resta troppo a lungo senza avanzare, il sistema ora lo chiude e passa al successivo.
+          </p>
+        </div>
+      )}
+
       </main>
 
       <LeavePageDialog
