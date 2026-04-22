@@ -118,7 +118,8 @@ export default function AutoBestsellerPage() {
       e.returnValue = "";
     };
     window.addEventListener("beforeunload", handler);
-  
+
+
   const handleDeleteGeneration = async () => {
     setSavingDraft(true);
     try {
@@ -141,6 +142,7 @@ export default function AutoBestsellerPage() {
       setSavingDraft(false);
     }
   };
+
 
   return () => window.removeEventListener("beforeunload", handler);
   }, [engine.isRunning]);
