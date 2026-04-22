@@ -68,9 +68,19 @@ class AICreditsError extends Error {
 
 async function callAIOnce(systemPrompt: string, userPrompt: string, timeoutMs: number = 300000): Promise<string> {
   const controller = new AbortController();
-  // Use a watchdog: reset whenever we receive bytes (DeepSeek can be slow but
-  // streaming → we only abort on TRUE silence).
+
+  // Two-layer protection:
+  // 1) idle watchdog: aborts when no bytes arrive.
+  // 2) hard deadline: aborts even if keepalive whitespace keeps arriving forever.
+  // This prevents chapters from getting stuck forever near the final chunk.
   let lastByteAt = Date.now();
+  const hardDeadlineMs = Math.max(120000, Math.min(timeoutMs + 60000, 300000));
+
+  const hardDeadline = setTimeout(() => {
+    console.warn(`[Nexora] Hard AI deadline reached after ${hardDeadlineMs}ms — aborting`);
+    controller.abort();
+  }, hardDeadlineMs);
+
   const watchdog = setInterval(() => {
     if (Date.now() - lastByteAt > timeoutMs) {
       console.warn(`[Nexora] No bytes received for ${timeoutMs}ms — aborting`);
@@ -111,6 +121,7 @@ async function callAIOnce(systemPrompt: string, userPrompt: string, timeoutMs: n
       buffer += decoder.decode(value, { stream: true });
     }
     clearInterval(watchdog);
+    clearTimeout(hardDeadline);
 
     const marker = buffer.lastIndexOf("__RESULT__");
     if (marker === -1) {
@@ -127,6 +138,8 @@ async function callAIOnce(systemPrompt: string, userPrompt: string, timeoutMs: n
     if (DEV_DEBUG_STREAM) console.log("[Nexora] AI response received:", parsed.content.length, "chars");
     return parsed.content;
   } catch (e: any) {
+    clearInterval(watchdog);
+    clearTimeout(hardDeadline);
     clearInterval(watchdog);
     if (e.name === "AbortError") throw new Error("Generation timed out (no response)");
     throw e;
@@ -595,6 +608,11 @@ Write in ${config.language}.${adaptiveSuffix}`;
       if (e instanceof AICreditsError) throw e;
 
       // After 6 consecutive failures, try emergency fallback or stop gracefully
+      if (consecutiveFailures > 3 && countWords(accumulatedContent) >= targetWords * 0.7) {
+        console.warn(`[Nexora] Safe finish activated at ${countWords(accumulatedContent)}/${targetWords} words after ${consecutiveFailures} failures`);
+        break;
+      }
+
       if (consecutiveFailures > 6) {
         if (chunkIndex === 0) {
           // Last-resort fallback for first chunk: smaller/simpler prompt
