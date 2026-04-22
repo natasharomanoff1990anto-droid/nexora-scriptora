@@ -56,7 +56,7 @@ export default function AuthPage() {
       return;
     }
     setBusy(true);
-    const redirectUrl = `${window.location.origin}/dashboard`;
+    const redirectUrl = `${window.location.origin}/auth`;
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -83,7 +83,7 @@ export default function AuthPage() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/dashboard`,
+        redirectTo: `${window.location.origin}/auth`,
       },
     });
     if (error) {
