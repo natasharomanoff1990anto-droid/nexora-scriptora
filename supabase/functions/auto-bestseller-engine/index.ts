@@ -843,20 +843,27 @@ async function withStageTimeout<T>(
   }
 }
 
-async function summarizeChapter(chapterTitle: string, chapterText: string): Promise<{
-  // FAST LOCAL SUMMARY:
-  // Never call AI here during full-book generation.
-  // This avoids stalls after chapter completion and lets the engine continue to the next chapter.
-  const clean = String(chapterText || "").replace(/\s+/g, " ").trim();
-  const excerpt = clean.slice(0, 500);
-  return {
-    summary: excerpt || chapterTitle,
-    concepts: String(chapterTitle || "")
-      .split(/[:\-–—,]/)
-      .map((x) => x.trim())
-      .filter(Boolean)
-      .slice(0, 6),
-  };
+async function summarizeChapter(chapterTitle: string, chapterText: string): Promise<{ summary: string; concepts: string[] }> {
+  try {
+    const truncated = chapterText.slice(0, 6000);
+    const parsed = await callDeepSeekJson(
+      "You compress book chapters into editorial memory. Output STRICT JSON only.",
+      `Chapter title: "${chapterTitle}"
+Chapter text:
+${truncated}
+
+Return JSON: { "summary": "2-3 sentence factual recap of what this chapter actually delivered", "concepts": ["5-8 short noun phrases — the specific concepts/techniques/examples introduced"] }`,
+      0.3,
+      600,
+    );
+    return {
+      summary: String(parsed.summary || "").slice(0, 400),
+      concepts: Array.isArray(parsed.concepts) ? parsed.concepts.slice(0, 8).map((c: any) => String(c)) : [],
+    };
+  } catch (e) {
+    console.error("summarizeChapter failed:", e);
+    return { summary: chapterTitle, concepts: [] };
+  }
 }
 
 
@@ -900,21 +907,42 @@ async function refineChapterSafe(input: OrchestratorInput, chapterTitle: string,
 }
 
 async function refineChapter(input: OrchestratorInput, chapterTitle: string, chapterText: string) {
-  // AUTO-BESTSELLER FAST FLOW:
-  // Do NOT block generation between chapters.
-  // Refining can hang on long AI calls and prevents chapter 2 from starting.
-  // We return the draft immediately, then deeper improvement can happen later in the editor.
+  let coachReport: any = null;
+  let autoFixBlock = "";
+  try {
+    const coach = await invokeFunction("genre-coach", {
+      chapterTitle, chapterText,
+      language: input.language || "English",
+      genreProfile: { genre: input.genre, subcategory: input.subcategory },
+    });
+    coachReport = coach.parsed || coach;
+    autoFixBlock = coachReport?.autoFixPromptBlock || coach?.autoFixPromptBlock || "";
+  } catch (e) {
+    console.error("genre-coach failed:", e);
+  }
+
+  let dominate: any = null;
+  try {
+    dominate = await invokeFunction("dominate-chapter", {
+      chapterTitle, chapterText,
+      genre: input.genre,
+      subcategory: input.subcategory,
+      tone: input.tone || "",
+      language: input.language || "English",
+      threshold: 8.5,
+      iteration: 1,
+      genreAutoFixBlock: autoFixBlock,
+    });
+  } catch (e) {
+    console.error("dominate-chapter failed:", e);
+  }
+
   return {
-    text: chapterText,
-    content: chapterText,
-    coachReport: {
-      skippedAutoRefine: true,
-      reason: "Auto refining disabled during full-book generation to prevent stalls between chapters.",
-      recommendation: "Use the editor quality tools after the full book is generated.",
-    },
-    voice: null,
-    rewriteConfidence: 0.85,
-    finalScore: 8,
+    coachReport,
+    finalText: dominate?.finalText || chapterText,
+    voice: dominate?.voice,
+    rewriteConfidence: dominate?.rewriteConfidence ?? 0.5,
+    finalScore: dominate?.finalScore ?? coachReport?.genreFitScore ?? 7,
   };
 }
 
