@@ -750,8 +750,8 @@ Return ONLY this internal subchapter prose.`;
     // Auto Bestseller was freezing because DeepSeek kept streaming near the end.
     // If we already have a strong chapter body, return the accumulated draft
     // instead of waiting forever for the final token.
-    const minSafeWords = Math.max(850, Math.floor(ctx.targetWords * 0.58));
-    const targetSafeWords = Math.max(1050, Math.floor(ctx.targetWords * 0.70));
+    const minSafeWords = Math.max(850, Math.floor(ctx.targetWords * 0.85));
+    const targetSafeWords = Math.max(1050, Math.floor(ctx.targetWords * 0.95));
     const maxWaitMs = 90000;
     const idleAfterEnoughMs = 12000;
 
@@ -804,7 +804,7 @@ Return ONLY this internal subchapter prose.`;
 
     if (!clean) throw new Error("Auto Bestseller chapter stream returned empty text");
 
-    if (safeResolved && countWords(clean) < ctx.targetWords * 0.95) {
+    if (safeResolved && countWords(clean) < ctx.targetWords * 0.85) {
       return `${clean}
 
 ## Punto di integrazione

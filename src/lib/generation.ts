@@ -511,13 +511,13 @@ export async function generateChapterChunked(
       break;
     }
 
-    // Safe Finish Guard:
-    // If we are already in the closing phase and the chapter has enough body,
-    // stop instead of asking DeepSeek for another risky final chunk.
-    // This prevents the classic "stuck near the end" problem.
-    if (chunkIndex > 0 && currentWords >= Math.min(1200, Math.max(850, Math.floor(targetWords * 0.68)))) {
-      console.warn(`[Nexora] Hard Safe Finish Guard: closing chapter at ${currentWords}/${targetWords} words, phase=${phase}`);
-      break;
+    // Professional continuation guard:
+    // Never close the chapter early at 850/1200 words.
+    // Keep generating until the real target range is reached.
+    if (chunkIndex > 0 && currentWords >= targetWords * 0.98 && phase === "CLOSURE") {
+      if (DEV_DEBUG_STREAM) {
+        console.log(`[Nexora] Chapter is near target (${currentWords}/${targetWords}); preparing natural closure`);
+      }
     }
 
     // Adaptive chunk size selection
@@ -611,8 +611,8 @@ Write in ${config.language}.${adaptiveSuffix}`;
       if (e instanceof AICreditsError) throw e;
 
       // After 6 consecutive failures, try emergency fallback or stop gracefully
-      if (consecutiveFailures > 3 && countWords(accumulatedContent) >= targetWords * 0.7) {
-        console.warn(`[Nexora] Safe finish activated at ${countWords(accumulatedContent)}/${targetWords} words after ${consecutiveFailures} failures`);
+      if (consecutiveFailures > 4 && countWords(accumulatedContent) >= targetWords * 0.92) {
+        console.warn(`[Nexora] Emergency finish activated near target at ${countWords(accumulatedContent)}/${targetWords} words after ${consecutiveFailures} failures`);
         break;
       }
 
@@ -692,7 +692,7 @@ Write in ${config.language}.${adaptiveSuffix}`;
     });
 
     // Stop conditions
-    if (phase === "CLOSURE" && updatedWords >= targetWords * 0.85) {
+    if (phase === "CLOSURE" && updatedWords >= targetWords * 0.95) {
       if (DEV_DEBUG_STREAM) console.log(`[Nexora] Closure phase complete at ${updatedWords} words`);
       break;
     }
