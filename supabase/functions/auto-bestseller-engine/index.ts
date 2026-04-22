@@ -584,11 +584,9 @@ async function writeChapter(
       ? "CLOSING CHAPTER — synthesize, give a final actionable framework, leave the reader empowered."
       : `MIDDLE CHAPTER ${chapterIndex + 1}/${total} — build PROGRESSIVELY on previous chapters, introduce a new angle, deepen.`;
 
-  const chapterLengthMode = input.chapterLengthMode || "standard";
-  const chapterStructure = input.chapterStructure || "subchapters";
-
-  const structureMode = String((input as any).bookStructure || "subchapters");
   const chapterLengthMode = String((input as any).chapterLengthMode || "standard");
+  const chapterStructure = String((input as any).chapterStructure || "subchapters");
+  const structureMode = String((input as any).bookStructure || chapterStructure || "subchapters");
 
   const structureDirective =
     chapterStructure === "professional"
