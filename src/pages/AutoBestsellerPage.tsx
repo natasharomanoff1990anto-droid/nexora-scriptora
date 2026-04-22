@@ -96,30 +96,6 @@ export default function AutoBestsellerPage() {
     if (engine.isRunning) setBriefCollapsed(true);
   }, [engine.isRunning]);
 
-  // Persist active run flag so user can navigate away & come back
-  useEffect(() => {
-    if (engine.isRunning && engine.runId) {
-      sessionStorage.setItem(ACTIVE_RUN_KEY, JSON.stringify({
-        runId: engine.runId,
-        title: engine.liveBook.title || lastInput?.idea?.slice(0, 60) || "Generating book…",
-        input: lastInput,
-        startedAt: Date.now(),
-      }));
-    } else if (!engine.isRunning && engine.result) {
-      sessionStorage.removeItem(ACTIVE_RUN_KEY);
-    }
-  }, [engine.isRunning, engine.runId, engine.liveBook.title, engine.result, lastInput]);
-
-  // Warn before unload during active generation
-  useEffect(() => {
-    if (!engine.isRunning) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "";
-    };
-    window.addEventListener("beforeunload", handler);
-
-
   const handleDeleteGeneration = async () => {
     setSavingDraft(true);
     try {
@@ -142,6 +118,31 @@ export default function AutoBestsellerPage() {
       setSavingDraft(false);
     }
   };
+
+
+
+  // Persist active run flag so user can navigate away & come back
+  useEffect(() => {
+    if (engine.isRunning && engine.runId) {
+      sessionStorage.setItem(ACTIVE_RUN_KEY, JSON.stringify({
+        runId: engine.runId,
+        title: engine.liveBook.title || lastInput?.idea?.slice(0, 60) || "Generating book…",
+        input: lastInput,
+        startedAt: Date.now(),
+      }));
+    } else if (!engine.isRunning && engine.result) {
+      sessionStorage.removeItem(ACTIVE_RUN_KEY);
+    }
+  }, [engine.isRunning, engine.runId, engine.liveBook.title, engine.result, lastInput]);
+
+  // Warn before unload during active generation
+  useEffect(() => {
+    if (!engine.isRunning) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
 
 
   return () => window.removeEventListener("beforeunload", handler);
