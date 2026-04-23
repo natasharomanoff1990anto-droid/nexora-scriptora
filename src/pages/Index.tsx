@@ -294,7 +294,7 @@ const Index = () => {
       )}
 
       {/* Left Sidebar */}
-      <aside className={`w-56 shrink-0 border-r border-border bg-[hsl(var(--sidebar-background))] flex flex-col h-screen fixed md:static z-40 transition-transform duration-200 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      <aside className={`w-56 shrink-0 border-r border-border/60 bg-[hsl(var(--sidebar-background))]/95 backdrop-blur-xl flex flex-col h-screen fixed md:static z-40 transition-transform duration-200 shadow-2xl shadow-black/10 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <div className="p-3 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2 min-w-0">
             <BookOpen className="h-4 w-4 text-primary shrink-0" />
@@ -402,7 +402,7 @@ const Index = () => {
       </aside>
 
       {/* Main Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 md:ml-0">
         <TopBar
           config={engine.project?.config || null}
           onUpdateConfig={engine.updateConfig}
@@ -421,10 +421,10 @@ const Index = () => {
           project={engine.project}
         />
 
-        <div className="flex-1 flex min-h-0">
+        <div className="flex-1 flex min-h-0 md:p-3">
           {engine.project ? (
             <>
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 rounded-[28px] border border-border/50 bg-card/70 backdrop-blur-xl shadow-[0_10px_40px_-18px_rgba(0,0,0,0.45)] overflow-hidden">
                 <EditorPanel
                   project={engine.project}
                   activeSection={activeSection}
