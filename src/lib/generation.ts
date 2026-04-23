@@ -273,6 +273,8 @@ CONTINUITY RULES (MANDATORY):
 /* ============ Style Lock ============ */
 
 function getStyleLock(config: BookConfig): string {
+  const effectiveLanguage = resolveEffectiveLanguage(config);
+
   // Risolvi un eventuale preset (per id o per label legacy) per esporre il nome leggibile
   const preset = findStylePresetById(config.authorStyle) ?? findStylePresetByLabel(config.authorStyle);
   const styleLabel = preset?.label ?? config.authorStyle;
