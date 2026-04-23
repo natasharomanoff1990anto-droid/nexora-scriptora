@@ -118,8 +118,19 @@ export function runAutoBestsellerStream(
         signal: controller.signal,
       });
       if (!resp.ok || !resp.body) {
-        const text = await resp.text().catch(() => "stream failed");
-        handlers.onError?.(`HTTP ${resp.status}: ${text}`);
+        const raw = await resp.text().catch(() => "stream failed");
+        let message = raw || "stream failed";
+
+        try {
+          const parsed = JSON.parse(raw);
+          message =
+            parsed?.error ||
+            parsed?.message ||
+            raw ||
+            `HTTP ${resp.status}`;
+        } catch {}
+
+        handlers.onError?.(`HTTP ${resp.status}: ${message}`);
         return null;
       }
 
