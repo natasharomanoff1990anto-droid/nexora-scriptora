@@ -1240,13 +1240,32 @@ EVOLUTION RULES:
 Return JSON: { "title": "...", "content": "...", "subchapters": [...] }
 ALL in ${config.language}. Return ONLY valid JSON.`;
 
-  const result = await callAI(
-    getSystemPrompt(config) + ` You are performing a ${level.toUpperCase()} rewrite. The new version must be superior.`,
-    prompt
+  const rewriteResult = await safeGenerateAI(
+    () => callAI(
+      getSystemPrompt(config) + ` You are performing a ${level.toUpperCase()} rewrite. The new version must be superior.`,
+      prompt
+    ),
+    {
+      mode: "rewrite",
+      retries: 2,
+      minChars: 120,
+      allowPartial: true,
+      extractJsonOnly: true,
+      systemPrompt: getSystemPrompt(config) + ` You are performing a ${level.toUpperCase()} rewrite. The new version must be superior.`,
+      userPrompt: prompt,
+    },
   );
+
+  const result = rewriteResult.content;
+
   try {
-    return JSON.parse(result.replace(/```json\n?|```/g, "").trim());
+    const parsed = JSON.parse(result.replace(/```json\n?|```/g, "").trim());
+    return {
+      title: parsed.title || chapter.title,
+      content: parsed.content || chapter.content,
+      subchapters: Array.isArray(parsed.subchapters) ? parsed.subchapters : chapter.subchapters,
+    };
   } catch {
-    return { ...chapter, content: result };
+    return { ...chapter, content: result || chapter.content };
   }
 }
