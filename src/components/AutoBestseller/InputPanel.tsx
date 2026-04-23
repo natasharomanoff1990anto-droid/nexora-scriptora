@@ -55,7 +55,7 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
   const [subcategory, setSottocategoria] = useState(initialInput?.subcategory ?? "");
   const [targetAudience, setTargetAudience] = useState(initialInput?.targetAudience ?? "");
   const [tone, setTono] = useState(initialInput?.tone ?? "natural");
-  const [language, setLingua] = useState(initialInput?.language ?? "English");
+  const [language, setLingua] = useState(initialInput?.language ?? "Italian");
   const [numberOfChapters, setNumberOfChapters] = useState(initialInput?.numberOfChapters ?? 8);
   const [totalWordTarget, setTotalWordTarget] = useState(initialInput?.totalWordTarget ?? 15000);
   const [chapterLengthMode, setChapterLengthMode] = useState<AutoBestsellerInput["chapterLengthMode"]>(initialInput?.chapterLengthMode ?? "standard");
@@ -89,10 +89,10 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
       targetAudience: targetAudience.trim(),
       tone: mode === "guided" ? guidedTone : tone,
       language,
-      numberOfChapters: mode === "guided" ? 8 : numberOfChapters,
-      totalWordTarget: mode === "guided" ? 15000 : totalWordTarget,
-      chapterLengthMode: mode === "guided" ? "standard" : chapterLengthMode,
-      chapterStructure: mode === "guided" ? "subchapters" : chapterStructure,
+      numberOfChapters,
+      totalWordTarget,
+      chapterLengthMode,
+      chapterStructure,
     };
   };
 

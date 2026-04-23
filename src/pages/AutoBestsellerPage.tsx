@@ -93,7 +93,7 @@ export default function AutoBestsellerPage() {
     deutsch: "German",
   };
 
-  return aliases[raw] || "English";
+  return aliases[raw] || "Italian";
 }
 
 const elapsedLabel = (() => {
