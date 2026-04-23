@@ -20,6 +20,18 @@ import { FlaskConical } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
+
+function normalizeDashboardLanguage(value?: string): string {
+  const v = String(value || "").trim().toLowerCase();
+  if (!v) return "Italian";
+  if (["it", "ita", "italian", "italiano"].includes(v)) return "Italian";
+  if (["en", "eng", "english", "inglese"].includes(v)) return "English";
+  if (["es", "spanish", "espanol", "español"].includes(v)) return "Spanish";
+  if (["fr", "french", "francese", "français"].includes(v)) return "French";
+  if (["de", "german", "tedesco", "deutsch"].includes(v)) return "German";
+  return value || "Italian";
+}
+
 interface DetectedIntent {
   genre: string;
   subcategory: string;
@@ -171,7 +183,7 @@ export default function Home() {
     setDetecting(true);
     try {
       const { data, error } = await supabase.functions.invoke("detect-book-intent", {
-        body: { idea: idea.trim(), language: bookLang },
+        body: { idea: idea.trim(), language: normalizeDashboardLanguage(bookLang) },
       });
       if (error) throw error;
       if (data?.fallback) {
@@ -211,7 +223,7 @@ export default function Home() {
           subcategory: i.subcategory,
           targetAudience: i.targetAudience || "General readers",
           tone: i.tone || "natural",
-          language: bookLang,
+          language: normalizeDashboardLanguage(bookLang),
           numberOfChapters: i.numberOfChapters || 8,
           level: i.level || "beginner",
           readerPromise: i.readerPromise,
