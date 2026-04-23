@@ -898,11 +898,32 @@ Map your sections to this JSON shape (combine extra sections into the closest fi
 
 Return ONLY valid JSON. No markdown.`;
 
-  const result = await callAI(getSystemPrompt(config, genreLock), prompt);
+  const frontMatterResult = await safeGenerateAI(
+    () => callAI(getSystemPrompt(config, genreLock), prompt),
+    {
+      mode: "frontMatter",
+      retries: 2,
+      minChars: 120,
+      allowPartial: true,
+      extractJsonOnly: true,
+      systemPrompt: getSystemPrompt(config, genreLock),
+      userPrompt: prompt,
+    },
+  );
+
+  const result = frontMatterResult.content;
+
   try {
     return JSON.parse(result.replace(/```json\n?|```/g, "").trim());
   } catch {
-    return { titlePage: config.title, copyright: `© ${new Date().getFullYear()}`, dedication: "", aboutAuthor: "", howToUse: "", letterToReader: result };
+    return {
+      titlePage: config.title,
+      copyright: `© ${new Date().getFullYear()}`,
+      dedication: "",
+      aboutAuthor: "",
+      howToUse: "",
+      letterToReader: result,
+    };
   }
 }
 
