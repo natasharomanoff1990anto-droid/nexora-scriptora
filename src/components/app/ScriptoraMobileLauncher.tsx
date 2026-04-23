@@ -189,11 +189,11 @@ export function ScriptoraMobileLauncher({
         </div>
 
         <div className="mt-5 rounded-[26px] border border-white/10 bg-white/[0.06] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-          <div className="flex items-center gap-2 text-sm font-semibold">
+          <div className="flex items-center gap-2 text-sm font-semibold tracking-[0.01em]">
             <Rocket className="h-4 w-4 text-cyan-300" />
             Premium Workspace
           </div>
-          <p className="mt-2 text-sm leading-6 text-white/60">
+          <p className="mt-2 text-sm leading-6 text-white/64">
             All core functions stay identical. This layer upgrades the app into a
             real mobile-style product without touching your generation engine.
           </p>
