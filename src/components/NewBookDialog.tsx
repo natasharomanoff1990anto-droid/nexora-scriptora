@@ -50,7 +50,7 @@ export function NewBookDialog({ open, onClose, onSubmit }: NewBookDialogProps) {
     subtitle: "",
     tone: "warm, insightful, transformative",
     authorStyle: "Brianna Wiest",
-    language: "English",
+    language: "Italian",
     genre: "self-help",
     category: "Self Help",
     subcategory: "Mindset",

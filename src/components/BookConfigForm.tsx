@@ -7,9 +7,9 @@ interface BookConfigFormProps {
 
 const LANGUAGES: Language[] = ["English", "Italian", "Spanish", "French", "German"];
 const LENGTHS: { value: ChapterLength; label: string }[] = [
-  { value: "short", label: "Short (~1000 words)" },
-  { value: "medium", label: "Medium (~2000 words)" },
-  { value: "long", label: "Long (~4000 words)" },
+  { value: "short", label: "Short (~10,000 words)" },
+  { value: "medium", label: "Medium (~50,000 words)" },
+  { value: "long", label: "Long (~100,000 words)" },
 ];
 
 export function BookConfigForm({ onSubmit }: BookConfigFormProps) {
@@ -21,7 +21,7 @@ export function BookConfigForm({ onSubmit }: BookConfigFormProps) {
     subtitle: "",
     tone: "introspective, emotional, philosophical",
     authorStyle: "Brianna Wiest-inspired: poetic, deeply personal, universally relatable",
-    language: "English",
+    language: "Italian",
     chapterLength: "medium",
     bookLength: "medium",
     numberOfChapters: 10,
