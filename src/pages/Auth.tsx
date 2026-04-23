@@ -140,8 +140,9 @@ export default function AuthPage() {
               </h1>
 
               <p className="mt-5 max-w-lg text-lg leading-8 text-muted-foreground">
-                Costruisci libri, capitoli e progetti editoriali dentro un ambiente pensato
-                per sembrare un prodotto vero, non un pannello freddo.
+                Dalla scintilla al bestseller, senza perdere la voce. Scriptora ti aiuta a
+                ideare, strutturare, scrivere e rifinire il tuo libro in un ecosistema premium
+                pensato per autori veri, non per giocare con l&apos;AI.
               </p>
 
               <div className="mt-8 grid gap-3">
