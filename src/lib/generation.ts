@@ -578,7 +578,7 @@ BESTSELLER QUALITY REQUIREMENTS:
 
 Return ONLY the chapter text. Start with the chapter content directly.
 Do NOT return JSON. Do NOT include the chapter title in the text.
-Write in ${effectiveLanguage}.${adaptiveSuffix}`
+Write ONLY in ${effectiveLanguage}. Any English output is forbidden.${adaptiveSuffix}`
 
       : `CONTINUE writing Chapter ${chapterIndex + 1} of "${config.title}".
 Chapter title: "${chapterTitle}"
@@ -623,7 +623,15 @@ ENDING RULES:
 Return ONLY the continuation text. No JSON. No titles. No meta-commentary.
 Write in ${effectiveLanguage}.${adaptiveSuffix}`;
 
-    const systemPrompt = `${systemBase} You are writing ${isFirstChunk ? "the opening of" : "a continuation for"} chapter ${chapterIndex + 1} of ${config.numberOfChapters}. Phase: ${phase}. Chunk size: ${chunkSize}.`;
+    const systemPrompt = `${systemBase}
+
+LANGUAGE LOCK (ABSOLUTE):
+- Output language must be ONLY ${effectiveLanguage}.
+- Do not write any sentence, phrase, heading, transition, or expression in English unless the target language itself is English.
+- If the source prompts are in English, IGNORE their language and obey ONLY the requested output language: ${effectiveLanguage}.
+- A single English sentence in a non-English chapter is a failure.
+
+You are writing ${isFirstChunk ? "the opening of" : "a continuation for"} chapter ${chapterIndex + 1} of ${config.numberOfChapters}. Phase: ${phase}. Chunk size: ${chunkSize}.`;
 
     let chunkText: string | null = null;
 
@@ -721,12 +729,9 @@ Write in ${effectiveLanguage}.${adaptiveSuffix}`;
     // SMART COMPLETION GATE:
     // The chapter target is guidance, not a prison.
     // But the engine must stop when the chapter is already complete enough.
-    const minAcceptableWords = Math.max(650, Math.floor(targetWords * 0.82));
-    const idealStopWords = Math.max(900, Math.floor(targetWords * 0.95));
-    const hardStopWords = Math.min(
-      Math.max(1200, Math.floor(targetWords * 1.08)),
-      1500,
-    );
+    const minAcceptableWords = Math.max(1000, Math.floor(targetWords * 0.92));
+    const idealStopWords = Math.max(1400, Math.floor(targetWords * 1.0));
+    const hardStopWords = Math.max(1800, Math.floor(targetWords * 1.2));
 
     const endingSample = accumulatedContent.slice(-900).toLowerCase();
     const hasEndingShape =
@@ -734,9 +739,7 @@ Write in ${effectiveLanguage}.${adaptiveSuffix}`;
       || /[.!?][\\s\\n]*$/.test(accumulatedContent.trim());
 
     if (updatedWords >= idealStopWords && hasEndingShape) {
-      if (DEV_DEBUG_STREAM) {
-        console.log(`[Nexora] Smart stop: ${updatedWords}/${targetWords} words with clean ending.`);
-      }
+      console.log(`[Nexora] Smart stop accepted: ${updatedWords}/${targetWords} words with clean ending.`);
       break;
     }
 
@@ -746,9 +749,7 @@ Write in ${effectiveLanguage}.${adaptiveSuffix}`;
     }
 
     if (phase === "CLOSURE" && updatedWords >= minAcceptableWords && hasEndingShape) {
-      if (DEV_DEBUG_STREAM) {
-        console.log(`[Nexora] Closure stop: ${updatedWords}/${targetWords} words.`);
-      }
+      console.log(`[Nexora] Closure stop accepted: ${updatedWords}/${targetWords} words.`);
       break;
     }
   }
