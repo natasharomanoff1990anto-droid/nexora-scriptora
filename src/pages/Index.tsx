@@ -421,10 +421,10 @@ const Index = () => {
           project={engine.project}
         />
 
-        <div className="flex-1 flex min-h-0 md:p-3">
+        <div className="flex-1 flex min-h-0 md:p-4">
           {engine.project ? (
             <>
-              <div className="flex-1 min-w-0 rounded-[30px] border border-border/50 bg-card/78 backdrop-blur-2xl shadow-[0_18px_60px_-24px_rgba(0,0,0,0.52)] overflow-hidden">
+              <div className="flex-1 min-w-0 rounded-[32px] border border-border/50 bg-[linear-gradient(180deg,hsl(var(--card)/0.88),hsl(var(--card)/0.74))] backdrop-blur-2xl shadow-[0_24px_80px_-30px_rgba(0,0,0,0.58)] overflow-hidden">
                 <EditorPanel
                   project={engine.project}
                   activeSection={activeSection}
