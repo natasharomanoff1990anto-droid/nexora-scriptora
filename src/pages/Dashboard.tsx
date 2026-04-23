@@ -503,14 +503,14 @@ export default function Home() {
               <FlaskConical className="h-5 w-5 text-fuchsia-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-foreground">Have a Beta access code?</p>
-              <p className="text-xs text-muted-foreground">Unlock 3 books with export — limited beta tester program.</p>
+              <p className="text-sm font-semibold text-foreground">Hai un codice Beta?</p>
+              <p className="text-xs text-muted-foreground">Sblocca accesso anticipato, export e spazio operativo extra nel programma beta riservato.</p>
             </div>
             <button
               onClick={() => setShowBetaDialog(true)}
               className="px-3 py-2 rounded-md bg-fuchsia-500/20 hover:bg-fuchsia-500/30 text-fuchsia-300 border border-fuchsia-500/40 text-xs font-bold transition-colors"
             >
-              Activate Beta
+              Attiva Beta
             </button>
           </div>
         )}
@@ -522,8 +522,8 @@ export default function Home() {
               <FlaskConical className="h-5 w-5 text-fuchsia-400" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-semibold text-fuchsia-300">Beta Tester</p>
-              <p className="text-xs text-muted-foreground">Beta access: limited to 3 books · 15k tokens each</p>
+              <p className="text-sm font-semibold text-fuchsia-300">Accesso Beta attivo</p>
+              <p className="text-xs text-muted-foreground">Profilo beta abilitato: fino a 3 libri con capacità operativa dedicata.</p>
             </div>
           </div>
         )}
