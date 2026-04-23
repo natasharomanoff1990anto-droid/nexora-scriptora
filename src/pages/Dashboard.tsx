@@ -367,16 +367,16 @@ export default function Home() {
       <div className="relative max-w-3xl mx-auto px-6 pt-10 pb-16">
         <InProgressSection refreshKey={projects.length + (activeRun ? 1 : 0)} />
 
-        {/* Hero header — compact pro */}
+        {/* Hero header — Scriptora OS */}
         <div className="text-center mb-6 mt-2">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-semibold text-primary uppercase tracking-[0.18em] mb-3">
-            <Sparkles className="h-3 w-3" /> AI Book Studio
+            <Sparkles className="h-3 w-3" /> SCRIPTORA OS
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-1.5 leading-tight">
-            Welcome back.
+            Riprendi il manoscritto. Oppure costruisci il prossimo.
           </h1>
           <p className="text-xs text-muted-foreground max-w-md mx-auto">
-            Start a new bestseller, manage drafts, or open your library.
+            Il tuo ecosistema di scrittura, struttura e publishing.
           </p>
         </div>
 
@@ -425,7 +425,7 @@ export default function Home() {
         {/* Section divider */}
         <div className="flex items-center gap-3 mb-4">
           <div className="h-px flex-1 bg-border/50" />
-          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">Quick Actions</span>
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.22em]">Core Workspace</span>
           <div className="h-px flex-1 bg-border/50" />
         </div>
 
