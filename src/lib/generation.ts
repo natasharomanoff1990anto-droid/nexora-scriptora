@@ -329,12 +329,17 @@ function getGenrePrompt(config: BookConfig): string {
   return buildGenreSystemBlock(config.genre, (config as any).subcategory);
 }
 
-function getSystemPrompt(config: BookConfig, lock?: GenreLock, opts?: { dominateMode?: boolean }): string {
+function getSystemPrompt(
+  config: BookConfig,
+  lock?: GenreLock,
+  opts?: { dominateMode?: boolean; generationLock?: GenerationLock }
+): string {
+  const effectiveLanguage = resolveEffectiveLanguage(config, opts?.generationLock);
   const langMap: Record<string, string> = {
     English: "English", Italian: "Italian (Italiano)", Spanish: "Spanish (Español)",
     French: "French (Français)", German: "German (Deutsch)",
   };
-  const lang = langMap[config.language] || config.language;
+  const lang = langMap[effectiveLanguage] || effectiveLanguage;
   const genrePrompt = getGenrePrompt(config);
   const bp = resolveLockedBlueprint(config, lock);
   const editorialBlock = `EDITORIAL BLUEPRINT — ${resolveGenreKey(config.genre, (config as any).subcategory).toUpperCase()}${lock ? " (LOCKED)" : ""}
@@ -358,7 +363,7 @@ ${bp.contentRules.map(r => `• ${r}`).join("\n")}`;
 
 ${editorialBlock}
 
-${getStyleLock(config)}
+${getStyleLock(config, opts?.generationLock)}
 
 ${masteryBlock}
 
@@ -493,7 +498,7 @@ export async function generateChapterChunked(
   const targetWords = getChapterTargetWords(config, chapterIndex, config.numberOfChapters, chapterLengthOverride, generationLock);
   const effectiveLanguage = resolveEffectiveLanguage(config, generationLock);
   const contextMemory = buildContextMemory(config, blueprint, previousChapters, chapterIndex);
-  const systemBase = getSystemPrompt(config, genreLock);
+  const systemBase = getSystemPrompt(config, genreLock, { generationLock });
   const genreDirective = buildPromptByGenre({
     genre: genreLock?.genre || config.genre,
     subcategory: genreLock?.subcategory || (config as any).subcategory,
@@ -546,6 +551,16 @@ Chapter plan: ${outline.summary}
 Genre: ${config.genre}
 Language: ${effectiveLanguage} — WRITE ENTIRELY IN ${effectiveLanguage}
 
+BLUEPRINT EXECUTION RULES:
+- This chapter MUST execute ONLY this chapter's blueprint.
+- Mandatory chapter title to express internally: "${outline.title}"
+- Mandatory chapter scope: ${outline.summary}
+- Do NOT invent a different thesis, topic, structure, or promise.
+- Do NOT drift into generic advice outside this assigned chapter role.
+- Every major paragraph must directly serve this exact chapter blueprint.
+- If even one sentence is not in ${effectiveLanguage}, the output is invalid.
+- If the chapter drifts away from the blueprint, the output is invalid.
+
 ${genreDirective}
 
 ${contextMemory}
@@ -583,6 +598,12 @@ REMAINING: ~${remainingWords} words needed
 PHASE: ${phase} — ${phaseInstruction}
 
 TARGET for this chunk: Write approximately ${chunkTarget} words.
+
+BLUEPRINT CONTINUATION RULES:
+- Continue executing ONLY this chapter blueprint: ${outline.summary}
+- Do NOT widen the topic beyond this chapter's assigned role in the book.
+- Do NOT introduce ideas that belong to later chapters.
+- If even one sentence is not in ${effectiveLanguage}, the output is invalid.
 
 CRITICAL RULES:
 - Continue EXACTLY from where the previous text ended
