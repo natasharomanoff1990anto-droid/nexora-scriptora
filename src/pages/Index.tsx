@@ -21,11 +21,13 @@ import { WritingSettings, loadSettings, saveSettings } from "@/lib/settings";
 import { t, getUILanguage, UILanguage } from "@/lib/i18n";
 import { toast } from "sonner";
 import { BookOpen, Plus, Trash2, FolderOpen, Settings, Sparkles, Minimize2, Menu, X, ArrowLeft } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useQuota } from "@/lib/plan";
 import { UpgradeModal } from "@/components/UpgradeModal";
+import { ScriptoraMobileLauncher } from "@/components/app/ScriptoraMobileLauncher";
 
 const Index = () => {
+  const navigate = useNavigate();
   const [projects, setProjects] = useState<BookProject[]>([]);
   const [showNewBook, setShowNewBook] = useState(false);
   const [showCover, setShowCover] = useState(false);
@@ -51,6 +53,18 @@ const Index = () => {
     },
   });
   const { quota } = useQuota(engine.project?.id || null);
+
+  const generationLabel = engine.isAnythingGenerating ? "Generating..." : "Ready";
+
+  const openBlueprint = () => setActiveSection("blueprint");
+  const openChapters = () => setActiveSection("chapters");
+  const openRewrite = () => setShowCoach(true);
+  const openQuality = () => setShowCoach(true);
+  const openAutoBestseller = () => navigate("/auto-bestseller");
+  const openCoverStudio = () => setShowCover(true);
+  const openExportHub = () => setShowPublish(true);
+  const openSettingsHub = () => setShowSettings(true);
+  const continueWriting = () => setActiveSection("chapters");
 
   // Token guard for free users — gracefully stop generation when limit is reached
   useEffect(() => {
@@ -250,7 +264,22 @@ const Index = () => {
   }
 
   return (
-    <div className="flex h-screen bg-background relative">
+    <>
+      <ScriptoraMobileLauncher
+        projectTitle={engine.project?.config?.title}
+        projectCount={projects.length}
+        generationLabel={generationLabel}
+        onOpenBlueprint={openBlueprint}
+        onOpenChapters={openChapters}
+        onOpenRewrite={openRewrite}
+        onOpenQuality={openQuality}
+        onOpenAutoBestseller={openAutoBestseller}
+        onOpenCoverStudio={openCoverStudio}
+        onOpenExportHub={openExportHub}
+        onOpenSettingsHub={openSettingsHub}
+        onContinueWriting={continueWriting}
+      />
+      <div className="flex h-screen bg-background relative">
       {/* Mobile menu button */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -572,6 +601,7 @@ const Index = () => {
         onClose={() => setUpgradeReason(null)}
       />
     </div>
+    </>
   );
 };
 
