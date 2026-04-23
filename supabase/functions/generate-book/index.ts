@@ -16,7 +16,7 @@ serve(async (req) => {
 
     const promptTokensEstimate = estimateTokens(systemPrompt + userPrompt);
 
-    const response = await fetch("https://api.deepseek.com/chat/completions", {
+    const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
