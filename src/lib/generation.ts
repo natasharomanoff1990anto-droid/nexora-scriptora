@@ -784,6 +784,7 @@ Write in ${effectiveLanguage}.${adaptiveSuffix}`;
 /* ============ Blueprint ============ */
 
 export async function generateBlueprint(config: BookConfig, genreLock?: GenreLock): Promise<BookBlueprint> {
+  const effectiveLanguage = resolveEffectiveLanguage(config);
   const bookInfo = BOOK_LENGTH_CONFIG[config.bookLength];
   const totalWords = getBookTotalWords(config);
   const editorialBP = resolveLockedBlueprint(config, genreLock);
@@ -870,6 +871,7 @@ export async function generateFrontMatter(
   blueprint: BookBlueprint,
   genreLock?: GenreLock,
 ): Promise<FrontMatter> {
+  const effectiveLanguage = resolveEffectiveLanguage(config);
   const bp = resolveLockedBlueprint(config, genreLock);
   const genreKey = resolveGenreKey(config.genre, (config as any).subcategory);
   const sectionsList = bp.frontMatterTemplate.length
@@ -966,6 +968,7 @@ export async function generateSubchapter(
   subchapterIndex: number, chapter: Chapter, previousChapters: Chapter[],
   genreLock?: GenreLock,
 ): Promise<{ title: string; content: string }> {
+  const effectiveLanguage = resolveEffectiveLanguage(config);
   const outline = blueprint.chapterOutlines[chapterIndex];
   const subOutline = (outline as any).subchapters?.[subchapterIndex];
   const contextMemory = buildContextMemory(config, blueprint, previousChapters, chapterIndex);
@@ -1022,6 +1025,7 @@ export async function generateBackMatter(
   chapters: Chapter[],
   genreLock?: GenreLock,
 ): Promise<BackMatter> {
+  const effectiveLanguage = resolveEffectiveLanguage(config);
   const bp = resolveLockedBlueprint(config, genreLock);
   const genreKey = resolveGenreKey(config.genre, (config as any).subcategory);
   const chapterTitles = chapters.map((c, i) => `${i + 1}. ${c.title}`).join("\n");
