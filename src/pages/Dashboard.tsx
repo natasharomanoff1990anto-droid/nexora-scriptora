@@ -434,18 +434,27 @@ export default function Home() {
         </div>
 
         {/* Secondary Actions — pro grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 mb-8">
           {cards.map(card => {
             const inner = (
-              <button key={card.title} onClick={card.action}
-                className="relative w-full p-3.5 rounded-xl border border-border/60 bg-card/60 hover:bg-card hover:border-primary/30 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-primary/5 cursor-pointer transition-all duration-200 group text-left overflow-hidden">
-                <div className="flex items-center gap-2.5">
-                  <div className={`p-2 rounded-lg bg-muted/40 group-hover:bg-muted/70 transition-colors ${card.color}`}>
-                    <card.icon className="h-4 w-4" />
+              <button
+                key={card.title}
+                onClick={card.action}
+                className="relative w-full min-h-[122px] p-4 rounded-2xl border border-border/60 bg-gradient-to-b from-card to-card/80 hover:from-card hover:to-card/95 hover:border-primary/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/10 cursor-pointer transition-all duration-200 group text-left overflow-hidden"
+              >
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="flex h-full flex-col justify-between gap-4">
+                  <div className={`h-11 w-11 rounded-2xl border border-border/60 bg-muted/40 group-hover:bg-muted/70 transition-colors flex items-center justify-center ${card.color}`}>
+                    <card.icon className="h-5 w-5" />
                   </div>
+
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold text-foreground truncate">{card.title}</p>
-                    <p className="text-[10px] text-muted-foreground truncate">{card.desc}</p>
+                    <p className="text-sm font-semibold text-foreground leading-tight">
+                      {card.title}
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-muted-foreground line-clamp-2">
+                      {card.desc}
+                    </p>
                   </div>
                 </div>
               </button>
