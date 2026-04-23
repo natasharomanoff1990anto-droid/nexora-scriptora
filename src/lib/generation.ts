@@ -1097,14 +1097,40 @@ Be HONEST. Most AI-generated content is 2-3 stars. Only truly exceptional writin
 Language: Respond in ${config.language}.
 Return ONLY valid JSON.`;
 
-  const result = await callAI(
-    "You are a world-class literary editor. Evaluate writing quality with precision and honesty. Never inflate scores.",
-    prompt
+  const evaluationResult = await safeGenerateAI(
+    () => callAI(
+      "You are a world-class literary editor. Evaluate writing quality with precision and honesty. Never inflate scores.",
+      prompt
+    ),
+    {
+      mode: "evaluation",
+      retries: 2,
+      minChars: 80,
+      allowPartial: true,
+      extractJsonOnly: true,
+      systemPrompt: "You are a world-class literary editor. Evaluate writing quality with precision and honesty. Never inflate scores.",
+      userPrompt: prompt,
+    },
   );
+
+  const result = evaluationResult.content;
+
   try {
-    return JSON.parse(result.replace(/```json\n?|```/g, "").trim());
+    const parsed = JSON.parse(result.replace(/```json\n?|```/g, "").trim());
+
+    return {
+      score: Math.min(5, Math.max(1, Number(parsed.score) || 3)),
+      explanation: String(parsed.explanation || ""),
+      missing: String(parsed.missing || ""),
+      improvements: String(parsed.improvements || ""),
+    };
   } catch {
-    return { score: 3, explanation: result, missing: "", improvements: "" };
+    return {
+      score: 3,
+      explanation: result,
+      missing: "",
+      improvements: "",
+    };
   }
 }
 
