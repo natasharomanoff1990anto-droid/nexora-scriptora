@@ -1036,11 +1036,31 @@ Map your sections to this JSON shape (combine extra/domain-specific sections int
 
 Return ONLY valid JSON.`;
 
-  const result = await callAI(getSystemPrompt(config, genreLock), prompt);
+  const backMatterResult = await safeGenerateAI(
+    () => callAI(getSystemPrompt(config, genreLock), prompt),
+    {
+      mode: "backMatter",
+      retries: 2,
+      minChars: 120,
+      allowPartial: true,
+      extractJsonOnly: true,
+      systemPrompt: getSystemPrompt(config, genreLock),
+      userPrompt: prompt,
+    },
+  );
+
+  const result = backMatterResult.content;
+
   try {
     return JSON.parse(result.replace(/```json\n?|```/g, "").trim());
   } catch {
-    return { conclusion: result, authorNote: "", callToAction: "", reviewRequest: "", otherBooks: "" };
+    return {
+      conclusion: result,
+      authorNote: "",
+      callToAction: "",
+      reviewRequest: "",
+      otherBooks: "",
+    };
   }
 }
 
