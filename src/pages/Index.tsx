@@ -279,11 +279,11 @@ const Index = () => {
         onOpenSettingsHub={openSettingsHub}
         onContinueWriting={continueWriting}
       />
-      <div className="flex h-screen bg-background relative">
+      <div className="flex h-screen bg-[radial-gradient(circle_at_top,hsl(var(--primary)/0.10),transparent_24%),linear-gradient(180deg,hsl(var(--background))_0%,hsl(var(--background))_100%)] relative">
       {/* Mobile menu button */}
       <button
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="md:hidden fixed top-2 left-2 z-50 p-2 rounded-lg bg-card border border-border shadow-md text-foreground"
+        className="md:hidden fixed top-3 left-3 z-50 p-2.5 rounded-2xl bg-card/85 backdrop-blur-xl border border-border/60 shadow-[0_12px_30px_-14px_rgba(0,0,0,0.55)] text-foreground"
       >
         {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
@@ -295,7 +295,7 @@ const Index = () => {
 
       {/* Left Sidebar */}
       <aside className={`w-56 shrink-0 border-r border-border/60 bg-[hsl(var(--sidebar-background))]/95 backdrop-blur-xl flex flex-col h-screen fixed md:static z-40 transition-transform duration-200 shadow-2xl shadow-black/10 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-        <div className="p-3 border-b border-border flex items-center justify-between">
+        <div className="p-3 border-b border-border/60 flex items-center justify-between bg-background/30">
           <div className="flex items-center gap-2 min-w-0">
             <BookOpen className="h-4 w-4 text-primary shrink-0" />
             <h1 className="text-xs font-bold text-foreground tracking-wide truncate">
@@ -424,7 +424,7 @@ const Index = () => {
         <div className="flex-1 flex min-h-0 md:p-3">
           {engine.project ? (
             <>
-              <div className="flex-1 min-w-0 rounded-[28px] border border-border/50 bg-card/70 backdrop-blur-xl shadow-[0_10px_40px_-18px_rgba(0,0,0,0.45)] overflow-hidden">
+              <div className="flex-1 min-w-0 rounded-[30px] border border-border/50 bg-card/78 backdrop-blur-2xl shadow-[0_18px_60px_-24px_rgba(0,0,0,0.52)] overflow-hidden">
                 <EditorPanel
                   project={engine.project}
                   activeSection={activeSection}
