@@ -413,7 +413,7 @@ export default function Home() {
                   <Clock className="h-3.5 w-3.5" /> SESSIONE ATTIVA
                 </p>
                 <p className="text-base font-semibold text-foreground truncate">
-                  {lastProject.config.title || "Untitled"}
+                  {lastProject.config.title || "Senza titolo"}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   {lastProject.chapters?.length || 0} {t("chapters").toLowerCase()} · fase {lastProject.phase}
@@ -483,7 +483,7 @@ export default function Home() {
                   className="group flex items-center justify-between px-3 py-2 rounded-md text-sm cursor-pointer text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
                   onClick={() => goApp({ projectId: p.id })}>
                   <div className="flex-1 min-w-0">
-                    <span className="truncate block text-sm">{p.config.title || "Untitled"}</span>
+                    <span className="truncate block text-sm">{p.config.title || "Senza titolo"}</span>
                     <span className="text-[10px] text-muted-foreground/60">{p.config.genre} · {p.chapters?.length || 0} ch · {p.phase}</span>
                   </div>
                   <button onClick={(e) => { e.stopPropagation(); handleDelete(p.id); }}
@@ -552,7 +552,7 @@ export default function Home() {
                   <Sparkles className="h-4 w-4" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-foreground">Generate a new bestseller</h2>
+                  <h2 className="text-sm font-bold text-foreground">Avvia un nuovo libro</h2>
                   <p className="text-[11px] text-muted-foreground">Describe your idea — AI does the rest.</p>
                 </div>
               </div>
