@@ -15,7 +15,35 @@ function normalizeGenre(g?: string): Genre {
 }
 function normalizeLanguage(l?: string): Language {
   if (!l) return "English";
-  const cap = l.charAt(0).toUpperCase() + l.slice(1).toLowerCase();
+
+  const raw = l.trim().toLowerCase();
+
+  const aliases: Record<string, Language> = {
+    en: "English",
+    english: "English",
+
+    it: "Italian",
+    italian: "Italian",
+    italiano: "Italian",
+
+    es: "Spanish",
+    spanish: "Spanish",
+    espanol: "Spanish",
+    español: "Spanish",
+
+    fr: "French",
+    french: "French",
+    francais: "French",
+    français: "French",
+
+    de: "German",
+    german: "German",
+    deutsch: "German",
+  };
+
+  if (aliases[raw]) return aliases[raw];
+
+  const cap = raw.charAt(0).toUpperCase() + raw.slice(1);
   return (ALLOWED_LANGUAGES.find((x) => x === cap) ?? "English") as Language;
 }
 
