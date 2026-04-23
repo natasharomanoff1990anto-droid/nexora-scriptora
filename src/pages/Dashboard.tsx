@@ -392,10 +392,10 @@ export default function Home() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
-                <p className="text-sm font-bold text-foreground">Generate a new bestseller</p>
-                <span className="px-1.5 py-0.5 rounded-md bg-primary/20 text-primary text-[9px] font-semibold uppercase tracking-wider">AI</span>
+                <p className="text-sm font-bold text-foreground">Avvia un nuovo libro</p>
+                <span className="px-1.5 py-0.5 rounded-md bg-primary/20 text-primary text-[9px] font-semibold uppercase tracking-wider">START</span>
               </div>
-              <p className="text-xs text-muted-foreground">Drop your idea — we handle genre, title and full draft.</p>
+              <p className="text-xs text-muted-foreground">Trasforma un’intuizione in struttura, direzione e manoscritto operativo dentro Scriptora OS.</p>
             </div>
             <ArrowRight className="h-4 w-4 text-primary group-hover:translate-x-1 transition-transform flex-shrink-0" />
           </div>
