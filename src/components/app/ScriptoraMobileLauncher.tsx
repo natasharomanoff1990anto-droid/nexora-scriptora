@@ -182,13 +182,13 @@ export function ScriptoraMobileLauncher({
           </button>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
           {items.map((item) => (
             <LauncherIcon key={item.id} {...item} />
           ))}
         </div>
 
-        <div className="mt-5 rounded-[24px] border border-white/10 bg-white/[0.05] p-4">
+        <div className="mt-5 rounded-[26px] border border-white/10 bg-white/[0.06] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
           <div className="flex items-center gap-2 text-sm font-semibold">
             <Rocket className="h-4 w-4 text-cyan-300" />
             Premium Workspace
