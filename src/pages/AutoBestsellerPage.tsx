@@ -67,7 +67,36 @@ export default function AutoBestsellerPage() {
     return () => window.clearInterval(timer);
   }, [engine.isRunning, runStartedAt]);
 
-  const elapsedLabel = (() => {
+  function normalizeBriefLanguage(value?: string): "English" | "Italian" | "Spanish" | "French" | "German" {
+  const raw = (value || "").trim().toLowerCase();
+
+  const aliases: Record<string, "English" | "Italian" | "Spanish" | "French" | "German"> = {
+    en: "English",
+    english: "English",
+
+    it: "Italian",
+    italian: "Italian",
+    italiano: "Italian",
+
+    es: "Spanish",
+    spanish: "Spanish",
+    espanol: "Spanish",
+    español: "Spanish",
+
+    fr: "French",
+    french: "French",
+    francais: "French",
+    français: "French",
+
+    de: "German",
+    german: "German",
+    deutsch: "German",
+  };
+
+  return aliases[raw] || "English";
+}
+
+const elapsedLabel = (() => {
     const total = Math.max(0, Math.floor(elapsedMs / 1000));
     const min = Math.floor(total / 60);
     const sec = total % 60;
@@ -90,7 +119,7 @@ export default function AutoBestsellerPage() {
             subcategory: parsed.subcategory,
             targetAudience: parsed.targetAudience,
             tone: parsed.tone,
-            language: parsed.language || "English",
+            language: normalizeBriefLanguage(parsed.language),
             numberOfChapters: parsed.numberOfChapters,
             level: parsed.level,
             readerPromise: parsed.readerPromise,
