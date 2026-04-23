@@ -1,0 +1,193 @@
+export type Language = "English" | "Italian" | "Spanish" | "French" | "German";
+export type ChapterLength = "short" | "medium" | "long";
+export type BookLength = "short" | "medium" | "long" | "custom";
+export type Genre =
+  | "self-help"
+  | "romance"
+  | "dark-romance"
+  | "thriller"
+  | "fantasy"
+  | "philosophy"
+  | "business"
+  | "memoir"
+  // Genre Engine — practical / non-fiction extension
+  | "cookbook"
+  | "technical-manual"
+  | "software-guide"
+  | "ai-tools-guide"
+  | "gardening"
+  | "beekeeping"
+  | "health-medicine"
+  | "diet-nutrition"
+  | "fitness"
+  | "productivity"
+  | "education"
+  // Estensioni: creativi + intrattenimento
+  | "horror"
+  | "sci-fi"
+  | "historical"
+  | "biography"
+  | "spirituality"
+  | "children"
+  | "fairy-tale"
+  | "poetry"
+  | "jokes"
+  | "manual";
+export type GenerationPhase = 
+  | "idle" 
+  | "blueprint" 
+  | "front-matter" 
+  | "chapters" 
+  | "back-matter" 
+  | "complete";
+
+export type GenerationStatus = "idle" | "generating" | "completed" | "error";
+
+export interface AIQualityRating {
+  score: number; // 1-5
+  explanation: string;
+  missing: string;
+  improvements: string;
+}
+
+export interface SubChapter {
+  title: string;
+  content: string;
+  aiRating?: AIQualityRating;
+}
+
+export interface Chapter {
+  title: string;
+  content: string;
+  subchapters: SubChapter[];
+  status?: GenerationStatus;
+  qualityRating?: number;
+  aiRating?: AIQualityRating;
+  lengthOverride?: ChapterLength;
+}
+
+export interface FrontMatter {
+  titlePage: string;
+  copyright: string;
+  dedication: string;
+  aboutAuthor: string;
+  howToUse: string;
+  letterToReader: string;
+}
+
+export interface BackMatter {
+  conclusion: string;
+  authorNote: string;
+  callToAction: string;
+  reviewRequest: string;
+  otherBooks: string;
+}
+
+export interface BookBlueprint {
+  overview: string;
+  chapterOutlines: { title: string; summary: string; subchapters?: { title: string; summary: string }[] }[];
+  themes: string[];
+  emotionalArc: string;
+}
+
+export const CATEGORIES: Record<string, string[]> = {
+  "Self Help": ["Mindset", "Relationships", "Productivity", "Wellness", "Spirituality"],
+  "Fiction": ["Dark Romance", "Romance", "Thriller", "Fantasy", "Sci-Fi", "Horror", "Historical", "Literary"],
+  "Non-Fiction": ["Business", "Philosophy", "Memoir", "Biography", "Science", "Spirituality"],
+  "Education": ["Textbook", "How-To", "Reference", "Study Guide"],
+  "Bambini": ["0-3 anni", "3-6 anni", "6-9 anni", "9-12 anni", "Young Adult"],
+  "Favole": ["Classiche", "Moderne", "Animali", "Magia", "Morali"],
+  "Poesia": ["Verso libero", "Haiku", "Sonetti", "Lirica moderna", "Spoken word"],
+  "Barzellette": ["Quotidiane", "Lavoro", "Coppia", "Bambini", "Assurde", "Giochi di parole"],
+  "Manuali": ["Tecnico", "Hobby", "Professionale", "Software", "Bricolage", "Cucina"],
+  "Cucina": ["Italiana", "Internazionale", "Vegetariana", "Dolci", "Dieta"],
+};
+
+export const BOOK_LENGTH_CONFIG: Record<BookLength, { label: string; totalWords: number; description: string }> = {
+  short: { label: "Short Book", totalWords: 10000, description: "~10,000 words — Concise, high-density" },
+  medium: { label: "Medium Book", totalWords: 50000, description: "~50,000 words — Balanced development" },
+  long: { label: "Long Book", totalWords: 100000, description: "~100,000+ words — Deep, immersive narrative" },
+  custom: { label: "Custom", totalWords: 30000, description: "Choose your exact word count" },
+};
+
+export function getBookTotalWords(config: { bookLength: BookLength; customTotalWords?: number }): number {
+  if (config.bookLength === "custom" && config.customTotalWords && config.customTotalWords > 0) {
+    return config.customTotalWords;
+  }
+  return BOOK_LENGTH_CONFIG[config.bookLength].totalWords;
+}
+
+export interface BookConfig {
+  title: string;
+  subtitle: string;
+  tone: string;
+  authorStyle: string;
+  language: Language;
+  genre: Genre;
+  category: string;
+  subcategory: string;
+  chapterLength: ChapterLength;
+  bookLength: BookLength;
+  customTotalWords?: number;
+  numberOfChapters: number;
+  subchaptersEnabled: boolean;
+}
+
+/**
+ * Genre Lock — locked editorial blueprint stored on the project
+ * at creation time. Ensures all subsequent generations (chapters,
+ * front/back matter, rewrites) use the SAME structure/rules and
+ * never drift. Stored in projects.data (JSON).
+ */
+export interface GenreLock {
+  genre: string;
+  subcategory?: string;
+  structure: string[];
+  rules: string[];
+  chapterStyle: string;
+  tone: string;
+  frontMatterTemplate: string[];
+  backMatterTemplate: string[];
+  hasSubchapters: boolean;
+  lockedAt: string;
+}
+
+export interface GenerationLock {
+  source: "manual" | "auto_bestseller_launch";
+  lockedLanguage: Language;
+  targetBookWords: number;
+  targetChapterWords: number;
+  lengthLocked: boolean;
+}
+
+export interface BookProject {
+  id: string;
+  config: BookConfig;
+  blueprint: BookBlueprint | null;
+  frontMatter: FrontMatter | null;
+  chapters: Chapter[];
+  backMatter: BackMatter | null;
+  phase: GenerationPhase;
+  frontMatterStatus?: GenerationStatus;
+  backMatterStatus?: GenerationStatus;
+  /** Locked Genre Engine blueprint — set once on creation, never mutated by AI */
+  genreLock?: GenreLock;
+  /** Locked generation contract — source, language and target length must be respected by the writing engine */
+  generationLock?: GenerationLock;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  timestamp: string;
+}
+
+export type SectionId = 
+  | "blueprint"
+  | "front-matter"
+  | `chapter-${number}`
+  | `chapter-${number}-sub-${number}`
+  | "back-matter";

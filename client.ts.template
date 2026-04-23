@@ -1,0 +1,34 @@
+// ─────────────────────────────────────────────────────────────
+// client.ts.template — Post-export Supabase client
+//
+// HOW TO USE (after `git clone`):
+//   cp client.ts.template src/integrations/supabase/client.ts
+//
+// Why this exists: in Lovable, src/integrations/supabase/client.ts is
+// auto-generated and HARDCODES the Lovable Supabase URL + anon key.
+// After export it must point to YOUR Supabase project via .env only.
+// This template uses import.meta.env exclusively → no hardcoded values,
+// the same build runs against any Supabase project.
+// ─────────────────────────────────────────────────────────────
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "./types";
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
+  import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  throw new Error(
+    "Missing VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY in .env. " +
+    "Copy .env.example to .env and fill in your Supabase project credentials."
+  );
+}
+
+export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    storage: localStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+  },
+});
