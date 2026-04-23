@@ -19,7 +19,14 @@ serve(async (req) => {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 90000); // 90s hard cap
 
-    const res = await fetch("https://api.deepseek.com/chat/completions", {
+    const safeSystemPrompt = `${systemPrompt}
+
+Return ONLY valid JSON. No markdown. No code fences. No commentary.`;
+    const safeUserPrompt = `${userPrompt}
+
+IMPORTANT: return ONLY a valid JSON object.`;
+
+    const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
@@ -29,13 +36,11 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "deepseek-chat",
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
+          { role: "system", content: safeSystemPrompt },
+          { role: "user", content: safeUserPrompt },
         ],
-        // SPEED-FIRST settings:
-        stream: false,            // no streaming — single fast call
-        response_format: { type: "json_object" },
-        max_tokens: 4096,         // blueprint never needs more
+        stream: false,
+        max_tokens: 4096,
         temperature: 0.7,
       }),
     }).finally(() => clearTimeout(t));
