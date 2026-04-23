@@ -97,11 +97,23 @@ export function useBookEngine(syncCallbacks?: SyncCallbacks) {
       addMessage("assistant", `Blueprint ready! ${blueprint.chapterOutlines.length} chapters planned.`);
     } catch (e: any) {
       addMessage("assistant", `❌ Error: ${e.message}`);
-      toast.error(t("toast_gen_failed"));
+      toast.error(getReadableError(e));
     } finally {
       removeGenerating("blueprint");
     }
   }, [addMessage, updateAndSave]);
+
+  const getReadableError = useCallback((e: unknown): string => {
+    if (e instanceof Error && e.message?.trim()) return e.message.trim();
+    if (typeof e === "string" && e.trim()) return e.trim();
+    return t("toast_gen_failed");
+  }, []);
+
+  const hasAllChaptersGenerated = useCallback((p: BookProject): boolean => {
+    const total = p.config.numberOfChapters || 0;
+    if (p.chapters.length < total) return false;
+    return p.chapters.slice(0, total).every((c) => (c?.content || "").trim().length > 200);
+  }, []);
 
   const generateNext = useCallback(async () => {
     const p = getLatestProject() || project;
@@ -116,19 +128,25 @@ export function useBookEngine(syncCallbacks?: SyncCallbacks) {
         updateAndSave(pr => ({
           ...pr,
           frontMatter: fm,
-          // Only advance phase if we were still on front-matter; otherwise keep current phase.
-          phase: pr.phase === "front-matter" ? "chapters" : pr.phase,
+          phase: pr.phase === "front-matter" ? "chapters" as GenerationPhase : pr.phase,
           frontMatterStatus: "completed" as GenerationStatus,
         }));
         addMessage("assistant", "Front matter complete!");
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const msg = getReadableError(e);
         updateAndSave(pr => ({ ...pr, frontMatterStatus: "error" as GenerationStatus }));
-        addMessage("assistant", `❌ Error: ${e.message}`);
-        toast.error(t("toast_gen_failed"));
+        addMessage("assistant", `❌ Front matter error: ${msg}`);
+        toast.error(msg);
       } finally {
         removeGenerating("front-matter");
       }
-    } else if (p.blueprint && !p.backMatter) {
+      return;
+    }
+
+    const latest = getLatestProject() || p;
+    const allChaptersGenerated = hasAllChaptersGenerated(latest);
+
+    if (latest.blueprint && allChaptersGenerated && !latest.backMatter) {
       addGenerating("back-matter");
       updateAndSave(pr => ({
         ...pr,
@@ -137,19 +155,31 @@ export function useBookEngine(syncCallbacks?: SyncCallbacks) {
       }));
       try {
         addMessage("assistant", "Generating back matter... 📝");
-        const latestP = getLatestProject() || p;
-        const bm = await generateBackMatter(latestP.config, latestP.blueprint!, latestP.chapters, latestP.genreLock);
-        updateAndSave(pr => ({ ...pr, backMatter: bm, phase: "complete", backMatterStatus: "completed" as GenerationStatus }));
+        const freshest = getLatestProject() || latest;
+        const bm = await generateBackMatter(freshest.config, freshest.blueprint!, freshest.chapters, freshest.genreLock);
+        updateAndSave(pr => ({
+          ...pr,
+          backMatter: bm,
+          phase: "complete" as GenerationPhase,
+          backMatterStatus: "completed" as GenerationStatus,
+        }));
         addMessage("assistant", "🎉 Book generation complete!");
-      } catch (e: any) {
+      } catch (e: unknown) {
+        const msg = getReadableError(e);
         updateAndSave(pr => ({ ...pr, backMatterStatus: "error" as GenerationStatus }));
-        addMessage("assistant", `❌ Error: ${e.message}`);
-        toast.error(t("toast_gen_failed"));
+        addMessage("assistant", `❌ Back matter error: ${msg}`);
+        toast.error(msg);
       } finally {
         removeGenerating("back-matter");
       }
+      return;
     }
-  }, [project, addMessage, updateAndSave]);
+
+    if (latest.blueprint && !allChaptersGenerated) {
+      addMessage("assistant", "ℹ️ Chapters are not complete yet. Generate the missing chapters before back matter.");
+      toast.error("Capitoli non ancora completi. Genera prima tutti i capitoli.");
+    }
+  }, [project, addMessage, updateAndSave, getReadableError, hasAllChaptersGenerated]);
 
 function latestChapterTitleFromBlueprint(proj: any, index: number): string {
   return proj?.blueprint?.chapterOutlines?.[index]?.title || `Chapter ${index + 1}`;
@@ -235,7 +265,7 @@ function latestChapterTitleFromBlueprint(proj: any, index: number): string {
       });
 
       addMessage("assistant", `⚠️ Chapter ${index + 1} stopped before perfect completion, but any generated text was preserved. Error: ${e.message}`);
-      toast.error(t("toast_gen_failed"));
+      toast.error(getReadableError(e));
     } finally {
       removeGenerating(genKey);
       setChunkProgress(prev => { const next = { ...prev }; delete next[genKey]; return next; });
@@ -314,7 +344,7 @@ function latestChapterTitleFromBlueprint(proj: any, index: number): string {
         return { ...proj, chapters };
       });
       addMessage("assistant", `❌ Error: ${e.message}`);
-      toast.error(t("toast_gen_failed"));
+      toast.error(getReadableError(e));
     } finally {
       removeGenerating(genKey);
     }
@@ -385,7 +415,7 @@ function latestChapterTitleFromBlueprint(proj: any, index: number): string {
         return { ...proj, chapters };
       });
       addMessage("assistant", `❌ Error: ${e.message}`);
-      toast.error(t("toast_gen_failed"));
+      toast.error(getReadableError(e));
     } finally {
       removeGenerating(genKey);
     }
