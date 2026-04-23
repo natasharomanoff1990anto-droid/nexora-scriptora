@@ -173,7 +173,7 @@ const translations: Record<string, Record<UILanguage, string>> = {
   // Toast messages
   toast_gen_retrying: { en: "Generation failed, retrying...", it: "Generazione fallita, nuovo tentativo...", es: "Generación fallida, reintentando...", fr: "Génération échouée, nouvelle tentative...", de: "Generierung fehlgeschlagen, neuer Versuch..." },
   toast_gen_failed: { en: "Generation failed. Please try again.", it: "Generazione fallita. Riprova.", es: "Generación fallida. Inténtalo de nuevo.", fr: "Génération échouée. Réessayez.", de: "Generierung fehlgeschlagen. Bitte erneut versuchen." },
-  toast_saved_locally: { en: "Saved locally. Cloud sync pending.", it: "Salvato localmente. Sincronizzazione cloud in attesa.", es: "Guardado localmente. Sincronización pendiente.", fr: "Sauvegardé localement. Sync cloud en attente.", de: "Lokal gespeichert. Cloud-Sync ausstehend." },
+  toast_saved_locally: { en: "Saved locally only.", it: "Salvato solo in locale.", es: "Guardado solo localmente.", fr: "Sauvegardé uniquement en local.", de: "Nur lokal gespeichert." },
 };
 
 let currentLang: UILanguage = (localStorage.getItem("nexora_ui_lang") as UILanguage) || "en";

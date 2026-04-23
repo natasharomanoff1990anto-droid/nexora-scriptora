@@ -70,6 +70,13 @@ export function getCurrentUserId(): string {
   return getRealAuthUserId() ?? "public-user";
 }
 
+function isCloudEligibleUserId(userId: string): boolean {
+  if (!userId) return false;
+  if (userId === "public-user") return false;
+  if (userId.startsWith("local-user-")) return false;
+  return true;
+}
+
 /** Returns true when current dev-mode tier is reserved for the owner's REAL projects. */
 export function isProtectedDevTier(): boolean {
   return isDevMode() && getDevPlanOverride() === "premium";
@@ -129,10 +136,16 @@ export async function loadProjects(
 
   const refresh = async (): Promise<BookProject[]> => {
     try {
+      const userId = getCurrentUserId();
+
+      if (!isCloudEligibleUserId(userId)) {
+        return local;
+      }
+
       const { data, error } = await supabase
         .from("projects")
         .select("*")
-        .eq("user_id", getCurrentUserId())
+        .eq("user_id", userId)
         .order("updated_at", { ascending: false });
 
       if (error || !data || data.length === 0) return local;
@@ -197,15 +210,22 @@ export async function saveProjectAsync(
 
   callbacks?.onSaving?.();
 
+  const userId = getCurrentUserId();
+
+  if (!isCloudEligibleUserId(userId)) {
+    callbacks?.onOffline?.();
+    return;
+  }
+
   try {
     const { error } = await supabase
       .from("projects")
       .upsert(
         {
           id: project.id,
-          user_id: getCurrentUserId(),
+          user_id: userId,
           title: project.config.title || "Untitled",
-          data: project as any,
+          data: tagged as any,
           updated_at: new Date().toISOString(),
         },
         { onConflict: "id" }
@@ -217,7 +237,8 @@ export async function saveProjectAsync(
     } else {
       callbacks?.onSaved?.();
     }
-  } catch {
+  } catch (e) {
+    console.warn("Supabase save failed, localStorage used:", e);
     callbacks?.onOffline?.();
   }
 }
