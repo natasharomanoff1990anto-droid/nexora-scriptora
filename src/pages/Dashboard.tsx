@@ -403,19 +403,23 @@ export default function Home() {
 
         {/* Continue Last Project */}
         {lastProject && (
-          <div onClick={() => goApp({ projectId: lastProject.id })}
-            className="mb-8 p-4 rounded-xl border border-border/60 bg-gradient-to-r from-card to-card/40 hover:border-primary/40 cursor-pointer transition-all duration-200 group">
-            <div className="flex items-center justify-between gap-3">
+          <div
+            onClick={() => goApp({ projectId: lastProject.id })}
+            className="mb-8 p-5 rounded-2xl border border-primary/20 bg-gradient-to-r from-card via-card/95 to-primary/[0.06] hover:border-primary/40 cursor-pointer transition-all duration-200 group shadow-lg shadow-primary/5 hover:shadow-xl hover:shadow-primary/10"
+          >
+            <div className="flex items-center justify-between gap-4">
               <div className="min-w-0 flex-1">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-[0.18em] mb-1 flex items-center gap-1.5">
-                  <Clock className="h-3 w-3" /> {t("continue_project")}
+                <p className="text-[10px] text-primary uppercase tracking-[0.22em] mb-1.5 flex items-center gap-1.5 font-semibold">
+                  <Clock className="h-3.5 w-3.5" /> SESSIONE ATTIVA
                 </p>
-                <p className="text-sm font-semibold text-foreground truncate">{lastProject.config.title || "Untitled"}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {lastProject.chapters?.length || 0} {t("chapters").toLowerCase()} · {lastProject.phase}
+                <p className="text-base font-semibold text-foreground truncate">
+                  {lastProject.config.title || "Untitled"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {lastProject.chapters?.length || 0} {t("chapters").toLowerCase()} · fase {lastProject.phase}
                 </p>
               </div>
-              <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary transition-colors flex-shrink-0">
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary transition-colors flex-shrink-0 border border-primary/20">
                 <ArrowRight className="h-4 w-4 text-primary group-hover:text-primary-foreground transition-colors" />
               </div>
             </div>
