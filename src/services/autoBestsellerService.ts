@@ -99,7 +99,12 @@ export function runAutoBestsellerStream(
   // Pass runId so the edge function can persist progress directly to the DB row.
   // This makes the run survive a client disconnect (background generation).
   const payload = btoa(JSON.stringify({ ...input, runId }));
-  const url = `${SUPABASE_URL}/functions/v1/auto-bestseller-engine?stream=1&payload=${encodeURIComponent(payload)}&apikey=${PUBLISHABLE_KEY}`;
+  const payloadBase64 =
+  typeof window !== "undefined" && typeof window.btoa === "function"
+    ? window.btoa(unescape(encodeURIComponent(payload)))
+    : btoa(unescape(encodeURIComponent(payload)));
+
+const url = `${SUPABASE_URL}/functions/v1/auto-bestseller-engine?stream=1&payload=${encodeURIComponent(payloadBase64)}&apikey=${PUBLISHABLE_KEY}`;
 
   const promise = (async (): Promise<AutoBestsellerResult | null> => {
     let result: AutoBestsellerResult | null = null;
