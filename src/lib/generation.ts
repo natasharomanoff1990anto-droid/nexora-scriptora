@@ -1,4 +1,4 @@
-import { BookConfig, Chapter, FrontMatter, BackMatter, BookBlueprint, Genre, AIQualityRating, BOOK_LENGTH_CONFIG, getBookTotalWords, GenreLock } from "@/types/book";
+import { BookConfig, Chapter, FrontMatter, BackMatter, BookBlueprint, Genre, AIQualityRating, BOOK_LENGTH_CONFIG, getBookTotalWords, GenreLock, GenerationLock, Language } from "@/types/book";
 import { safeGenerateAI } from "@/lib/ai/safeGenerateAI";
 import { supabase } from "@/integrations/supabase/client";
 import { buildGenreSystemBlock, buildGenreBlueprintBlock, buildGenreEditorialBlock, getGenreBlueprint, buildPromptByGenre, resolveGenreKey } from "@/lib/genre-intelligence";
@@ -282,7 +282,7 @@ function getStyleLock(config: BookConfig): string {
 - Tone: "${config.tone}" — NEVER deviate from this voice
 - Author/Style DNA: "${styleLabel}" — channel this voice's rhythm, vocabulary, and sensibility
 - Genre conventions: ${config.genre} — honor genre expectations while transcending them
-- Language: ${config.language} — EVERY word in ${config.language}, no exceptions
+- Language: ${effectiveLanguage} — EVERY word in ${config.language}, no exceptions
 
 ${styleBlock}
 
@@ -291,20 +291,26 @@ If previous chapters established a specific vocabulary, rhythm, or narrative dev
 
 /* ============ Word Budget System ============ */
 
-function getChapterTargetWords(config: BookConfig, chapterIndex: number, totalChapters: number, chapterLengthOverride?: string): number {
-  const bookTotal = getBookTotalWords(config);
+function resolveEffectiveLanguage(config: BookConfig, generationLock?: GenerationLock): Language {
+  return generationLock?.lockedLanguage || config.language;
+}
+
+
+function getChapterTargetWords(config: BookConfig, chapterIndex: number, totalChapters: number, chapterLengthOverride?: string, generationLock?: GenerationLock): number {
+  const bookTotal = generationLock?.targetBookWords || getBookTotalWords(config);
   const chapterBase = Math.round(bookTotal / totalChapters);
   const localLength = chapterLengthOverride || config.chapterLength;
   const multiplier = localLength === "short" ? 0.6 : localLength === "long" ? 1.5 : 1.0;
   return Math.round(chapterBase * multiplier);
 }
 
-function getChapterLengthInstruction(config: BookConfig, chapterIndex: number, totalChapters: number, chapterLengthOverride?: string): string {
-  const target = getChapterTargetWords(config, chapterIndex, totalChapters, chapterLengthOverride);
+function getChapterLengthInstruction(config: BookConfig, chapterIndex: number, totalChapters: number, chapterLengthOverride?: string, generationLock?: GenerationLock): string {
+  const target = generationLock?.targetChapterWords || getChapterTargetWords(config, chapterIndex, totalChapters, chapterLengthOverride, generationLock);
   const min = Math.round(target * 0.8);
   const max = Math.round(target * 1.2);
 
-  const langNote = config.language !== "English" ? ` Write in ${config.language}.` : "";
+  const effectiveLanguage = resolveEffectiveLanguage(config, generationLock);
+  const langNote = effectiveLanguage !== "English" ? ` Write in ${effectiveLanguage}.` : "";
   const depthNote = config.bookLength === "long"
     ? " Write with deep, immersive, layered narrative."
     : config.bookLength === "short"
@@ -478,10 +484,12 @@ export async function generateChapterChunked(
   chapterLengthOverride?: string,
   onChunkProgress?: (progress: ChunkProgress) => void,
   genreLock?: GenreLock,
+  generationLock?: GenerationLock,
   opts?: { adaptive?: { plan: import("@/lib/plan").PlanTier } },
 ): Promise<Chapter> {
   const outline = blueprint.chapterOutlines[chapterIndex];
-  const targetWords = getChapterTargetWords(config, chapterIndex, config.numberOfChapters, chapterLengthOverride);
+  const targetWords = getChapterTargetWords(config, chapterIndex, config.numberOfChapters, chapterLengthOverride, generationLock);
+  const effectiveLanguage = resolveEffectiveLanguage(config, generationLock);
   const contextMemory = buildContextMemory(config, blueprint, previousChapters, chapterIndex);
   const systemBase = getSystemPrompt(config, genreLock);
   const genreDirective = buildPromptByGenre({
@@ -489,7 +497,7 @@ export async function generateChapterChunked(
     subcategory: genreLock?.subcategory || (config as any).subcategory,
     chapterTitle: outline.title,
     chapterSummary: outline.summary,
-    language: config.language,
+    language: effectiveLanguage,
   });
 
   let accumulatedContent = "";
@@ -534,7 +542,7 @@ export async function generateChapterChunked(
 Chapter title: "${outline.title}"
 Chapter plan: ${outline.summary}
 Genre: ${config.genre}
-Language: ${config.language} — WRITE ENTIRELY IN ${config.language}
+Language: ${effectiveLanguage} — WRITE ENTIRELY IN ${effectiveLanguage}
 
 ${genreDirective}
 
@@ -553,13 +561,13 @@ BESTSELLER QUALITY REQUIREMENTS:
 
 Return ONLY the chapter text. Start with the chapter content directly.
 Do NOT return JSON. Do NOT include the chapter title in the text.
-Write in ${config.language}.${adaptiveSuffix}`
+Write in ${effectiveLanguage}.${adaptiveSuffix}`
 
       : `CONTINUE writing Chapter ${chapterIndex + 1} of "${config.title}".
 Chapter title: "${chapterTitle}"
 Chapter plan: ${outline.summary}
 Genre: ${config.genre}
-Language: ${config.language}
+Language: ${effectiveLanguage}
 
 ${genreDirective}
 
@@ -590,7 +598,7 @@ ENDING RULES:
 - DO NOT exceed the remaining word budget significantly
 ` : ""}
 Return ONLY the continuation text. No JSON. No titles. No meta-commentary.
-Write in ${config.language}.${adaptiveSuffix}`;
+Write in ${effectiveLanguage}.${adaptiveSuffix}`;
 
     const systemPrompt = `${systemBase} You are writing ${isFirstChunk ? "the opening of" : "a continuation for"} chapter ${chapterIndex + 1} of ${config.numberOfChapters}. Phase: ${phase}. Chunk size: ${chunkSize}.`;
 
@@ -618,7 +626,7 @@ Write in ${config.language}.${adaptiveSuffix}`;
           console.warn(`[Nexora] Emergency fallback for first chunk`);
           try {
             chunkText = await callAIOnce(
-              `You are a ${config.genre} author writing in ${config.language}. Be concise and complete.`,
+              `You are a ${config.genre} author writing in ${effectiveLanguage}. Be concise and complete.`,
               `Write the opening section (~600 words) of chapter "${outline.title}" for the book "${config.title}". Outline: ${outline.summary}. Plain prose only.`,
               90000,
             );
@@ -788,7 +796,7 @@ Title: "${config.title}"
 Subtitle: "${config.subtitle}"
 Genre: ${config.genre}
 Tone: ${config.tone}
-Language: ${config.language} — ALL content MUST be in ${config.language}
+Language: ${effectiveLanguage} — ALL content MUST be in ${config.language}
 Book length: ${bookInfo.label} (~${totalWords.toLocaleString()} total words)
 Number of chapters: ${config.numberOfChapters}
 ${config.subchaptersEnabled ? "Include 2-4 subchapters per chapter." : "No subchapters."}
@@ -874,7 +882,7 @@ BOOK:
 - Title: "${config.title}"
 - Subtitle: "${config.subtitle}"
 - Genre: ${genreKey}
-- Language: ${config.language} — ALL content MUST be in ${config.language}
+- Language: ${effectiveLanguage} — ALL content MUST be in ${config.language}
 - Overview: ${blueprint.overview}
 
 GENRE-SPECIFIC FRONT MATTER SECTIONS TO PRODUCE (in this exact spirit):
@@ -981,7 +989,7 @@ export async function generateSubchapter(
   const prompt = `Write Subchapter ${subchapterIndex + 1} of Chapter ${chapterIndex + 1} "${chapter.title}" in "${config.title}".
 ${subOutline ? `Subchapter plan: "${subOutline.title}" — ${subOutline.summary}` : `Write the ${subchapterIndex + 1}th subchapter.`}
 Genre: ${config.genre}
-Language: ${config.language} — WRITE ENTIRELY IN ${config.language}
+Language: ${effectiveLanguage} — WRITE ENTIRELY IN ${effectiveLanguage}
 Write approximately ${subMin}–${subMax} words.
 
 ${genreDirective}
@@ -1026,7 +1034,7 @@ export async function generateBackMatter(
 BOOK:
 - Title: "${config.title}"
 - Genre: ${genreKey}
-- Language: ${config.language} — ALL content MUST be in ${config.language}
+- Language: ${effectiveLanguage} — ALL content MUST be in ${config.language}
 - Chapters:\n${chapterTitles}
 
 GENRE-SPECIFIC BACK MATTER SECTIONS TO PRODUCE (in this exact spirit):
@@ -1242,7 +1250,7 @@ ${contextMemory}
 
 Book: "${config.title}"
 Genre: ${config.genre}
-Language: ${config.language} — WRITE ENTIRELY IN ${config.language}
+Language: ${effectiveLanguage} — WRITE ENTIRELY IN ${effectiveLanguage}
 ${lengthInstruction}
 
 EVOLUTION RULES:
