@@ -431,13 +431,13 @@ interface ChunkSizeConfig {
 // Timeouts increased — DeepSeek streaming can take 60-90s for LARGE chunks
 // Watchdog in callAIOnce resets on each received byte, so timeout = max IDLE time
 const CHUNK_SIZES: Record<ChunkSize, ChunkSizeConfig> = {
-  // Safer production chunking:
-  // DeepSeek can write beautifully, but long final chunks may stall near the end.
-  // Smaller chunks = less drama, more completed chapters.
-  LARGE:  { min: 800, max: 1100, timeout: 240000, label: "Large Safe (800–1100)" },
-  MEDIUM: { min: 600, max: 850,  timeout: 210000, label: "Medium Safe (600–850)" },
-  SMALL:  { min: 400, max: 650,  timeout: 180000, label: "Small Safe (400–650)" },
-  MICRO:  { min: 220, max: 420,  timeout: 120000, label: "Micro Safe (220–420)" },
+  // Pro sequential chapter rhythm:
+  // standard chunk gravitates around ~700 words,
+  // then shrinks only if failures force a safer fallback.
+  LARGE:  { min: 620, max: 760, timeout: 210000, label: "Large Pro (620–760)" },
+  MEDIUM: { min: 520, max: 680, timeout: 180000, label: "Medium Pro (520–680)" },
+  SMALL:  { min: 380, max: 520, timeout: 150000, label: "Small Safe (380–520)" },
+  MICRO:  { min: 220, max: 360, timeout: 120000, label: "Micro Rescue (220–360)" },
 };
 
 function selectChunkSize(consecutiveFailures: number): ChunkSize {
