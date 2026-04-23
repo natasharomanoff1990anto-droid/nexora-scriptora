@@ -1,4 +1,5 @@
 import { BookConfig, Chapter, FrontMatter, BackMatter, BookBlueprint, Genre, AIQualityRating, BOOK_LENGTH_CONFIG, getBookTotalWords, GenreLock } from "@/types/book";
+import { safeGenerateAI } from "@/lib/ai/safeGenerateAI";
 import { supabase } from "@/integrations/supabase/client";
 import { buildGenreSystemBlock, buildGenreBlueprintBlock, buildGenreEditorialBlock, getGenreBlueprint, buildPromptByGenre, resolveGenreKey } from "@/lib/genre-intelligence";
 import { buildWritingStyleBlock, findStylePresetById, findStylePresetByLabel } from "@/lib/writing-styles";
@@ -817,10 +818,24 @@ STRICT JSON SIZE RULES:
 
 Return ONLY valid JSON, no markdown.`;
 
-  const result = await callBlueprintFast(
-    getSystemPrompt(config, genreLock) + " You are creating a book architecture optimized for the genre profile above.",
-    prompt,
+  const blueprintResult = await safeGenerateAI(
+    () => callBlueprintFast(
+      getSystemPrompt(config, genreLock) + " You are creating a book architecture optimized for the genre profile above.",
+      prompt,
+    ),
+    {
+      mode: "blueprint",
+      retries: 2,
+      minChars: 120,
+      allowPartial: true,
+      extractJsonOnly: true,
+      systemPrompt: getSystemPrompt(config, genreLock),
+      userPrompt: prompt,
+    },
   );
+
+  const result = blueprintResult.content;
+
   try {
     return JSON.parse(result.replace(/```json\n?|```/g, "").trim());
   } catch {
@@ -829,7 +844,8 @@ Return ONLY valid JSON, no markdown.`;
       chapterOutlines: Array.from({ length: config.numberOfChapters }, (_, i) => ({
         title: `Chapter ${i + 1}`, summary: "To be generated",
       })),
-      themes: [], emotionalArc: "",
+      themes: [],
+      emotionalArc: "",
     };
   }
 }
