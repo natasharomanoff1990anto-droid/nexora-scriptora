@@ -14,7 +14,7 @@ function normalizeGenre(g?: string): Genre {
   return (ALLOWED_GENRES.find((x) => x === slug) ?? "self-help") as Genre;
 }
 function normalizeLanguage(l?: string): Language {
-  if (!l) return "English";
+  if (!l) return "Italian";
 
   const raw = l.trim().toLowerCase();
 
@@ -44,7 +44,7 @@ function normalizeLanguage(l?: string): Language {
   if (aliases[raw]) return aliases[raw];
 
   const cap = raw.charAt(0).toUpperCase() + raw.slice(1);
-  return (ALLOWED_LANGUAGES.find((x) => x === cap) ?? "English") as Language;
+  return (ALLOWED_LANGUAGES.find((x) => x === cap) ?? "Italian") as Language;
 }
 
 function buildFrontMatter(title: string, subtitle: string, authorName = "Antonino Campanella"): FrontMatter {
