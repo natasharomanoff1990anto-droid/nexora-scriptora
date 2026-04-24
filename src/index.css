@@ -2,54 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  :root {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-  }
-}
-
 body {
-  background: radial-gradient(circle at top right, #1a1a1a, #000000);
-  color: #fff;
+  margin: 0;
+  padding: 0;
   min-height: 100vh;
+  /* Immagine Spaziale Reale 4K */
+  background: url('https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=2022&auto=format&fit=crop') no-repeat center center fixed;
+  background-size: cover;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
   overflow-x: hidden;
 }
 
-/* Effetto Vetro per i pannelli */
-.glass-panel {
-  background: rgba(10, 10, 10, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+/* Overlay per dare profondità e leggibilità */
+.space-darkener {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: radial-gradient(circle at center, rgba(0,0,0,0) 0%, rgba(0,0,0,0.8) 100%);
+  z-index: -1;
 }
 
-/* Animazione di entrata "Platino" */
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Card in Vetro Futuristico */
+.glass-card {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  transition: all 0.3s ease;
 }
 
-.animate-platinum {
-  animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Pulsanti "Whaoo" */
-.btn-platinum {
-  background: linear-gradient(90deg, #fff, #a1a1a1);
-  color: #000;
-  font-weight: 900;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  transition: all 0.4s ease;
-  border: none;
-}
-
-.btn-platinum:hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
+.glass-card:hover {
+  border-color: rgba(0, 242, 255, 0.5);
+  box-shadow: 0 0 30px rgba(0, 242, 255, 0.2);
+  transform: translateY(-5px);
 }

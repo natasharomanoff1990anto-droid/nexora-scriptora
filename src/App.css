@@ -1,66 +1,69 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground: 0 0% 100%;
+  --background: 0 0% 0%;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+body {
+  background: black;
+  color: white;
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
-/* Override Estetico Platino */
-.bg-background { background-color: #000000 !important; }
-.border-border { border-color: #1a1a1a !important; }
-
-/* Dashboard Buttons */
-.card-bestseller {
-  background: linear-gradient(145deg, #050505, #111111);
-  border: 1px solid #222;
+/* Effetto Vetro per i pannelli */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 0px; /* Brutalismo: angoli retti */
   transition: all 0.3s ease;
 }
 
-.card-bestseller:hover {
-  border-color: #fff;
-  box-shadow: 0 0 20px rgba(255,255,255,0.05);
+.glass-panel:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* Rimuovi etichette "Start" colorate e rendile minimaliste */
-.badge-start {
-  background: transparent;
-  border: 1px solid #444;
-  color: #888;
+/* Tipografia Dinamica */
+.glitch-text {
   text-transform: uppercase;
-  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  text-shadow: 0 0 10px rgba(255,255,255,0.5);
+  animation: breathe 4s infinite ease-in-out;
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.02); }
+}
+
+/* Pulsanti stile "Radar" */
+.btn-radar {
+  position: relative;
+  border: 1px solid white;
+  padding: 10px 20px;
+  background: transparent;
+  color: white;
+  text-transform: uppercase;
+  font-size: 12px;
+  overflow: hidden;
+}
+
+.btn-radar::after {
+  content: "";
+  position: absolute;
+  top: 0; left: -100%;
+  width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  animation: scan 3s infinite;
+}
+
+@keyframes scan {
+  0% { left: -100%; }
+  100% { left: 100%; }
 }
