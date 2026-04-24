@@ -1252,6 +1252,7 @@ export async function rewriteChapter(
   chapterIndex: number, previousChapters: Chapter[], instruction: string,
   aiRating?: AIQualityRating, level: RewriteLevel = "deep"
 ): Promise<Chapter> {
+  const effectiveLanguage = resolveEffectiveLanguage(config);
   const weaknessTarget = aiRating
     ? `\n\nAI EDITOR FEEDBACK (you MUST address these weaknesses):
 - Current Score: ${aiRating.score}/5
