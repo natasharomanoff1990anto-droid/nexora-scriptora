@@ -1,7 +1,7 @@
 import { supabase } from '../integrations/supabase/client';
 
 /**
- * ATTIVA GOD MODE: Crediti infiniti e piano PRO forzato
+ * ATTIVA GOD MODE: Crediti infiniti e piano PRO forzato nel DB
  */
 export const enableInfiniteCredits = async (userId: string) => {
   const { error } = await supabase
@@ -20,7 +20,14 @@ export const enableInfiniteCredits = async (userId: string) => {
 };
 
 /**
- * PULIZIA OVERRIDE (Richiesto da useAuth.tsx per evitare crash)
+ * RECUPERA OVERRIDE (Richiesto da storageService.ts)
+ */
+export const getDevPlanOverride = () => {
+  return localStorage.getItem('scriptora_dev_override');
+};
+
+/**
+ * PULIZIA OVERRIDE (Richiesto da useAuth.tsx)
  */
 export const clearDevPlanOverride = () => {
   localStorage.removeItem('scriptora_dev_override');
@@ -28,7 +35,7 @@ export const clearDevPlanOverride = () => {
 };
 
 /**
- * CHECK STATO (Per il frontend)
+ * CHECK STATO (Per logica UI)
  */
 export const isDevOverrideActive = () => {
   return localStorage.getItem('scriptora_dev_override') === 'active';
