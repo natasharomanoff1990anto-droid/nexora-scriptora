@@ -1,3 +1,4 @@
+import { KDP_PLATINUM_RULES } from "./domination-rules.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -458,7 +459,7 @@ async function handlePackaging(p: any) {
   }
   console.log(`[brave] action="generatePackaging" used=${Boolean(grounding)}`);
 
-  const sys = `You write Amazon KDP packaging that converts. Description = HTML-light (use \\n and <br>). Keywords follow KDP rules: 7 max, no comma overlap with title. When real competitor signals are provided, exploit gaps and avoid saturated phrasing.`;
+  const sys = `${KDP_PLATINUM_RULES}\n\nYou write Amazon KDP packaging that converts. Description = HTML-light (use \\n and <br>). Keywords follow KDP rules: 7 max, no comma overlap with title. When real competitor signals are provided, exploit gaps and avoid saturated phrasing.`;
   const usr =
     `Book:\n${JSON.stringify(book, null, 2)}\n` +
     (grounding ? `\nReal competitor / reader pain-point signals (Brave):\n${grounding}\n` : "") +
