@@ -1,7 +1,7 @@
 import { supabase } from '../integrations/supabase/client';
 
 /**
- * ATTIVA GOD MODE: Crediti infiniti e piano PRO forzato nel DB
+ * ATTIVA GOD MODE: Forza il database a ignorare ogni limite
  */
 export const enableInfiniteCredits = async (userId: string) => {
   const { error } = await supabase
@@ -14,28 +14,36 @@ export const enableInfiniteCredits = async (userId: string) => {
     .eq('id', userId);
     
   if (!error) {
-    console.log("🚀 GOD MODE: Crediti infiniti attivati per " + userId);
-    localStorage.setItem('scriptora_dev_override', 'active');
+    setDevPlanOverride('active');
+    console.log("🚀 DATABASE UNLOCKED: Account promosso a PRO Admin.");
   }
 };
 
 /**
- * RECUPERA OVERRIDE (Richiesto da storageService.ts)
+ * SET OVERRIDE (Richiesto da DevModeBadge.tsx)
+ */
+export const setDevPlanOverride = (status: string) => {
+  localStorage.setItem('scriptora_dev_override', status);
+  console.log(`🛡️ UI OVERRIDE: Stato impostato su ${status}`);
+};
+
+/**
+ * GET OVERRIDE (Richiesto da storageService.ts)
  */
 export const getDevPlanOverride = () => {
   return localStorage.getItem('scriptora_dev_override');
 };
 
 /**
- * PULIZIA OVERRIDE (Richiesto da useAuth.tsx)
+ * CLEAR OVERRIDE (Richiesto da useAuth.tsx)
  */
 export const clearDevPlanOverride = () => {
   localStorage.removeItem('scriptora_dev_override');
-  console.log("🛡️ Dev Override Cleared.");
+  console.log("🧹 CLEANUP: Dev Override rimosso.");
 };
 
 /**
- * CHECK STATO (Per logica UI)
+ * CHECK STATO
  */
 export const isDevOverrideActive = () => {
   return localStorage.getItem('scriptora_dev_override') === 'active';
