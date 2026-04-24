@@ -40,3 +40,27 @@
 .read-the-docs {
   color: #888;
 }
+/* Override Estetico Platino */
+.bg-background { background-color: #000000 !important; }
+.border-border { border-color: #1a1a1a !important; }
+
+/* Dashboard Buttons */
+.card-bestseller {
+  background: linear-gradient(145deg, #050505, #111111);
+  border: 1px solid #222;
+  transition: all 0.3s ease;
+}
+
+.card-bestseller:hover {
+  border-color: #fff;
+  box-shadow: 0 0 20px rgba(255,255,255,0.05);
+}
+
+/* Rimuovi etichette "Start" colorate e rendile minimaliste */
+.badge-start {
+  background: transparent;
+  border: 1px solid #444;
+  color: #888;
+  text-transform: uppercase;
+  font-size: 10px;
+}
