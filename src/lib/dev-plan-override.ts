@@ -1,7 +1,9 @@
 import { supabase } from '../integrations/supabase/client';
 
+/**
+ * ATTIVA GOD MODE: Crediti infiniti e piano PRO forzato
+ */
 export const enableInfiniteCredits = async (userId: string) => {
-  // Questo comando forza il database a credere che tu abbia un piano infinito
   const { error } = await supabase
     .from('profiles')
     .update({ 
@@ -11,5 +13,23 @@ export const enableInfiniteCredits = async (userId: string) => {
     })
     .eq('id', userId);
     
-  if (!error) console.log("GOD MODE ACTIVATED: Crediti Infiniti Abilitati.");
+  if (!error) {
+    console.log("🚀 GOD MODE: Crediti infiniti attivati per " + userId);
+    localStorage.setItem('scriptora_dev_override', 'active');
+  }
+};
+
+/**
+ * PULIZIA OVERRIDE (Richiesto da useAuth.tsx per evitare crash)
+ */
+export const clearDevPlanOverride = () => {
+  localStorage.removeItem('scriptora_dev_override');
+  console.log("🛡️ Dev Override Cleared.");
+};
+
+/**
+ * CHECK STATO (Per il frontend)
+ */
+export const isDevOverrideActive = () => {
+  return localStorage.getItem('scriptora_dev_override') === 'active';
 };

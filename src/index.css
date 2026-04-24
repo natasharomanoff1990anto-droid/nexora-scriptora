@@ -44,3 +44,28 @@ body {
   font-weight: 700;
   border-bottom: 1px solid rgba(212, 175, 55, 0.3);
 }
+
+/* GOD MODE UI OVERRIDE */
+:root {
+  --background: 0 0% 0% !important;
+  --card: 0 0% 2% !important;
+  --border: 0 0% 10% !important;
+  --primary: 0 0% 100% !important;
+}
+
+body {
+  background-color: #000 !important;
+  color: #fff !important;
+}
+
+/* Dashboard Pro */
+.card-bestseller, .project-card {
+  background: #050505 !important;
+  border: 1px solid #1a1a1a !important;
+  border-radius: 0px !important; /* Minimalismo Brutale */
+}
+
+/* Rimuovi i banner fastidiosi dei crediti */
+.credit-warning, .upgrade-banner {
+  display: none !important;
+}
