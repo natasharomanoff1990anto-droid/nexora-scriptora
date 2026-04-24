@@ -1,35 +1,36 @@
-import { resolveGenreKey, type GenreKey } from "@/lib/genre-intelligence";
+import { PLATINUM_CONSTRAINTS } from "./ai/language-killer-v2";
 
 export interface WritingStylePreset {
   id: string;
   label: string;
-  kind: "author" | "style";
+  kind: "author" | "tone";
   hint: string;
   promptDirective: string;
 }
 
-export const UNIVERSAL_STYLES: WritingStylePreset[] = [
-  {
-    id: "style-platinum",
-    label: "Standard Platino Scriptora",
-    kind: "style",
-    hint: "Il massimo impatto editoriale contemporaneo.",
-    promptDirective: "STRUTTURA: Alterna 3 frasi poetiche a 1 secca in grassetto. Metafore architettoniche. Zero aggettivi astratti. Sostantivi pesanti."
-  }
-];
+export const buildWritingStyleBlock = (authorStyle: string, tone: string): string => {
+  const isPlatinum = authorStyle.toLowerCase().includes("platino");
+  
+  return `
+### DIRETTIVA STILISTICA:
+${authorStyle}
+TONO RICHIESTO: ${tone}
 
-export const AUTHORS_BY_GENRE: Partial<Record<GenreKey, WritingStylePreset[]>> = {
-  "self-help": [
-    { 
-      id: "auth-platinum-ghostwriter", 
-      label: "Ghostwriter d'Elite (Platino)", 
-      kind: "author", 
-      hint: "Stile Brianna Wiest + Mark Manson radicale.",
-      promptDirective: "Canalizza Brianna Wiest e Mark Manson: schiettezza radicale, verità universali brutali, incipit su dettaglio fisico microscopico, metafore biologiche. **Usa il grassetto per le verità isolate.**" 
-    }
-  ]
+${isPlatinum ? PLATINUM_CONSTRAINTS : ""}
+
+REGOLE AGGIUNTIVE:
+- Mostra, non raccontare.
+- Evita avverbi inutili.
+- Se lo stile è Platino, usa frasi secche e grassetti per le verità brutali.
+`.trim();
 };
 
-export function getStylesForGenre(genre: string): WritingStylePreset[] {
-  return [...(AUTHORS_BY_GENRE[genre as GenreKey] || []), ...UNIVERSAL_STYLES];
-}
+export const UNIVERSAL_STYLES: WritingStylePreset[] = [
+  {
+    id: "auth-platinum-ghostwriter",
+    label: "Ghostwriter d'Elite (Platino)",
+    kind: "author",
+    hint: "Brianna Wiest + Mark Manson. Densità materica e verità crude.",
+    promptDirective: "Canalizza Brianna Wiest: verità universali, incipit su dettaglio fisico, metafore biologiche. Usa il grassetto per le frasi d'impatto."
+  }
+];
