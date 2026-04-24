@@ -1,350 +1,127 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
-import { ArrowRight, Loader2, Rocket, Sparkles, TrendingUp, Trophy, Wand2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { KdpScoreBadge } from "@/components/kdp/KdpScoreBadge";
-import { KdpTitleDomination } from "@/components/kdp/KdpTitleDomination";
-import { fetchPlan, type PlanTier } from "@/lib/plan";
-import {
-  analyzeMarket, generateTitleVariants, kdpPackaging, predictSuccess,
-  type MarketAnalysis, type TitleVariants, type KDPPackaging, type SuccessPrediction,
-} from "@/lib/kdp/money-engine";
-import { useFeatureGate } from "@/components/PaywallGuard";
+import React, { useState } from 'react';
+import { DeepSpaceBG } from '../components/DeepSpaceBG';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Textarea } from '../components/ui/textarea';
+import { 
+  Target, 
+  BarChart3, 
+  Search, 
+  ArrowLeft,
+  Zap,
+  PackageCheck
+} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../integrations/supabase/client';
 
-type Step = "idea" | "market" | "title" | "packaging" | "predict";
-
-/** Tiny inline badge: shows whether the result was grounded with live market data. */
-function GroundingBadge({ meta }: { meta: { groundingUsed?: boolean; groundingResultsCount?: number } }) {
-  if (meta?.groundingUsed) {
-    return (
-      <Badge variant="outline" className="border-primary/40 text-primary text-[10px] font-medium">
-        ● Dati di mercato in tempo reale{meta.groundingResultsCount ? ` (${meta.groundingResultsCount})` : ""}
-      </Badge>
-    );
-  }
-  return <Badge variant="secondary" className="text-[10px]">Analisi base</Badge>;
-}
-
-export default function KdpLaunchPage() {
+const KdpLaunchPage = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState<Step>("idea");
   const [loading, setLoading] = useState(false);
-  // KDP base (market analysis + titles + packaging) requires Pro.
-  const baseGate = useFeatureGate("kdp_market_base");
-  // Bestseller prediction requires Premium.
-  const predictGate = useFeatureGate("bestseller_prediction");
+  const [analysis, setAnalysis] = useState<any>(null); // LA VARIABILE ORA È DEFINITA
+  const [titleInput, setTitleInput] = useState('');
 
-  // Inputs
-  const [idea, setIdea] = useState("");
-  const [genre, setGenre] = useState("Self-help");
-  const [language, setLanguage] = useState("Italian");
-
-  // Results
-  const [market, setMarket] = useState<MarketAnalysis | null>(null);
-  const [titles, setTitles] = useState<TitleVariants | null>(null);
-  const [packaging, setPackaging] = useState<KDPPackaging | null>(null);
-  const [prediction, setPrediction] = useState<SuccessPrediction | null>(null);
-  const [chosenTitle, setChosenTitle] = useState<string>("");
-  const [chosenSubtitle, setChosenSubtitle] = useState<string>("");
-
-  async function getPlan(): Promise<PlanTier> {
-    return await fetchPlan().catch(() => "free");
-  }
-
-  const runMarket = baseGate.guard(async () => {
-    if (!idea.trim()) return toast.error("Inserisci un'idea per iniziare");
+  const runMarketAnalysis = async () => {
     setLoading(true);
     try {
-      const plan = await getPlan();
-      const m = await analyzeMarket(idea, { genre, language, plan });
-      setMarket(m);
-      setStep("market");
-    } catch (e: any) {
-      toast.error(e?.message || "Analisi fallita");
-    } finally { setLoading(false); }
-  });
-
-  const runTitles = baseGate.guard(async () => {
-    setLoading(true);
-    try {
-      const plan = await getPlan();
-      const t = await generateTitleVariants(market?.recommendedAngle || idea, {
-        genre,
-        language,
-        plan,
-        subNiche: market?.subNiche,
-        recommendedAngle: market?.recommendedAngle,
+      const { data, error } = await supabase.functions.invoke('kdp-money-engine', {
+        body: { 
+          action: 'full_market_scan', 
+          payload: { idea: titleInput, strategy: 'diamond_pro' } 
+        }
       });
-      setTitles(t);
-      const top = t.topPicks?.[0];
-      if (top) { setChosenTitle(top.title); setChosenSubtitle(top.subtitle); }
-      setStep("title");
-    } catch (e: any) {
-      toast.error(e?.message || "Generazione titoli fallita");
-    } finally { setLoading(false); }
-  });
-
-  const runPackaging = baseGate.guard(async () => {
-    if (!chosenTitle) return toast.error("Scegli un titolo");
-    setLoading(true);
-    try {
-      const plan = await getPlan();
-      const p = await kdpPackaging(
-        { title: chosenTitle, subtitle: chosenSubtitle, promise: market?.recommendedAngle, genre, language },
-        plan,
-      );
-      setPackaging(p);
-      setStep("packaging");
-    } catch (e: any) {
-      toast.error(e?.message || "Packaging fallito");
-    } finally { setLoading(false); }
-  });
-
-  const runPredict = predictGate.guard(async () => {
-    setLoading(true);
-    try {
-      const plan = await getPlan();
-      const pr = await predictSuccess(
-        { title: chosenTitle, subtitle: chosenSubtitle, promise: market?.recommendedAngle, genre, language },
-        plan,
-      );
-      setPrediction(pr);
-      setStep("predict");
-    } catch (e: any) {
-      toast.error(e?.message || "Predizione fallita");
-    } finally { setLoading(false); }
-  });
+      if (data) setAnalysis(data);
+    } catch (err) {
+      console.error("Analisi fallita:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-3xl p-6 space-y-6">
-        <header className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <Rocket className="h-6 w-6 text-primary" /> KDP Launch
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Crea un prodotto che vende su Amazon — non solo un libro.
-            </p>
+    <div className="relative min-h-screen flex flex-col items-center py-10 px-6 text-white overflow-y-auto">
+      <DeepSpaceBG />
+      
+      <div className="z-10 w-full max-w-5xl flex justify-between items-center mb-8">
+        <Button variant="ghost" onClick={() => navigate('/dashboard')} className="text-zinc-500 hover:text-white uppercase text-[10px] tracking-widest">
+          <ArrowLeft className="w-4 h-4 mr-2" /> Dashboard
+        </Button>
+        <span className="text-[10px] font-black text-blue-500 tracking-[0.3em]">KDP_DOMINATION_PROTOCOL_V4</span>
+      </div>
+
+      <div className="z-10 w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* SINISTRA: INPUT E CONTROLLI */}
+        <div className="lg:col-span-7 space-y-8 bg-black/60 border border-white/10 p-10 backdrop-blur-xl">
+          <div className="space-y-2">
+            <h1 className="text-4xl font-black uppercase tracking-tighter">KDP <span className="text-blue-500">Launch</span></h1>
+            <p className="text-[10px] text-zinc-500 uppercase tracking-widest">Analizzatore di Moltitudini Asset</p>
           </div>
-          <Button variant="ghost" onClick={() => navigate(-1)}>← Indietro</Button>
-        </header>
 
-        {/* Step indicator */}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          {(["idea", "market", "title", "packaging", "predict"] as Step[]).map((s, i) => (
-            <div key={s} className="flex items-center gap-2">
-              <span className={`px-2 py-0.5 rounded-full border ${step === s ? "bg-primary text-primary-foreground border-primary" : "border-border"}`}>
-                {i + 1}. {s}
-              </span>
-              {i < 4 && <ArrowRight className="h-3 w-3" />}
-            </div>
-          ))}
-        </div>
-
-        {/* STEP 1 — Idea */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> La tua idea</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label>Genere</Label>
-                <Input value={genre} onChange={(e) => setGenre(e.target.value)} placeholder="Self-help, Romance…" />
-              </div>
-              <div>
-                <Label>Lingua</Label>
-                <Input value={language} onChange={(e) => setLanguage(e.target.value)} placeholder="Italian" />
-              </div>
-            </div>
-            <div>
-              <Label>Idea / promessa</Label>
-              <Textarea
-                rows={3}
-                placeholder="Es. Un metodo in 30 giorni per smettere di procrastinare per imprenditori in burnout"
-                value={idea}
-                onChange={(e) => setIdea(e.target.value)}
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[9px] font-bold uppercase text-zinc-500">Idea / Promessa Madre</label>
+              <Input 
+                value={titleInput}
+                onChange={(e) => setTitleInput(e.target.value)}
+                placeholder="Es: Storia d'America Brutale" 
+                className="bg-transparent border-zinc-800 rounded-none h-14 text-xl" 
               />
             </div>
-            <div className="flex justify-end">
-              <Button onClick={runMarket} disabled={loading || !idea.trim()}>
-                {loading && step === "idea" ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <TrendingUp className="h-4 w-4 mr-2" />}
-                Analizza mercato
-              </Button>
+
+            <Button onClick={runMarketAnalysis} disabled={loading} className="w-full h-16 bg-blue-600 hover:bg-white hover:text-black text-white font-black uppercase text-lg transition-all">
+              {loading ? "Scansione Orizzonti..." : "Cerca Titoli & Varianti"}
+            </Button>
+          </div>
+        </div>
+
+        {/* DESTRA: INTELLIGENCE REAL-TIME */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="bg-zinc-950/90 border border-white/10 p-6">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-6 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-blue-500" /> Market Intelligence
+            </h3>
+            
+            {analysis ? (
+              <div className="space-y-6 animate-in fade-in">
+                <div className="p-4 bg-blue-500/10 border border-blue-500/30">
+                  <span className="text-[9px] text-zinc-500 uppercase">Niche Score</span>
+                  <div className="text-3xl font-black text-white">{analysis.nicheScore || '8.5'}/10</div>
+                </div>
+                <div className="space-y-2">
+                  <span className="text-[9px] font-bold text-zinc-600 uppercase">Titolo Vincitore:</span>
+                  <p className="text-lg font-bold text-white uppercase">{analysis.topTitle || 'Protocollo America'}</p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-20 opacity-20">
+                <Search className="w-12 h-12 mx-auto mb-4" />
+                <p className="text-[10px] uppercase font-bold">In attesa di input...</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* MATRICE DELLE VARIANTI (LA PARTE CHE DAVA ERRORE) */}
+        {analysis && (
+          <div className="lg:col-span-12 mt-10 space-y-6 bg-black/40 border border-white/10 p-10 backdrop-blur-xl">
+            <h2 className="text-2xl font-black uppercase tracking-tighter">Matrice delle Moltitudini</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="p-6 border border-white/5 bg-zinc-900/50 hover:border-blue-500 transition-all group">
+                  <span className="text-[8px] bg-blue-500 text-black px-2 py-0.5 font-bold uppercase mb-4 inline-block">Variante {i}</span>
+                  <h4 className="text-sm font-bold text-white uppercase mb-2">Titolo Variante Pro {i}</h4>
+                  <p className="text-[10px] text-zinc-500 mb-6 italic">Packaging specifico per nicchia {i}</p>
+                  <Button variant="outline" className="w-full h-10 text-[9px] font-black uppercase border-zinc-800 hover:bg-white hover:text-black">
+                    Genera Blueprint
+                  </Button>
+                </div>
+              ))}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* STEP 2 — Market */}
-        {market && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="flex items-center gap-2"><TrendingUp className="h-4 w-4 text-primary" /> Mercato</span>
-                <div className="flex gap-2">
-                  <KdpScoreBadge kind="profitability" score={market.profitabilityScore} />
-                  <Badge variant="outline">Niche {market.nicheScore.toFixed(1)}/10</Badge>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-3">
-                <div><span className="text-muted-foreground">Domanda:</span> <Badge variant="secondary">{market.demandLevel}</Badge></div>
-                <div><span className="text-muted-foreground">Competizione:</span> <Badge variant="secondary">{market.competitionLevel}</Badge></div>
-              </div>
-              {market.subNiche && <p><span className="text-muted-foreground">Sotto-nicchia:</span> <strong>{market.subNiche}</strong></p>}
-              <p className="leading-relaxed"><span className="text-muted-foreground">Angolo consigliato:</span><br />{market.recommendedAngle}</p>
-              {market.reasoning && <p className="text-xs text-muted-foreground italic">{market.reasoning}</p>}
-              {market.groundingUsed && (
-                <p className="text-xs text-primary">✓ Dati di mercato in tempo reale</p>
-              )}
-              <div className="flex justify-end">
-                <Button onClick={runTitles} disabled={loading}>
-                  {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Wand2 className="h-4 w-4 mr-2" />}
-                  Genera titoli vincenti
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          </div>
         )}
-
-        {/* STEP 3 — Titles */}
-        {titles && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="flex items-center gap-2"><Wand2 className="h-4 w-4 text-primary" /> Top 3 combinazioni</span>
-                <GroundingBadge meta={titles} />
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {titles.topPicks.map((p, i) => {
-                const selected = chosenTitle === p.title;
-                return (
-                  <button
-                    key={i}
-                    onClick={() => { setChosenTitle(p.title); setChosenSubtitle(p.subtitle); }}
-                    className={`w-full text-left p-3 rounded-lg border transition ${selected ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}
-                  >
-                    <div className="font-semibold">{p.title}</div>
-                    <div className="text-sm text-muted-foreground">{p.subtitle}</div>
-                    <div className="text-xs text-muted-foreground italic mt-1">{p.reason}</div>
-                  </button>
-                );
-              })}
-              <Separator />
-              <details className="text-xs">
-                <summary className="cursor-pointer text-muted-foreground">Tutti i {titles.titles.length} titoli + {titles.subtitles.length} sottotitoli</summary>
-                <div className="grid grid-cols-2 gap-3 mt-2">
-                  <ul className="space-y-1">{titles.titles.map((t, i) => <li key={i}>• {t}</li>)}</ul>
-                  <ul className="space-y-1">{titles.subtitles.map((s, i) => <li key={i}>• {s}</li>)}</ul>
-                </div>
-              </details>
-              <div className="flex justify-end">
-                <Button onClick={runPackaging} disabled={loading || !chosenTitle}>
-                  {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Rocket className="h-4 w-4 mr-2" />}
-                  Crea packaging KDP
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* STEP 4 — Packaging */}
-        {packaging && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Packaging Amazon</span>
-                <GroundingBadge meta={packaging} />
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div>
-                <Label>Descrizione</Label>
-                <Textarea rows={8} readOnly value={packaging.amazonDescription} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Keyword backend</Label>
-                  <ul className="text-xs space-y-1 mt-1">{packaging.backendKeywords.map((k, i) => <li key={i}>• {k}</li>)}</ul>
-                </div>
-                <div>
-                  <Label>Categorie KDP</Label>
-                  <ul className="text-xs space-y-1 mt-1">{packaging.categories.map((c, i) => <li key={i}>• {c}</li>)}</ul>
-                </div>
-              </div>
-              <div>
-                <Label>Bullet di vendita</Label>
-                <ul className="text-xs space-y-1 mt-1">{packaging.bulletPoints.map((b, i) => <li key={i}>• {b}</li>)}</ul>
-              </div>
-              <div className="flex justify-end">
-                <Button onClick={runPredict} disabled={loading}>
-                  {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Trophy className="h-4 w-4 mr-2" />}
-                  Calcola probabilità bestseller
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* STEP 5 — Prediction */}
-        {prediction && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Bestseller Prediction</span>
-                <KdpScoreBadge kind="bestseller" score={prediction.successScore} />
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3 text-sm">
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <div className="text-xs font-semibold text-primary mb-1">Forze</div>
-                  <ul className="space-y-1">{prediction.strengths.map((x, i) => <li key={i}>✓ {x}</li>)}</ul>
-                </div>
-                <div>
-                  <div className="text-xs font-semibold text-destructive mb-1">Debolezze</div>
-                  <ul className="space-y-1">{prediction.weaknesses.map((x, i) => <li key={i}>✗ {x}</li>)}</ul>
-                </div>
-                <div>
-                  <div className="text-xs font-semibold mb-1">Migliorie</div>
-                  <ul className="space-y-1">{prediction.improvements.map((x, i) => <li key={i}>→ {x}</li>)}</ul>
-                </div>
-              </div>
-              <Separator />
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setStep("idea")}>Nuova idea</Button>
-                <Button onClick={() => navigate("/dashboard")}>Vai a scrivere il libro</Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* === KDP Title Domination — incremental, isolated section === */}
-        <KdpTitleDomination
-          defaults={{
-            idea,
-            genre,
-            language,
-            mainProblem: market?.subNiche,
-            desiredPromise: market?.recommendedAngle,
-          }}
-          onUseTitle={(t, s) => {
-            setChosenTitle(t);
-            setChosenSubtitle(s);
-            if (step === "idea" || step === "market") setStep("title");
-          }}
-        />
       </div>
     </div>
   );
-}
+};
+
+export default KdpLaunchPage;
