@@ -4,33 +4,43 @@
 
 @layer base {
   :root {
-    --background: 0 0% 0%; /* Nero Assoluto */
-    --foreground: 240 5% 96%; /* Bianco Ghiaccio */
-    --card: 0 0% 3%;
-    --border: 240 5% 15%;
-    --primary: 0 0% 100%; /* Bianco puro per i tasti azione */
-    --accent: 240 5% 25%;
+    --background: 222 47% 4%; /* Blu notte profondissimo, non nero */
+    --foreground: 210 40% 98%;
+    --card: 222 47% 6%;
+    --border: 217 32% 15%;
+    --primary: 45 93% 47%; /* Oro Platino per i tasti */
+    --primary-foreground: 0 0% 0%;
+    --accent: 217 32% 20%;
+    --muted: 217 32% 10%;
+    --success: 142 70% 45%; /* Verde smeraldo per i successi */
   }
 }
 
 body {
   background-color: hsl(var(--background));
+  background-image: radial-gradient(circle at top right, rgba(45, 93, 200, 0.05), transparent);
   color: hsl(var(--foreground));
-  font-family: 'Inter', sans-serif;
-  letter-spacing: -0.02em;
+  font-family: 'Inter', system-ui, sans-serif;
 }
 
-/* Stile per il testo Platino nell'editor */
-.platinum-text {
-  line-height: 1.8;
-  font-size: 1.125rem;
-  color: #e4e4e7;
+/* Effetto Vetro per i Pannelli */
+.glass-panel {
+  background: rgba(10, 15, 30, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
 }
 
-.platinum-truth {
-  font-weight: 800;
-  color: #ffffff;
-  border-left: 2px solid #ffffff;
-  padding-left: 1rem;
-  margin: 1.5rem 0;
+/* Testo Platino: Leggibile e Vibrante */
+.platinum-content {
+  line-height: 1.7;
+  font-size: 1.15rem;
+  color: #f1f5f9;
+  text-shadow: 0 0 1px rgba(255,255,255,0.1);
+}
+
+.platinum-highlight {
+  color: hsl(var(--primary));
+  font-weight: 700;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.3);
 }
