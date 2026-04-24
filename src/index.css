@@ -4,68 +4,52 @@
 
 @layer base {
   :root {
-    --background: 222 47% 4%; /* Blu notte profondissimo, non nero */
-    --foreground: 210 40% 98%;
-    --card: 222 47% 6%;
-    --border: 217 32% 15%;
-    --primary: 45 93% 47%; /* Oro Platino per i tasti */
-    --primary-foreground: 0 0% 0%;
-    --accent: 217 32% 20%;
-    --muted: 217 32% 10%;
-    --success: 142 70% 45%; /* Verde smeraldo per i successi */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
   }
 }
 
 body {
-  background-color: hsl(var(--background));
-  background-image: radial-gradient(circle at top right, rgba(45, 93, 200, 0.05), transparent);
-  color: hsl(var(--foreground));
-  font-family: 'Inter', system-ui, sans-serif;
+  background: radial-gradient(circle at top right, #1a1a1a, #000000);
+  color: #fff;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
-/* Effetto Vetro per i Pannelli */
+/* Effetto Vetro per i pannelli */
 .glass-panel {
-  background: rgba(10, 15, 30, 0.7);
+  background: rgba(10, 10, 10, 0.7);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
 }
 
-/* Testo Platino: Leggibile e Vibrante */
-.platinum-content {
-  line-height: 1.7;
-  font-size: 1.15rem;
-  color: #f1f5f9;
-  text-shadow: 0 0 1px rgba(255,255,255,0.1);
+/* Animazione di entrata "Platino" */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.platinum-highlight {
-  color: hsl(var(--primary));
-  font-weight: 700;
-  border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+.animate-platinum {
+  animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* GOD MODE UI OVERRIDE */
-:root {
-  --background: 0 0% 0% !important;
-  --card: 0 0% 2% !important;
-  --border: 0 0% 10% !important;
-  --primary: 0 0% 100% !important;
+/* Pulsanti "Whaoo" */
+.btn-platinum {
+  background: linear-gradient(90deg, #fff, #a1a1a1);
+  color: #000;
+  font-weight: 900;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  transition: all 0.4s ease;
+  border: none;
 }
 
-body {
-  background-color: #000 !important;
-  color: #fff !important;
-}
-
-/* Dashboard Pro */
-.card-bestseller, .project-card {
-  background: #050505 !important;
-  border: 1px solid #1a1a1a !important;
-  border-radius: 0px !important; /* Minimalismo Brutale */
-}
-
-/* Rimuovi i banner fastidiosi dei crediti */
-.credit-warning, .upgrade-banner {
-  display: none !important;
+.btn-platinum:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(255, 255, 255, 0.2);
 }
