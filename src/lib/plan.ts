@@ -17,8 +17,8 @@ export interface PlanLimits {
 }
 
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
-  free:    { maxTokensPerBook: 10_000, maxBooksPerMonth: 1,    canExport: false, canDominate: false },
-  beta:    { maxTokensPerBook: 15_000, maxBooksPerMonth: 3,    canExport: true,  canDominate: false },
+  free:    { maxTokensPerBook: 100_000, maxBooksPerMonth: 1,    canExport: false, canDominate: false },
+  beta:    { maxTokensPerBook: 500_000, maxBooksPerMonth: 3,    canExport: true,  canDominate: false },
   pro:     { maxTokensPerBook: null,   maxBooksPerMonth: 10,   canExport: true,  canDominate: false },
   premium: { maxTokensPerBook: null,   maxBooksPerMonth: null, canExport: true,  canDominate: true  },
 };
