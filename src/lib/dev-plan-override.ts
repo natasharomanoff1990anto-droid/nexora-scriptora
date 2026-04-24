@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../integrations/supabase/client';
 
 /**
- * LOGICA CORE
+ * LOGICA CORE: Sblocca UI, Storage e Export
  */
 export const setDevPlanOverride = (status: string) => {
   localStorage.setItem('scriptora_dev_override', status);
-  window.dispatchEvent(new Event('storage')); // Notifica i componenti
+  window.dispatchEvent(new Event('storage'));
   console.log(`🛡️ UI OVERRIDE: ${status}`);
 };
 
@@ -15,13 +15,12 @@ export const getDevPlanOverride = () => localStorage.getItem('scriptora_dev_over
 export const clearDevPlanOverride = () => {
   localStorage.removeItem('scriptora_dev_override');
   window.dispatchEvent(new Event('storage'));
-  console.log("🧹 CLEANUP: Dev Override rimosso.");
 };
 
 export const isDevOverrideActive = () => localStorage.getItem('scriptora_dev_override') === 'active';
 
 /**
- * HOOK REATTIVO (Richiesto da DevModeBadge.tsx)
+ * HOOK REATTIVO: Fornisce permessi totali (incluso canExport)
  */
 export const useDevPlanOverride = () => {
   const [isActive, setIsActive] = useState(isDevOverrideActive());
@@ -32,12 +31,19 @@ export const useDevPlanOverride = () => {
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
-  return { isActive, toggleOverride: () => setDevPlanOverride(isActive ? 'inactive' : 'active') };
+  return { 
+    isActive, 
+    toggleOverride: () => setDevPlanOverride(isActive ? 'inactive' : 'active'),
+    // Forza i permessi che il sistema cerca
+    permissions: {
+      canExport: true,
+      canUseAI: true,
+      isPro: true,
+      unlimitedStorage: true
+    }
+  };
 };
 
-/**
- * DATABASE SYNC
- */
 export const enableInfiniteCredits = async (userId: string) => {
   const { error } = await supabase
     .from('profiles')
