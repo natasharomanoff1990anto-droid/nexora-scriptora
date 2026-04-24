@@ -1,0 +1,641 @@
+=== LANGUAGE + WORDS AUDIT ===
+
+=== generation.ts: resolveEffectiveLanguage / getSystemPrompt ===
+276:  const effectiveLanguage = resolveEffectiveLanguage(config);
+287:- Language: ${effectiveLanguage} — EVERY word in ${config.language}, no exceptions
+296:function resolveEffectiveLanguage(config: BookConfig, generationLock?: GenerationLock): Language {
+314:  const effectiveLanguage = resolveEffectiveLanguage(config, generationLock);
+332:function getSystemPrompt(
+337:  const effectiveLanguage = resolveEffectiveLanguage(config, opts?.generationLock);
+371:1. WRITE EVERYTHING IN ${lang.toUpperCase()}. Every word, title, sentence MUST be in ${lang}. No exceptions.
+499:  const effectiveLanguage = resolveEffectiveLanguage(config, generationLock);
+552:Language: ${effectiveLanguage} — WRITE ENTIRELY IN ${effectiveLanguage}
+587:Language: ${effectiveLanguage}
+810:  const effectiveLanguage = resolveEffectiveLanguage(config);
+823:Language: ${effectiveLanguage} — ALL content MUST be in ${config.language}
+897:  const effectiveLanguage = resolveEffectiveLanguage(config);
+910:- Language: ${effectiveLanguage} — ALL content MUST be in ${config.language}
+994:  const effectiveLanguage = resolveEffectiveLanguage(config);
+1018:Language: ${effectiveLanguage} — WRITE ENTIRELY IN ${effectiveLanguage}
+1051:  const effectiveLanguage = resolveEffectiveLanguage(config);
+1064:- Language: ${effectiveLanguage} — ALL content MUST be in ${config.language}
+1145:Language: Respond in ${config.language}.
+1280:Language: ${effectiveLanguage} — WRITE ENTIRELY IN ${effectiveLanguage}
+
+=== generation.ts: chapter prompt blocks ===
+  }
+  return "";
+}
+
+/* ============ Chunked Chapter Generation ============ */
+
+export interface ChunkProgress {
+  chunkIndex: number;
+  totalChunks: number;
+  currentWords: number;
+  targetWords: number;
+  phase: ChunkPhase;
+  content: string;
+  chunkSize?: ChunkSize;
+}
+
+export async function generateChapterChunked(
+  config: BookConfig,
+  blueprint: BookBlueprint,
+  chapterIndex: number,
+  previousChapters: Chapter[],
+  chapterLengthOverride?: string,
+  onChunkProgress?: (progress: ChunkProgress) => void,
+  genreLock?: GenreLock,
+  generationLock?: GenerationLock,
+  opts?: { adaptive?: { plan: import("@/lib/plan").PlanTier } },
+): Promise<Chapter> {
+  const outline = blueprint.chapterOutlines[chapterIndex];
+  const targetWords = getChapterTargetWords(config, chapterIndex, config.numberOfChapters, chapterLengthOverride, generationLock);
+  const effectiveLanguage = resolveEffectiveLanguage(config, generationLock);
+  const contextMemory = buildContextMemory(config, blueprint, previousChapters, chapterIndex);
+  const systemBase = getSystemPrompt(config, genreLock, { generationLock });
+  const genreDirective = buildPromptByGenre({
+    genre: genreLock?.genre || config.genre,
+    subcategory: genreLock?.subcategory || (config as any).subcategory,
+    chapterTitle: outline.title,
+    chapterSummary: outline.summary,
+    language: effectiveLanguage,
+  });
+
+  let accumulatedContent = "";
+  let chapterTitle = outline.title;
+  let chunkIndex = 0;
+  let consecutiveFailures = 0;
+  const maxChunks = Math.max(80, Math.ceil(targetWords / 250) + 30); // safety cap only: prevents infinite loops, never acts as chapter-length wall
+
+  if (DEV_DEBUG_STREAM) console.log(`[Nexora] Adaptive chunked generation: target=${targetWords} words, safetyMaxChunks=${maxChunks}`);
+
+  while (chunkIndex < maxChunks) {
+    const currentWords = countWords(accumulatedContent);
+    const phase = getChunkPhase(currentWords, targetWords);
+    const phaseInstruction = getPhaseInstruction(phase);
+    const remainingWords = Math.max(600, targetWords - currentWords);
+
+    // Stop if past target
+    // Target words are guidance only, never a hard wall.
+    // Do not stop just because the estimated chapter target was exceeded.
+
+    // Professional continuation guard:
+    // Never close the chapter early at 850/1200 words.
+    // Keep generating until the real target range is reached.
+    // Do not force closure merely because the chapter is near the estimated target.
+    // The continuation loop decides based on safety caps and generated content.
+
+    // Adaptive chunk size selection
+    const chunkSize = selectChunkSize(consecutiveFailures);
+    const sizeConfig = CHUNK_SIZES[chunkSize];
+    const chunkTarget = phase === "CLOSURE"
+      ? Math.min(remainingWords + 100, sizeConfig.max)
+      : Math.min(Math.max(sizeConfig.min, remainingWords), sizeConfig.max);
+
+    if (DEV_DEBUG_STREAM) console.log(`[Nexora] Chunk ${chunkIndex + 1}: size=${chunkSize} (${sizeConfig.label}), failures=${consecutiveFailures}`);
+
+    const isFirstChunk = chunkIndex === 0;
+    const lastTextSegment = accumulatedContent.slice(-1200);
+    const adaptiveSuffix = getAdaptivePromptSuffix(chunkSize);
+
+    const chunkPrompt = isFirstChunk
+      ? `Write the OPENING of Chapter ${chapterIndex + 1} of "${config.title}".
+Chapter title: "${outline.title}"
+Chapter plan: ${outline.summary}
+Genre: ${config.genre}
+Language: ${effectiveLanguage} — WRITE ENTIRELY IN ${effectiveLanguage}
+
+BLUEPRINT EXECUTION RULES:
+- This chapter MUST execute ONLY this chapter's blueprint.
+- Mandatory chapter title to express internally: "${outline.title}"
+- Mandatory chapter scope: ${outline.summary}
+- Do NOT invent a different thesis, topic, structure, or promise.
+- Do NOT drift into generic advice outside this assigned chapter role.
+- Every major paragraph must directly serve this exact chapter blueprint.
+- If even one sentence is not in ${effectiveLanguage}, the output is invalid.
+- If the chapter drifts away from the blueprint, the output is invalid.
+
+${genreDirective}
+
+${contextMemory}
+
+TARGET: Write approximately ${chunkTarget} words for this segment.
+TOTAL CHAPTER TARGET: ${targetWords} words (you will write more chunks after this).
+PHASE: ${phase} — ${phaseInstruction}
+
+BESTSELLER QUALITY REQUIREMENTS:
+- Open with a line that stops the reader — a hook they'll remember
+- Include 2-3 highlight-worthy sentences
+- Write like a PUBLISHED BESTSELLER
+- Use varied sentence rhythm
+- HONOR the GENRE DIRECTIVE above — chapter style and content rules are MANDATORY
+
+Return ONLY the chapter text. Start with the chapter content directly.
+Do NOT return JSON. Do NOT include the chapter title in the text.
+Write in ${effectiveLanguage}.${adaptiveSuffix}`
+
+      : `CONTINUE writing Chapter ${chapterIndex + 1} of "${config.title}".
+Chapter title: "${chapterTitle}"
+Chapter plan: ${outline.summary}
+Genre: ${config.genre}
+Language: ${effectiveLanguage}
+
+${genreDirective}
+
+PREVIOUS TEXT (last segment):
+"""
+${lastTextSegment}
+"""
+
+CURRENT PROGRESS: ${currentWords} / ${targetWords} words written
+REMAINING: ~${remainingWords} words needed
+PHASE: ${phase} — ${phaseInstruction}
+
+TARGET for this chunk: Write approximately ${chunkTarget} words.
+
+BLUEPRINT CONTINUATION RULES:
+- Continue executing ONLY this chapter blueprint: ${outline.summary}
+- Do NOT widen the topic beyond this chapter's assigned role in the book.
+- Do NOT introduce ideas that belong to later chapters.
+- If even one sentence is not in ${effectiveLanguage}, the output is invalid.
+
+CRITICAL RULES:
+- Continue EXACTLY from where the previous text ended
+- DO NOT restart, summarize, or repeat what was already written
+- DO NOT repeat ideas, metaphors, or phrases from previous text
+- Maintain narrative coherence and emotional continuity
+- HONOR the GENRE DIRECTIVE — same chapter style throughout the book
+- Increase depth and quality with each chunk
+${phase === "CLOSURE" ? `
+ENDING RULES:
+- Write toward a POWERFUL, SATISFYING conclusion
+- The final lines must feel inevitable and emotionally resonant
+- DO NOT leave the chapter unfinished
+- Create a strong final paragraph that provides closure
+- DO NOT exceed the remaining word budget significantly
+` : ""}
+Return ONLY the continuation text. No JSON. No titles. No meta-commentary.
+Write in ${effectiveLanguage}.${adaptiveSuffix}`;
+
+    const systemPrompt = `${systemBase} You are writing ${isFirstChunk ? "the opening of" : "a continuation for"} chapter ${chapterIndex + 1} of ${config.numberOfChapters}. Phase: ${phase}. Chunk size: ${chunkSize}.`;
+
+    let chunkText: string | null = null;
+
+    try {
+      chunkText = await callAIOnce(systemPrompt, chunkPrompt, sizeConfig.timeout);
+      consecutiveFailures = 0; // Reset on success
+    } catch (e: any) {
+      consecutiveFailures++;
+      console.error(`[Nexora] Chunk ${chunkIndex + 1} failed (failures=${consecutiveFailures}):`, e.message);
+
+      // Credit/auth errors = bail immediately
+      if (e instanceof AICreditsError) throw e;
+
+      // After 6 consecutive failures, try emergency fallback or stop gracefully
+      if (consecutiveFailures > 4 && countWords(accumulatedContent) >= targetWords * 0.92) {
+        console.warn(`[Nexora] Emergency finish activated near target at ${countWords(accumulatedContent)}/${targetWords} words after ${consecutiveFailures} failures`);
+        break;
+      }
+
+      if (consecutiveFailures > 6) {
+        if (chunkIndex === 0) {
+          // Last-resort fallback for first chunk: smaller/simpler prompt
+          console.warn(`[Nexora] Emergency fallback for first chunk`);
+          try {
+            chunkText = await callAIOnce(
+              `You are a ${config.genre} author writing in ${effectiveLanguage}. Be concise and complete.`,
+              `Write the opening section (~600 words) of chapter "${outline.title}" for the book "${config.title}". Outline: ${outline.summary}. Plain prose only.`,
+              90000,
+            );
+            consecutiveFailures = 0;
+          } catch {
+            throw new Error(`Generation failed after multiple attempts. Try again or reduce chapter length.`);
+          }
+        } else {
+          console.warn(`[Nexora] Stopping with ${countWords(accumulatedContent)} words after ${consecutiveFailures} failures`);
+          break;
+        }
+      } else {
+        // Exponential backoff before retry with smaller chunk
+        const backoff = Math.min(8000, 1500 * consecutiveFailures);
+        await new Promise(r => setTimeout(r, backoff));
+        continue; // Loop back — selectChunkSize will downgrade
+      }
+    }
+
+    if (!chunkText) {
+      consecutiveFailures++;
+      continue;
+    }
+
+    // Clean up
+    chunkText = chunkText.replace(/^```[a-z]*\n?/g, "").replace(/\n?```$/g, "").trim();
+    if (isFirstChunk) {
+      const lines = chunkText.split("\n");
+      if (lines[0] && lines[0].startsWith("#")) {
+        chapterTitle = lines[0].replace(/^#+\s*/, "").trim();
+        chunkText = lines.slice(1).join("\n").trim();
+      }
+    }
+
+    // Anti-repetition check
+    if (!isFirstChunk && accumulatedContent.length > 0) {
+      const overlap = checkOverlap(accumulatedContent, chunkText);
+      if (overlap > 0.2) {
+        console.warn(`[Nexora] Chunk ${chunkIndex + 1} has ${(overlap * 100).toFixed(0)}% overlap — regenerating`);
+        try {
+          chunkText = await callAI(
+            systemPrompt + " CRITICAL: Your previous attempt repeated content. Write ENTIRELY NEW prose that continues from the last sentence.",
+            chunkPrompt + "\n\nWARNING: Previous attempt overlapped. Write COMPLETELY NEW content."
+          );
+          chunkText = chunkText.replace(/^```[a-z]*\n?/g, "").replace(/\n?```$/g, "").trim();
+        } catch {
+          // Use original if regen fails
+        }
+      }
+    }
+
+    accumulatedContent += (accumulatedContent ? "\n\n" : "") + chunkText;
+    chunkIndex++;
+
+    const updatedWords = countWords(accumulatedContent);
+    if (DEV_DEBUG_STREAM) console.log(`[Nexora] Chunk ${chunkIndex} complete: ${updatedWords}/${targetWords} words, phase=${phase}, size=${chunkSize}`);
+
+    // Report progress
+    onChunkProgress?.({
+      chunkIndex,
+      totalChunks: maxChunks,
+      currentWords: updatedWords,
+      targetWords,
+      phase,
+      content: accumulatedContent,
+      chunkSize,
+    });
+
+    // SMART COMPLETION GATE:
+    // The chapter target is guidance, not a prison.
+    // But the engine must stop when the chapter is already complete enough.
+    const minAcceptableWords = Math.max(650, Math.floor(targetWords * 0.82));
+    const idealStopWords = Math.max(900, Math.floor(targetWords * 0.95));
+    const hardStopWords = Math.min(
+      Math.max(1200, Math.floor(targetWords * 1.08)),
+      1500,
+    );
+
+    const endingSample = accumulatedContent.slice(-900).toLowerCase();
+    const hasEndingShape =
+      /\\b(conclusion|finally|in the end|ultimately|from this moment|this is where|now you|remember|the truth is|and so|because of this|da questo momento|in definitiva|alla fine|ricorda|la verità è|per questo)\\b/i.test(endingSample)
+      || /[.!?][\\s\\n]*$/.test(accumulatedContent.trim());
+
+    if (updatedWords >= idealStopWords && hasEndingShape) {
+      if (DEV_DEBUG_STREAM) {
+        console.log(`[Nexora] Smart stop: ${updatedWords}/${targetWords} words with clean ending.`);
+      }
+      break;
+    }
+
+    if (updatedWords >= hardStopWords) {
+      console.log(`[Nexora] Hard stop: ${updatedWords}/${targetWords} words. Chapter accepted.`);
+      break;
+    }
+
+    if (phase === "CLOSURE" && updatedWords >= minAcceptableWords && hasEndingShape) {
+      if (DEV_DEBUG_STREAM) {
+        console.log(`[Nexora] Closure stop: ${updatedWords}/${targetWords} words.`);
+      }
+      break;
+    }
+  }
+
+  if (!accumulatedContent.trim()) {
+    throw new Error("Chapter generation returned empty content.");
+  }
+
+  // Completion log is essential — kept always on (1 line per chapter).
+
+=== generation.ts: completion gates ===
+413:function countWords(text: string): number {
+519:    const currentWords = countWords(accumulatedContent);
+641:      if (consecutiveFailures > 4 && countWords(accumulatedContent) >= targetWords * 0.92) {
+642:        console.warn(`[Nexora] Emergency finish activated near target at ${countWords(accumulatedContent)}/${targetWords} words after ${consecutiveFailures} failures`);
+661:          console.warn(`[Nexora] Stopping with ${countWords(accumulatedContent)} words after ${consecutiveFailures} failures`);
+707:    const updatedWords = countWords(accumulatedContent);
+724:    const minAcceptableWords = Math.max(650, Math.floor(targetWords * 0.82));
+725:    const idealStopWords = Math.max(900, Math.floor(targetWords * 0.95));
+726:    const hardStopWords = Math.min(
+732:    const hasEndingShape =
+736:    if (updatedWords >= idealStopWords && hasEndingShape) {
+743:    if (updatedWords >= hardStopWords) {
+748:    if (phase === "CLOSURE" && updatedWords >= minAcceptableWords && hasEndingShape) {
+761:  console.log(`[Nexora] Chapter ${chapterIndex + 1} complete: ${countWords(accumulatedContent)} words in ${chunkIndex} chunks`);
+
+=== useBookEngine: final words + chapter save flow ===
+
+=== Dashboard language normalization ===
+24:function normalizeDashboardLanguage(value?: string): string {
+110:  const [bookLang, setBookLang] = useState<string>(() => {
+186:        body: { idea: idea.trim(), language: normalizeDashboardLanguage(bookLang) },
+226:          language: normalizeDashboardLanguage(bookLang),
+637:                    bookLang === l.value
+
+=== AutoBestsellerPage language flow ===
+70:  function normalizeBriefLanguage(value?: string): "English" | "Italian" | "Spanish" | "French" | "German" {
+122:            language: normalizeBriefLanguage(parsed.language),
+
+=== Search for hardcoded English defaults ===
+src/types/book.ts:1:export type Language = "English" | "Italian" | "Spanish" | "French" | "German";
+src/components/TopBar.tsx:34:const LANGUAGES: Language[] = ["English", "Italian", "Spanish", "French", "German"];
+src/components/AutoBestseller/InputPanel.tsx:30:const LANGUAGES = ["English", "Italian", "Spanish", "French", "German", "Portuguese"];
+src/components/AutoBestseller/InputPanel.tsx:58:  const [language, setLingua] = useState(initialInput?.language ?? "English");
+src/components/AutoBestseller/InputPanel.tsx:91:      language: mode === "guided" ? "English" : language,
+src/components/NewBookDialog.tsx:14:const LANGUAGES: Language[] = ["English", "Italian", "Spanish", "French", "German"];
+src/components/NewBookDialog.tsx:53:    language: "English",
+src/components/kdp/KdpTitleDomination.tsx:195:                <SelectItem value="English">English</SelectItem>
+src/components/AICoachPanel.tsx:37:  en: "English", it: "Italian", es: "Spanish", fr: "French", de: "German",
+src/components/BookConfigForm.tsx:8:const LANGUAGES: Language[] = ["English", "Italian", "Spanish", "French", "German"];
+src/components/BookConfigForm.tsx:24:    language: "English",
+src/components/TitleIntelligenceDialog.tsx:21:  en: "English", it: "Italian", es: "Spanish", fr: "French", de: "German",
+src/components/TitleIntelligenceDialog.tsx:32:  const [language, setLanguage] = useState<string>(UI_LANG_TO_NAME[uiLang] ?? "English");
+src/components/TitleIntelligenceDialog.tsx:147:                language={UI_LANG_TO_NAME[uiLang] ?? "English"}
+src/components/TitleIntelligenceDialog.tsx:203:                    <option value="English">English</option>
+src/components/PublishPanel.tsx:203:                      options={["English", "Italian", "Spanish", "French", "German"]} />
+src/lib/i18n.ts:4:  { value: "en", label: "English" },
+src/lib/auto-bestseller-to-project.ts:9:const ALLOWED_LANGUAGES: Language[] = ["English", "Italian", "Spanish", "French", "German"];
+src/lib/auto-bestseller-to-project.ts:17:  if (!l) return "English";
+src/lib/auto-bestseller-to-project.ts:22:    en: "English",
+src/lib/auto-bestseller-to-project.ts:23:    english: "English",
+src/lib/auto-bestseller-to-project.ts:47:  return (ALLOWED_LANGUAGES.find((x) => x === cap) ?? "English") as Language;
+src/lib/generation.ts:315:  const langNote = effectiveLanguage !== "English" ? ` Write in ${effectiveLanguage}.` : "";
+src/lib/generation.ts:339:    English: "English", Italian: "Italian (Italiano)", Spanish: "Spanish (Español)",
+src/pages/AutoBestsellerPage.tsx:70:  function normalizeBriefLanguage(value?: string): "English" | "Italian" | "Spanish" | "French" | "German" {
+src/pages/AutoBestsellerPage.tsx:73:  const aliases: Record<string, "English" | "Italian" | "Spanish" | "French" | "German"> = {
+src/pages/AutoBestsellerPage.tsx:74:    en: "English",
+src/pages/AutoBestsellerPage.tsx:75:    english: "English",
+src/pages/AutoBestsellerPage.tsx:96:  return aliases[raw] || "English";
+src/pages/Dashboard.tsx:28:  if (["en", "eng", "english", "inglese"].includes(v)) return "English";
+src/pages/Dashboard.tsx:112:    return ({ en: "English", it: "Italian", es: "Spanish", fr: "French", de: "German" } as Record<string, string>)[ui] || "English";
+src/pages/Dashboard.tsx:116:    { value: "English", label: "🇬🇧 English" },
+src/pages/Dashboard.tsx:250:  const currentLangLabel = UI_LANGUAGES.find(l => l.value === currentLang)?.label || "English";
+
+=== Search for word/char signals ===
+src/types/book.ts:106:export const BOOK_LENGTH_CONFIG: Record<BookLength, { label: string; totalWords: number; description: string }> = {
+src/types/book.ts:107:  short: { label: "Short Book", totalWords: 10000, description: "~10,000 words — Concise, high-density" },
+src/types/book.ts:108:  medium: { label: "Medium Book", totalWords: 50000, description: "~50,000 words — Balanced development" },
+src/types/book.ts:109:  long: { label: "Long Book", totalWords: 100000, description: "~100,000+ words — Deep, immersive narrative" },
+src/types/book.ts:110:  custom: { label: "Custom", totalWords: 30000, description: "Choose your exact word count" },
+src/types/book.ts:113:export function getBookTotalWords(config: { bookLength: BookLength; customTotalWords?: number }): number {
+src/types/book.ts:114:  if (config.bookLength === "custom" && config.customTotalWords && config.customTotalWords > 0) {
+src/types/book.ts:115:    return config.customTotalWords;
+src/types/book.ts:117:  return BOOK_LENGTH_CONFIG[config.bookLength].totalWords;
+src/types/book.ts:131:  customTotalWords?: number;
+src/types/book.ts:158:  targetBookWords: number;
+src/types/book.ts:159:  targetChapterWords: number;
+src/molly/mollyBehavior.ts:16:  "Stephen King writes 2,000 words every single day. No excuses.",
+src/components/LiveCoachTab.tsx:25:  // Only fire if user added a meaningful chunk (>40 chars) and ended a sentence
+src/components/DominationTray.tsx:2:import { Swords, Loader2, Check, X, AlertCircle, ChevronDown, ChevronUp, ArrowRight, Scissors, Shield } from "lucide-react";
+src/components/DominationTray.tsx:53:                        <Swords className="h-3 w-3 text-orange-500 shrink-0" />
+src/components/DominationTray.tsx:81:                    <span className="break-words">{job.error}</span>
+src/components/ui/breadcrumb.tsx:20:        "flex flex-wrap items-center gap-1.5 break-words text-sm text-muted-foreground sm:gap-2.5",
+src/components/Home/LibrarySection.tsx:48:            const words = (p.chapters || []).reduce(
+src/components/Home/LibrarySection.tsx:73:                    <span>{words.toLocaleString()} parole</span>
+src/components/TopBar.tsx:189:          <span className="opacity-70 normal-case font-normal">words</span>
+src/components/ChapterIntelligencePanel.tsx:2:import { Sparkles, X, Loader2, AlertCircle, Check, Scissors, Flame, Wand2, Trash2, RefreshCw, TrendingUp, Swords, ArrowRight, ChevronDown, Eye, Lock, Bot, EyeOff, Quote, Zap } from "lucide-react";
+src/components/ChapterIntelligencePanel.tsx:369:                      {canDominate ? <Swords className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+src/components/ChapterIntelligencePanel.tsx:483:                <Swords className="h-9 w-9 text-orange-500 animate-pulse" />
+src/components/AutoBestseller/BookLivePreview.tsx:15:function useTypewriter(text: string | undefined, enabled: boolean, charsPerTick = 12, tickMs = 16) {
+src/components/AutoBestseller/BookLivePreview.tsx:47:      indexRef.current = Math.min(text.length, indexRef.current + charsPerTick);
+src/components/AutoBestseller/BookLivePreview.tsx:52:  }, [text, enabled, charsPerTick, tickMs]);
+src/components/AutoBestseller/ProgressTimeline.tsx:65:                          title={`Ch ${c.index + 1}: ${c.title} • ${c.phase}${c.content ? ` • ${String(c.content).trim().split(/\s+/).filter(Boolean).length} words` : ""}${c.score ? ` • ${c.score}/10` : ""}`}
+src/components/NewBookDialog.tsx:105:                    {key === "custom" ? "Choose words" : `~${(val.totalWords / 1000).toFixed(0)}k words`}
+src/components/NewBookDialog.tsx:113:                  <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Total Words</span>
+src/components/NewBookDialog.tsx:115:                    {(config.customTotalWords ?? 30000).toLocaleString()} words
+src/components/NewBookDialog.tsx:123:                  value={config.customTotalWords ?? 30000}
+src/components/NewBookDialog.tsx:124:                  onChange={e => update("customTotalWords", parseInt(e.target.value))}
+src/components/NewBookDialog.tsx:133:                    value={config.customTotalWords ?? 30000}
+src/components/NewBookDialog.tsx:134:                    onChange={e => update("customTotalWords", Math.max(1000, parseInt(e.target.value) || 30000))}
+src/components/NewBookDialog.tsx:138:                    ≈ {Math.round((config.customTotalWords ?? 30000) / config.numberOfChapters).toLocaleString()} words/chapter
+src/components/EditorPanel.tsx:410:  const chapterWordCount = countWords(chapter?.content || "");
+src/components/EditorPanel.tsx:515:        words={chapterWordCount}
+src/components/EditorPanel.tsx:516:        characters={chapterCharCount}
+src/components/EditorPanel.tsx:613:function countWords(value: string): number {
+src/components/EditorPanel.tsx:621:  words,
+src/components/EditorPanel.tsx:622:  characters,
+src/components/EditorPanel.tsx:628:  words: number;
+src/components/EditorPanel.tsx:629:  characters: number;
+src/components/EditorPanel.tsx:642:      <StatPill label="Words" value={words.toLocaleString()} />
+src/components/EditorPanel.tsx:643:      <StatPill label="Characters" value={characters.toLocaleString()} />
+src/components/EditorPanel.tsx:1078:    ? Math.min(Math.round((chunkProgress.currentWords / chunkProgress.targetWords) * 100), 99)
+src/components/EditorPanel.tsx:1094:    ? `${chunkProgress.currentWords.toLocaleString()} / ${chunkProgress.targetWords.toLocaleString()} words`
+src/components/EditorPanel.tsx:1134:  prev.chunkProgress?.currentWords === next.chunkProgress?.currentWords &&
+src/components/EditorPanel.tsx:1135:  prev.chunkProgress?.targetWords === next.chunkProgress?.targetWords &&
+src/components/ProgressTracker.tsx:1:import { BookProject, getBookTotalWords } from "@/types/book";
+src/components/ProgressTracker.tsx:11:  const totalTargetWords = getBookTotalWords(config);
+src/components/ProgressTracker.tsx:13:  // Count words
+src/components/ProgressTracker.tsx:14:  let totalWords = 0;
+src/components/ProgressTracker.tsx:16:    totalWords += Object.values(frontMatter).join(" ").split(/\s+/).length;
+src/components/ProgressTracker.tsx:19:    if (ch.content) totalWords += ch.content.split(/\s+/).length;
+src/components/ProgressTracker.tsx:21:      if (sub.content) totalWords += sub.content.split(/\s+/).length;
+src/components/ProgressTracker.tsx:25:    totalWords += Object.values(backMatter).join(" ").split(/\s+/).length;
+src/components/ProgressTracker.tsx:40:  const wordPercent = Math.min(100, Math.round((totalWords / totalTargetWords) * 100));
+src/components/ProgressTracker.tsx:64:          <span className="text-[10px] text-muted-foreground">Words</span>
+src/components/ProgressTracker.tsx:65:          <span className="text-[10px] font-medium text-foreground font-mono">{totalWords.toLocaleString()}/{(totalTargetWords / 1000).toFixed(0)}k</span>
+src/components/kdp/KdpTitleDomination.tsx:310:                <SignalBlock title="Keyword dominanti"   items={result.marketSignals.dominantKeywords} />
+src/components/kdp/KdpTitleDomination.tsx:361:                      <ScoreBar label="Keyword"     value={c.keywordScore} />
+src/components/kdp/NicheTrendingPlaylist.tsx:48:  keywords: string[];
+src/components/kdp/NicheTrendingPlaylist.tsx:184:      keywords: n.dominantKeywords ?? [],
+src/components/kdp/NicheTrendingPlaylist.tsx:424:      {niche.dominantKeywords?.length > 0 && (
+src/components/kdp/NicheTrendingPlaylist.tsx:426:          {niche.dominantKeywords.slice(0, 5).map((k, i) => (
+src/components/AICoachPanel.tsx:102:Text (first 3000 chars):
+src/components/CoverGenerator.tsx:87:    const words = text.split(" ");
+src/components/CoverGenerator.tsx:91:    for (const word of words) {
+src/components/BookConfigForm.tsx:10:  { value: "short", label: "Short (~1000 words)" },
+src/components/BookConfigForm.tsx:11:  { value: "medium", label: "Medium (~2000 words)" },
+src/components/BookConfigForm.tsx:12:  { value: "long", label: "Long (~4000 words)" },
+src/components/TitleIntelligenceDialog.tsx:292:              {/* Core keywords */}
+src/components/TitleIntelligenceDialog.tsx:293:              {data.coreKeywords?.length > 0 && (
+src/components/TitleIntelligenceDialog.tsx:295:                  <SectionLabel icon={<Target className="h-3.5 w-3.5" />} label="🎯 Core Keywords (domanda vs concorrenza)" color="text-emerald-400" />
+src/components/TitleIntelligenceDialog.tsx:297:                    {data.coreKeywords.map((k, i) => (
+src/hooks/useTitleIntelligence.ts:41:  coreKeywords: KeywordIntel[];
+src/hooks/useBookEngine.ts:246:      const finalWords = chapter.content.split(/\s+/).length;
+src/hooks/useBookEngine.ts:247:      addMessage("assistant", `Chapter ${index + 1} "${chapter.title}" complete! ✅ (${finalWords} words)`);
+src/hooks/useAutoBestseller.ts:324:              ? `Chapter ${c.index + 1}/${c.total} ready · ${liveWordCount} words`
+src/hooks/useAutoBestseller.ts:326:                ? `Refining Chapter ${c.index + 1}/${c.total} · ${liveWordCount} words`
+src/hooks/useAutoBestseller.ts:327:                : `Writing Chapter ${c.index + 1}/${c.total} · ${liveWordCount} words`;
+src/lib/epub.ts:45:  <meta charset="UTF-8"/>
+src/lib/epub.ts:467:  <meta charset="UTF-8"/>
+src/lib/editorial-mastery.ts:85:✗ Over-explaining what the reader just understood ("In other words…", "What this means is…").
+src/lib/editorial-mastery.ts:152:• Scene over summary: drop the reader into specific moments — Tuesday afternoon, the smell of the kitchen, the exact words spoken.
+src/lib/editorial-mastery.ts:157:• Avoid therapy-speak ("I had to do my work"). Use ordinary words for extraordinary feelings.
+src/lib/editorial-mastery.ts:199:• Track signature words/phrases — vary lexicon; do not lean on the same 5 verbs or adjectives.
+src/lib/editorial-mastery.ts:201:• Forbidden: paraphrasing the previous paragraph in different words. Move the argument FORWARD instead.`;
+src/lib/i18n.ts:132:  publish_desc: { en: "Description, keywords, cover — all in one", it: "Descrizione, keyword, copertina — tutto in uno", es: "Descripción, palabras clave, portada — todo en uno", fr: "Description, mots-clés, couverture — tout-en-un", de: "Beschreibung, Keywords, Cover — alles in einem" },
+src/lib/i18n.ts:156:  keywords_ready: { en: "Keywords ready", it: "Keyword pronte", es: "Palabras clave listas", fr: "Mots-clés prêts", de: "Keywords fertig" },
+src/lib/kdp/money-engine.ts:68:  backendKeywords: string[];      // 7 max, KDP rules
+src/lib/kdp/money-engine.ts:93:  secondaryKeywords: string[];
+src/lib/kdp/money-engine.ts:100:  keywordScore: number;
+src/lib/kdp/money-engine.ts:111:    dominantKeywords: string[];
+src/lib/kdp/money-engine.ts:149:  dominantKeywords: string[];
+src/lib/kdp/money-engine.ts:180:      keywords?: string[];
+src/lib/kdp/money-engine.ts:220:    keywords?: string[];
+src/lib/kdp/money-engine.ts:231:      keywords: opts.keywords,
+src/lib/auto-bestseller-to-project.ts:91:  const safeBookWords = Math.max(10000, totalWordTarget || 50000);
+src/lib/auto-bestseller-to-project.ts:96:    targetBookWords: safeBookWords,
+src/lib/auto-bestseller-to-project.ts:97:    targetChapterWords: Math.max(1200, Math.round(safeBookWords / safeChapters)),
+src/lib/auto-bestseller-to-project.ts:149:    customTotalWords: input?.totalWordTarget,
+src/lib/auto-bestseller-to-project.ts:231:    customTotalWords: input?.totalWordTarget,
+src/lib/ai/intelligence-router.ts:30:  /** Target length in words (chapter/book). */
+src/lib/ai/intelligence-router.ts:31:  targetWords?: number;
+src/lib/ai/intelligence-router.ts:95:  const words = signal.targetWords ?? (signal.text?.split(/\s+/).length ?? 0);
+src/lib/ai/intelligence-router.ts:100:  if (words >= 1500 || isFiction || isPoetic) {
+src/lib/ai/intelligence-router.ts:103:  if (words >= 700) return "medium";
+src/lib/ai/safeGenerateAI.ts:19:  minChars?: number;
+src/lib/ai/safeGenerateAI.ts:75:    minChars = 80,
+src/lib/ai/safeGenerateAI.ts:92:      if (!content || content.trim().length < minChars) {
+src/lib/ai/safeGenerateAI.ts:108:        if (allowPartial && bestPartial.trim().length >= minChars) {
+src/lib/download.ts:4:  const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+src/lib/book-progress.ts:4: * Estimate of words per chapter when no explicit target is provided.
+src/lib/book-progress.ts:7:const DEFAULT_WORDS_PER_CHAPTER = 1400;
+src/lib/book-progress.ts:9:/** Count words by simple whitespace split — fast and good enough for progress UI. */
+src/lib/book-progress.ts:10:export function countWords(text: string | undefined | null): number {
+src/lib/book-progress.ts:20:  words: number;
+src/lib/book-progress.ts:21:  targetWords: number;
+src/lib/book-progress.ts:30: *  - writing             → words / target (capped at 80% so refining still shows progress)
+src/lib/book-progress.ts:35:  targetWords: number = DEFAULT_WORDS_PER_CHAPTER,
+src/lib/book-progress.ts:38:    return { percent: 0, words: 0, targetWords, phase: "pending", label: "Pending" };
+src/lib/book-progress.ts:40:  const words = countWords(chapter.content);
+src/lib/book-progress.ts:42:    return { percent: 100, words, targetWords, phase: "done", label: `${words} words` };
+src/lib/book-progress.ts:45:    const base = Math.min(80, Math.round((words / Math.max(1, targetWords)) * 80));
+src/lib/book-progress.ts:47:    return { percent, words, targetWords, phase: "refining", label: `Refining · ${words} words` };
+src/lib/book-progress.ts:50:  const percent = Math.min(80, Math.round((words / Math.max(1, targetWords)) * 80));
+src/lib/book-progress.ts:51:  return { percent, words, targetWords, phase: "writing", label: `Writing · ${words} words` };
+src/lib/book-progress.ts:59:  /** Words written across ALL chapters so far (done + in progress) */
+src/lib/book-progress.ts:60:  wordsWritten: number;
+src/lib/book-progress.ts:61:  /** Estimated total words for the whole book */
+src/lib/book-progress.ts:62:  wordsTarget: number;
+src/lib/book-progress.ts:75:  wordsPerChapter: number = DEFAULT_WORDS_PER_CHAPTER,
+src/lib/book-progress.ts:86:  let wordsWritten = 0;
+src/lib/book-progress.ts:89:    const info = getChapterProgress(ch, wordsPerChapter);
+src/lib/book-progress.ts:91:    wordsWritten += info.words;
+src/lib/book-progress.ts:95:  const wordsTarget = totalChapters * wordsPerChapter;
+src/lib/book-progress.ts:101:    wordsWritten,
+src/lib/book-progress.ts:102:    wordsTarget,
+src/lib/editorial-validator.ts:82:  /\bin other words\b/gi,
+src/lib/editorial-validator.ts:110:  // Heuristic: a quotable sentence is short-to-mid (5-25 words),
+src/lib/editorial-validator.ts:127:  // Compare first 8 words of each paragraph against others — flag near-duplicates
+src/lib/subscription.ts:96:  /** Hard cap on words per single book. UI counter, separate from token cost. */
+src/lib/subscription.ts:97:  maxWordsPerBook: number;
+src/lib/subscription.ts:111:    maxWordsPerBook: 10_000,
+src/lib/subscription.ts:121:    maxWordsPerBook: 80_000,
+src/lib/subscription.ts:131:    maxWordsPerBook: 200_000,
+src/lib/subscription.ts:176:export function canGenerateMoreWords(
+src/lib/subscription.ts:179:  requestedWords = 0,
+src/lib/subscription.ts:181:  const max = getPlanLimits(plan).maxWordsPerBook;
+src/lib/subscription.ts:182:  return currentWordCount + requestedWords <= max;
+src/lib/subscription.ts:195:/** Count words in a free-form string (whitespace-separated tokens). */
+src/lib/subscription.ts:196:export function countWords(text: string | undefined | null): number {
+src/lib/subscription.ts:203:/** Count words across an entire BookProject (chapters + subchapters + matter). */
+src/lib/subscription.ts:204:export function countProjectWords(project: any): number {
+src/lib/subscription.ts:207:  total += countWords(project?.frontMatter?.content);
+src/lib/subscription.ts:208:  total += countWords(project?.backMatter?.content);
+src/lib/subscription.ts:211:    total += countWords(c?.content);
+src/lib/subscription.ts:213:    for (const s of subs) total += countWords(s?.content);
+src/lib/subscription.ts:228:  const max = getPlanLimits(plan).maxWordsPerBook;
+src/lib/subscription.ts:229:  const used = countProjectWords(project);
+src/lib/generation.ts:1:import { BookConfig, Chapter, FrontMatter, BackMatter, BookBlueprint, Genre, AIQualityRating, BOOK_LENGTH_CONFIG, getBookTotalWords, GenreLock, GenerationLock, Language } from "@/types/book";
+src/lib/generation.ts:139:    if (DEV_DEBUG_STREAM) console.log("[Nexora] AI response received:", parsed.content.length, "chars");
+src/lib/generation.ts:234:    return `Ch ${i + 1} "${c.title}" (${wordCount} words):
+src/lib/generation.ts:301:function getChapterTargetWords(config: BookConfig, chapterIndex: number, totalChapters: number, chapterLengthOverride?: string, generationLock?: GenerationLock): number {
+src/lib/generation.ts:302:  const bookTotal = generationLock?.targetBookWords || getBookTotalWords(config);
+src/lib/generation.ts:310:  const target = generationLock?.targetChapterWords || getChapterTargetWords(config, chapterIndex, totalChapters, chapterLengthOverride, generationLock);
+src/lib/generation.ts:322:  return `Write approximately ${min}–${max} words.${depthNote}${langNote}`;
+src/lib/generation.ts:379:9. Book scope: ${BOOK_LENGTH_CONFIG[config.bookLength].description} (target: ~${getBookTotalWords(config).toLocaleString()} total words)
+src/lib/generation.ts:389:function getChunkPhase(currentWords: number, targetWords: number): ChunkPhase {
+src/lib/generation.ts:390:  const ratio = currentWords / targetWords;
+src/lib/generation.ts:413:function countWords(text: string): number {
+src/lib/generation.ts:449:  // standard chunk gravitates around ~700 words,
+src/lib/generation.ts:479:  currentWords: number;
+src/lib/generation.ts:480:  targetWords: number;
+src/lib/generation.ts:498:  const targetWords = getChapterTargetWords(config, chapterIndex, config.numberOfChapters, chapterLengthOverride, generationLock);
+src/lib/generation.ts:514:  const maxChunks = Math.max(80, Math.ceil(targetWords / 250) + 30); // safety cap only: prevents infinite loops, never acts as chapter-length wall
+src/lib/generation.ts:516:  if (DEV_DEBUG_STREAM) console.log(`[Nexora] Adaptive chunked generation: target=${targetWords} words, safetyMaxChunks=${maxChunks}`);
+src/lib/generation.ts:519:    const currentWords = countWords(accumulatedContent);
+src/lib/generation.ts:520:    const phase = getChunkPhase(currentWords, targetWords);
+src/lib/generation.ts:522:    const remainingWords = Math.max(600, targetWords - currentWords);
+src/lib/generation.ts:525:    // Target words are guidance only, never a hard wall.
+src/lib/generation.ts:529:    // Never close the chapter early at 850/1200 words.
+src/lib/generation.ts:538:      ? Math.min(remainingWords + 100, sizeConfig.max)
+src/lib/generation.ts:539:      : Math.min(Math.max(sizeConfig.min, remainingWords), sizeConfig.max);
+src/lib/generation.ts:568:TARGET: Write approximately ${chunkTarget} words for this segment.
+src/lib/generation.ts:569:TOTAL CHAPTER TARGET: ${targetWords} words (you will write more chunks after this).
+src/lib/generation.ts:596:CURRENT PROGRESS: ${currentWords} / ${targetWords} words written
+src/lib/generation.ts:597:REMAINING: ~${remainingWords} words needed
+src/lib/generation.ts:600:TARGET for this chunk: Write approximately ${chunkTarget} words.
+src/lib/generation.ts:641:      if (consecutiveFailures > 4 && countWords(accumulatedContent) >= targetWords * 0.92) {
+src/lib/generation.ts:642:        console.warn(`[Nexora] Emergency finish activated near target at ${countWords(accumulatedContent)}/${targetWords} words after ${consecutiveFailures} failures`);
+src/lib/generation.ts:653:              `Write the opening section (~600 words) of chapter "${outline.title}" for the book "${config.title}". Outline: ${outline.summary}. Plain prose only.`,
+src/lib/generation.ts:661:          console.warn(`[Nexora] Stopping with ${countWords(accumulatedContent)} words after ${consecutiveFailures} failures`);
+src/lib/generation.ts:707:    const updatedWords = countWords(accumulatedContent);
+src/lib/generation.ts:708:    if (DEV_DEBUG_STREAM) console.log(`[Nexora] Chunk ${chunkIndex} complete: ${updatedWords}/${targetWords} words, phase=${phase}, size=${chunkSize}`);
+src/lib/generation.ts:714:      currentWords: updatedWords,
+src/lib/generation.ts:715:      targetWords,
+src/lib/generation.ts:724:    const minAcceptableWords = Math.max(650, Math.floor(targetWords * 0.82));
+src/lib/generation.ts:725:    const idealStopWords = Math.max(900, Math.floor(targetWords * 0.95));
+src/lib/generation.ts:726:    const hardStopWords = Math.min(
+src/lib/generation.ts:727:      Math.max(1200, Math.floor(targetWords * 1.08)),
+src/lib/generation.ts:736:    if (updatedWords >= idealStopWords && hasEndingShape) {
+src/lib/generation.ts:738:        console.log(`[Nexora] Smart stop: ${updatedWords}/${targetWords} words with clean ending.`);
+src/lib/generation.ts:743:    if (updatedWords >= hardStopWords) {
+src/lib/generation.ts:744:      console.log(`[Nexora] Hard stop: ${updatedWords}/${targetWords} words. Chapter accepted.`);
+src/lib/generation.ts:748:    if (phase === "CLOSURE" && updatedWords >= minAcceptableWords && hasEndingShape) {
+src/lib/generation.ts:750:        console.log(`[Nexora] Closure stop: ${updatedWords}/${targetWords} words.`);
+src/lib/generation.ts:761:  console.log(`[Nexora] Chapter ${chapterIndex + 1} complete: ${countWords(accumulatedContent)} words in ${chunkIndex} chunks`);
+src/lib/generation.ts:812:  const totalWords = getBookTotalWords(config);
+src/lib/generation.ts:824:Book length: ${bookInfo.label} (~${totalWords.toLocaleString()} total words)
+src/lib/generation.ts:837:- overview: maximum 900 characters, clear and marketable (in ${config.language})
+src/lib/generation.ts:840:- emotionalArc: maximum 700 characters (in ${config.language})
+src/lib/generation.ts:843:- Each chapter summary must be maximum 260 characters.
+src/lib/generation.ts:844:- Each subchapter summary must be maximum 180 characters.
+src/lib/generation.ts:861:      minChars: 120,
+src/lib/generation.ts:939:      minChars: 120,
+src/lib/generation.ts:1002:  const bookTotal = getBookTotalWords(config);
+src/lib/generation.ts:1019:Write approximately ${subMin}–${subMax} words.
+src/lib/generation.ts:1092:      minChars: 120,
+src/lib/generation.ts:1126:Content (first 3000 chars):
+src/lib/generation.ts:1156:      minChars: 80,
+src/lib/generation.ts:1299:      minChars: 120,
+src/pages/KdpLaunchPage.tsx:278:                  <ul className="text-xs space-y-1 mt-1">{packaging.backendKeywords.map((k, i) => <li key={i}>• {k}</li>)}</ul>
+src/pages/Dashboard.tsx:709:                Type at least 6 characters to launch.
+src/services/autoBestsellerService.ts:42:  currentWords?: number;
+src/services/autoBestsellerService.ts:43:  targetWords?: number;
+
+=== Build check ===
+
+> scriptora@0.0.0 build
+> vite build
+
+vite v5.4.19 building for production...
+transforming...
+Browserslist: browsers data (caniuse-lite) is 10 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+✓ 2729 modules transformed.
+rendering chunks...
+[plugin:vite:reporter] [plugin vite:reporter] 
+(!) /Users/antoninocampanella/Desktop/nexora-dev-lab/src/services/storageService.ts is dynamically imported by /Users/antoninocampanella/Desktop/nexora-dev-lab/src/services/autoBestsellerService.ts, /Users/antoninocampanella/Desktop/nexora-dev-lab/src/services/autoBestsellerService.ts but also statically imported by /Users/antoninocampanella/Desktop/nexora-dev-lab/src/components/BetaActivationDialog.tsx, /Users/antoninocampanella/Desktop/nexora-dev-lab/src/components/DevModeBadge.tsx, /Users/antoninocampanella/Desktop/nexora-dev-lab/src/components/Home/InProgressSection.tsx, /Users/antoninocampanella/Desktop/nexora-dev-lab/src/hooks/useAutoBestseller.ts, /Users/antoninocampanella/Desktop/nexora-dev-lab/src/hooks/useBookEngine.ts, /Users/antoninocampanella/Desktop/nexora-dev-lab/src/lib/plan.ts, /Users/antoninocampanella/Desktop/nexora-dev-lab/src/pages/AutoBestsellerPage.tsx, /Users/antoninocampanella/Desktop/nexora-dev-lab/src/pages/Dashboard.tsx, /Users/antoninocampanella/Desktop/nexora-dev-lab/src/pages/Index.tsx, dynamic import will not move module into another chunk.
+
+computing gzip size...
+dist/index.html                              1.82 kB │ gzip:   0.63 kB
+dist/assets/index-Buu6YJp2.css             118.30 kB │ gzip:  18.41 kB
+dist/assets/purify.es-B5CD4DQe.js           22.90 kB │ gzip:   8.84 kB
+dist/assets/jszip.min-DmprSfVO.js           97.13 kB │ gzip:  30.15 kB
+dist/assets/index.es-CKLvHIq3.js           150.80 kB │ gzip:  51.62 kB
+dist/assets/html2canvas.esm-CBrSDip1.js    201.42 kB │ gzip:  48.03 kB
+dist/assets/index-CqecmU2-.js            2,012.31 kB │ gzip: 606.35 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 7.09s

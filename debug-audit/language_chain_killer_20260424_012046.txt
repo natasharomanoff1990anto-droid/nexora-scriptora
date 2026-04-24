@@ -1,0 +1,2774 @@
+=== LANGUAGE CHAIN KILLER AUDIT ===
+Fri Apr 24 01:20:46 CEST 2026
+
+=== 1) TYPES / CONFIG ===
+export type Language = "English" | "Italian" | "Spanish" | "French" | "German";
+export type ChapterLength = "short" | "medium" | "long";
+export type BookLength = "short" | "medium" | "long" | "custom";
+export type Genre =
+  | "self-help"
+  | "romance"
+  | "dark-romance"
+  | "thriller"
+  | "fantasy"
+  | "philosophy"
+  | "business"
+  | "memoir"
+  // Genre Engine — practical / non-fiction extension
+  | "cookbook"
+  | "technical-manual"
+  | "software-guide"
+  | "ai-tools-guide"
+  | "gardening"
+  | "beekeeping"
+  | "health-medicine"
+  | "diet-nutrition"
+  | "fitness"
+  | "productivity"
+  | "education"
+  // Estensioni: creativi + intrattenimento
+  | "horror"
+  | "sci-fi"
+  | "historical"
+  | "biography"
+  | "spirituality"
+  | "children"
+  | "fairy-tale"
+  | "poetry"
+  | "jokes"
+  | "manual";
+export type GenerationPhase = 
+  | "idle" 
+  | "blueprint" 
+  | "front-matter" 
+  | "chapters" 
+  | "back-matter" 
+  | "complete";
+
+export type GenerationStatus = "idle" | "generating" | "completed" | "error";
+
+export interface AIQualityRating {
+  score: number; // 1-5
+  explanation: string;
+  missing: string;
+  improvements: string;
+}
+
+export interface SubChapter {
+  title: string;
+  content: string;
+  aiRating?: AIQualityRating;
+}
+
+export interface Chapter {
+  title: string;
+  content: string;
+  subchapters: SubChapter[];
+  status?: GenerationStatus;
+  qualityRating?: number;
+  aiRating?: AIQualityRating;
+  lengthOverride?: ChapterLength;
+}
+
+export interface FrontMatter {
+  titlePage: string;
+  copyright: string;
+  dedication: string;
+  aboutAuthor: string;
+  howToUse: string;
+  letterToReader: string;
+}
+
+export interface BackMatter {
+  conclusion: string;
+  authorNote: string;
+  callToAction: string;
+  reviewRequest: string;
+  otherBooks: string;
+}
+
+export interface BookBlueprint {
+  overview: string;
+  chapterOutlines: { title: string; summary: string; subchapters?: { title: string; summary: string }[] }[];
+  themes: string[];
+  emotionalArc: string;
+}
+
+export const CATEGORIES: Record<string, string[]> = {
+  "Self Help": ["Mindset", "Relationships", "Productivity", "Wellness", "Spirituality"],
+  "Fiction": ["Dark Romance", "Romance", "Thriller", "Fantasy", "Sci-Fi", "Horror", "Historical", "Literary"],
+  "Non-Fiction": ["Business", "Philosophy", "Memoir", "Biography", "Science", "Spirituality"],
+  "Education": ["Textbook", "How-To", "Reference", "Study Guide"],
+  "Bambini": ["0-3 anni", "3-6 anni", "6-9 anni", "9-12 anni", "Young Adult"],
+  "Favole": ["Classiche", "Moderne", "Animali", "Magia", "Morali"],
+  "Poesia": ["Verso libero", "Haiku", "Sonetti", "Lirica moderna", "Spoken word"],
+  "Barzellette": ["Quotidiane", "Lavoro", "Coppia", "Bambini", "Assurde", "Giochi di parole"],
+  "Manuali": ["Tecnico", "Hobby", "Professionale", "Software", "Bricolage", "Cucina"],
+  "Cucina": ["Italiana", "Internazionale", "Vegetariana", "Dolci", "Dieta"],
+};
+
+export const BOOK_LENGTH_CONFIG: Record<BookLength, { label: string; totalWords: number; description: string }> = {
+  short: { label: "Short Book", totalWords: 10000, description: "~10,000 words — Concise, high-density" },
+  medium: { label: "Medium Book", totalWords: 50000, description: "~50,000 words — Balanced development" },
+  long: { label: "Long Book", totalWords: 100000, description: "~100,000+ words — Deep, immersive narrative" },
+  custom: { label: "Custom", totalWords: 30000, description: "Choose your exact word count" },
+};
+
+export function getBookTotalWords(config: { bookLength: BookLength; customTotalWords?: number }): number {
+  if (config.bookLength === "custom" && config.customTotalWords && config.customTotalWords > 0) {
+    return config.customTotalWords;
+  }
+  return BOOK_LENGTH_CONFIG[config.bookLength].totalWords;
+}
+
+export interface BookConfig {
+  title: string;
+  subtitle: string;
+  tone: string;
+  authorStyle: string;
+  language: Language;
+  genre: Genre;
+  category: string;
+  subcategory: string;
+  chapterLength: ChapterLength;
+  bookLength: BookLength;
+  customTotalWords?: number;
+  numberOfChapters: number;
+  subchaptersEnabled: boolean;
+}
+
+/**
+ * Genre Lock — locked editorial blueprint stored on the project
+ * at creation time. Ensures all subsequent generations (chapters,
+ * front/back matter, rewrites) use the SAME structure/rules and
+ * never drift. Stored in projects.data (JSON).
+ */
+export interface GenreLock {
+  genre: string;
+  subcategory?: string;
+  structure: string[];
+  rules: string[];
+  chapterStyle: string;
+  tone: string;
+  frontMatterTemplate: string[];
+  backMatterTemplate: string[];
+  hasSubchapters: boolean;
+  lockedAt: string;
+}
+
+export interface GenerationLock {
+  source: "manual" | "auto_bestseller_launch";
+  lockedLanguage: Language;
+  targetBookWords: number;
+  targetChapterWords: number;
+  lengthLocked: boolean;
+}
+
+export interface BookProject {
+  id: string;
+  config: BookConfig;
+  blueprint: BookBlueprint | null;
+  frontMatter: FrontMatter | null;
+  chapters: Chapter[];
+  backMatter: BackMatter | null;
+  phase: GenerationPhase;
+  frontMatterStatus?: GenerationStatus;
+  backMatterStatus?: GenerationStatus;
+  /** Locked Genre Engine blueprint — set once on creation, never mutated by AI */
+  genreLock?: GenreLock;
+  /** Locked generation contract — source, language and target length must be respected by the writing engine */
+  generationLock?: GenerationLock;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  timestamp: string;
+}
+
+export type SectionId = 
+  | "blueprint"
+  | "front-matter"
+  | `chapter-${number}`
+  | `chapter-${number}-sub-${number}`
+  | "back-matter";
+
+import { useState, useMemo, useEffect, forwardRef } from "react";
+import { BookConfig, Language, Genre, ChapterLength, BookLength, CATEGORIES, BOOK_LENGTH_CONFIG } from "@/types/book";
+import { BookOpen, X, Sparkles, PenTool } from "lucide-react";
+import { t } from "@/lib/i18n";
+import { getGenreBlueprint } from "@/lib/genre-intelligence";
+import { getStylesForGenre, type WritingStylePreset } from "@/lib/writing-styles";
+
+interface NewBookDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (config: BookConfig) => void;
+}
+
+const LANGUAGES: Language[] = ["English", "Italian", "Spanish", "French", "German"];
+const GENRES: { value: Genre; label: string; group: string }[] = [
+  { value: "self-help", label: "Self-Help", group: "Non-Fiction" },
+  { value: "business", label: "Business", group: "Non-Fiction" },
+  { value: "philosophy", label: "Philosophy", group: "Non-Fiction" },
+  { value: "memoir", label: "Memoir", group: "Non-Fiction" },
+  { value: "biography", label: "Biografia", group: "Non-Fiction" },
+  { value: "spirituality", label: "Spiritualità", group: "Non-Fiction" },
+  { value: "romance", label: "Romance", group: "Fiction" },
+  { value: "dark-romance", label: "Dark Romance", group: "Fiction" },
+  { value: "thriller", label: "Thriller", group: "Fiction" },
+  { value: "fantasy", label: "Fantasy", group: "Fiction" },
+  { value: "horror", label: "Horror", group: "Fiction" },
+  { value: "sci-fi", label: "Sci-Fi", group: "Fiction" },
+  { value: "historical", label: "Storico", group: "Fiction" },
+  { value: "children", label: "Libri per Bambini", group: "Creativi" },
+  { value: "fairy-tale", label: "Favole", group: "Creativi" },
+  { value: "poetry", label: "Poesie", group: "Creativi" },
+  { value: "jokes", label: "Barzellette", group: "Creativi" },
+  { value: "cookbook", label: "Cookbook", group: "Practical" },
+  { value: "manual", label: "Manuale (generico)", group: "Practical" },
+  { value: "technical-manual", label: "Manuale Tecnico", group: "Practical" },
+  { value: "software-guide", label: "Guida Software", group: "Practical" },
+  { value: "ai-tools-guide", label: "Guida AI Tools", group: "Practical" },
+  { value: "gardening", label: "Giardinaggio", group: "Practical" },
+  { value: "beekeeping", label: "Apicoltura", group: "Practical" },
+  { value: "health-medicine", label: "Salute & Medicina", group: "Practical" },
+  { value: "diet-nutrition", label: "Dieta & Nutrizione", group: "Practical" },
+  { value: "fitness", label: "Fitness", group: "Practical" },
+  { value: "productivity", label: "Produttività", group: "Practical" },
+  { value: "education", label: "Education", group: "Practical" },
+];
+
+export function NewBookDialog({ open, onClose, onSubmit }: NewBookDialogProps) {
+  const [config, setConfig] = useState<BookConfig>({
+    title: "",
+    subtitle: "",
+    tone: "warm, insightful, transformative",
+    authorStyle: "Brianna Wiest",
+    language: "English",
+    genre: "self-help",
+    category: "Self Help",
+    subcategory: "Mindset",
+    chapterLength: "medium",
+    bookLength: "medium",
+    numberOfChapters: 10,
+    subchaptersEnabled: true,
+  });
+
+  if (!open) return null;
+
+  const update = (key: keyof BookConfig, value: any) => setConfig(prev => ({ ...prev, [key]: value }));
+  const categories = Object.keys(CATEGORIES);
+  const subcategories = CATEGORIES[config.category] || [];
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-card rounded-xl border border-border shadow-2xl w-full max-w-lg">
+        <div className="p-5 border-b border-border flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-semibold text-foreground">{t("create_new_book")}</h2>
+          </div>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X className="h-4 w-4" /></button>
+        </div>
+
+        <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto scrollbar-thin">
+          <Field label={t("title")}>
+            <input value={config.title} onChange={e => update("title", e.target.value)}
+              className="w-full h-9 bg-muted/50 border border-border rounded-lg px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+              placeholder="The Art of Living" />
+          </Field>
+
+          <Field label={t("subtitle")}>
+            <input value={config.subtitle} onChange={e => update("subtitle", e.target.value)}
+              className="w-full h-9 bg-muted/50 border border-border rounded-lg px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+              placeholder="A guide to inner peace" />
+          </Field>
+
+          <Field label={t("book_length")}>
+            <div className="grid grid-cols-4 gap-2">
+              {(Object.entries(BOOK_LENGTH_CONFIG) as [BookLength, typeof BOOK_LENGTH_CONFIG[BookLength]][]).map(([key, val]) => (
+                <button key={key} type="button"
+                  onClick={() => update("bookLength", key)}
+                  className={`p-3 rounded-lg border text-center transition-all ${
+                    config.bookLength === key
+                      ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                      : "border-border bg-muted/30 hover:bg-muted/50"
+                  }`}>
+                  <p className={`text-xs font-semibold ${config.bookLength === key ? "text-primary" : "text-foreground"}`}>{val.label}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {key === "custom" ? "Choose words" : `~${(val.totalWords / 1000).toFixed(0)}k words`}
+                  </p>
+                </button>
+              ))}
+            </div>
+            {config.bookLength === "custom" && (
+              <div className="mt-3 p-3 rounded-lg border border-primary/30 bg-primary/5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Total Words</span>
+                  <span className="text-sm font-semibold text-primary">
+                    {(config.customTotalWords ?? 30000).toLocaleString()} words
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={5000}
+                  max={200000}
+                  step={1000}
+                  value={config.customTotalWords ?? 30000}
+                  onChange={e => update("customTotalWords", parseInt(e.target.value))}
+                  className="w-full accent-primary"
+                />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1000}
+                    max={500000}
+                    step={500}
+                    value={config.customTotalWords ?? 30000}
+                    onChange={e => update("customTotalWords", Math.max(1000, parseInt(e.target.value) || 30000))}
+                    className="flex-1 h-8 bg-muted/50 border border-border rounded-md px-2 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                  <span className="text-[10px] text-muted-foreground">
+                    ≈ {Math.round((config.customTotalWords ?? 30000) / config.numberOfChapters).toLocaleString()} words/chapter
+                  </span>
+                </div>
+              </div>
+            )}
+          </Field>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field label={t("language")}>
+              <select value={config.language} onChange={e => update("language", e.target.value)}
+                className="w-full h-9 bg-muted/50 border border-border rounded-lg px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40">
+                {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
+              </select>
+            </Field>
+            <Field label={t("genre")}>
+              <select value={config.genre} onChange={e => update("genre", e.target.value)}
+                className="w-full h-9 bg-muted/50 border border-border rounded-lg px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40">
+                {["Non-Fiction", "Fiction", "Creativi", "Practical"].map(group => (
+                  <optgroup key={group} label={group}>
+                    {GENRES.filter(g => g.group === group).map(g => (
+                      <option key={g.value} value={g.value}>{g.label}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </Field>
+          </div>
+
+          <GenreStructurePreview genre={config.genre} subcategory={config.subcategory} />
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field label={t("category")}>
+              <select value={config.category} onChange={e => { update("category", e.target.value); update("subcategory", CATEGORIES[e.target.value]?.[0] || ""); }}
+                className="w-full h-9 bg-muted/50 border border-border rounded-lg px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40">
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </Field>
+            <Field label="">
+              <select value={config.subcategory} onChange={e => update("subcategory", e.target.value)}
+                className="w-full h-9 bg-muted/50 border border-border rounded-lg px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40">
+                {subcategories.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field label={t("tone")}>
+              <input value={config.tone} onChange={e => update("tone", e.target.value)}
+                className="w-full h-9 bg-muted/50 border border-border rounded-lg px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+                placeholder="warm, direct" />
+            </Field>
+            <Field label={t("writing_style")}>
+              <WritingStyleSelector
+                genre={config.genre}
+                subcategory={config.subcategory}
+                value={config.authorStyle}
+                onChange={(v) => update("authorStyle", v)}
+              />
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4">
+            <Field label={t("num_chapters")}>
+              <input type="number" min={3} max={30} value={config.numberOfChapters}
+                onChange={e => update("numberOfChapters", parseInt(e.target.value) || 10)}
+                className="w-full h-9 bg-muted/50 border border-border rounded-lg px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40" />
+            </Field>
+            <Field label={t("default_length")}>
+              <select value={config.chapterLength} onChange={e => update("chapterLength", e.target.value)}
+                className="w-full h-9 bg-muted/50 border border-border rounded-lg px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40">
+                <option value="short">{t("short")}</option>
+                <option value="medium">{t("medium")}</option>
+                <option value="long">{t("long")}</option>
+              </select>
+            </Field>
+            <Field label={t("subchapters")}>
+              <label className="flex items-center gap-2 h-9 cursor-pointer">
+                <input type="checkbox" checked={config.subchaptersEnabled}
+                  onChange={e => update("subchaptersEnabled", e.target.checked)}
+                  className="rounded border-border" />
+                <span className="text-xs text-foreground">{t("enabled")}</span>
+              </label>
+            </Field>
+          </div>
+        </div>
+
+        <div className="p-5 border-t border-border flex justify-end gap-2">
+          <button onClick={onClose}
+            className="h-9 px-4 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            {t("cancel")}
+          </button>
+          <button onClick={() => { if (config.title) onSubmit(config); }} disabled={!config.title}
+            className="h-9 px-6 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 transition-colors">
+            {t("create_book")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const Field = forwardRef<HTMLDivElement, { label: string; children: React.ReactNode }>(
+  function Field({ label, children }, ref) {
+    return (
+      <div ref={ref}>
+        {label && <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-1 block">{label}</label>}
+        {children}
+      </div>
+    );
+  }
+);
+
+function GenreStructurePreview({ genre, subcategory }: { genre: string; subcategory?: string }) {
+  const bp = useMemo(() => getGenreBlueprint(genre, subcategory), [genre, subcategory]);
+  return (
+    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <Sparkles className="h-3.5 w-3.5 text-primary" />
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-primary">Genre Engine — Editorial Blueprint</span>
+      </div>
+      <div className="text-[11px] text-muted-foreground">
+        <span className="font-medium text-foreground/80">Style:</span> {bp.chapterStyle.replace(/_/g, " ")}
+        {" · "}
+
+import { useState } from "react";
+import { BookConfig, Language, ChapterLength } from "@/types/book";
+
+interface BookConfigFormProps {
+  onSubmit: (config: BookConfig) => void;
+}
+
+const LANGUAGES: Language[] = ["English", "Italian", "Spanish", "French", "German"];
+const LENGTHS: { value: ChapterLength; label: string }[] = [
+  { value: "short", label: "Short (~1000 words)" },
+  { value: "medium", label: "Medium (~2000 words)" },
+  { value: "long", label: "Long (~4000 words)" },
+];
+
+export function BookConfigForm({ onSubmit }: BookConfigFormProps) {
+  const [config, setConfig] = useState<BookConfig>({
+    genre: "self-help",
+    category: "Self Help",
+    subcategory: "Mindset",
+    title: "",
+    subtitle: "",
+    tone: "introspective, emotional, philosophical",
+    authorStyle: "Brianna Wiest-inspired: poetic, deeply personal, universally relatable",
+    language: "English",
+    chapterLength: "medium",
+    bookLength: "medium",
+    numberOfChapters: 10,
+    subchaptersEnabled: true,
+  });
+
+  const update = (key: keyof BookConfig, value: any) => setConfig(prev => ({ ...prev, [key]: value }));
+
+  return (
+    <div className="space-y-4 p-4">
+      <h2 className="text-lg font-semibold text-foreground">Create Your Book</h2>
+      
+      <div className="space-y-3">
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Title *</label>
+          <input
+            className="w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            placeholder="The Mountain Is You"
+            value={config.title}
+            onChange={e => update("title", e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Subtitle</label>
+          <input
+            className="w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            placeholder="Transforming Self-Sabotage Into Self-Mastery"
+            value={config.subtitle}
+            onChange={e => update("subtitle", e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Tone</label>
+          <input
+            className="w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            value={config.tone}
+            onChange={e => update("tone", e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Author Style DNA</label>
+          <input
+            className="w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            value={config.authorStyle}
+            onChange={e => update("authorStyle", e.target.value)}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Language</label>
+            <select
+              className="w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              value={config.language}
+              onChange={e => update("language", e.target.value)}
+            >
+              {LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Chapter Length</label>
+            <select
+              className="w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              value={config.chapterLength}
+              onChange={e => update("chapterLength", e.target.value as ChapterLength)}
+            >
+              {LENGTHS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Chapters</label>
+            <input
+              type="number"
+              min={3}
+              max={30}
+              className="w-full bg-surface border border-border rounded-md px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              value={config.numberOfChapters}
+              onChange={e => update("numberOfChapters", parseInt(e.target.value) || 10)}
+            />
+          </div>
+
+          <div className="flex items-end pb-1">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={config.subchaptersEnabled}
+                onChange={e => update("subchaptersEnabled", e.target.checked)}
+                className="rounded border-border accent-primary"
+              />
+              <span className="text-sm text-foreground">Subchapters</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <button
+        onClick={() => config.title && onSubmit(config)}
+        disabled={!config.title}
+        className="w-full py-2.5 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+      >
+        Generate Book
+      </button>
+    </div>
+  );
+}
+
+=== 2) DASHBOARD -> BRIEF ===
+import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { loadProjects, deleteProjectAsync, getLastProjectId } from "@/services/storageService";
+import { isProjectComplete } from "@/lib/project-status";
+import { NewBookDialog } from "@/components/NewBookDialog";
+import { HomeExportDialog } from "@/components/HomeExportDialog";
+import { InProgressSection } from "@/components/Home/InProgressSection";
+import { LibrarySection } from "@/components/Home/LibrarySection";
+import { PaywallGuard } from "@/components/PaywallGuard";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { ArrowRight, BarChart3, BookOpen, Clock, CreditCard, Download as DownloadIcon, FileDown, Flame, FolderOpen, Globe, Home as HomeIcon, Library, Loader2, LogOut, Plus, Rocket, Settings, Sparkles, Trash2, Wand2, X, Zap } from "lucide-react";
+import { BookConfig, BookProject } from "@/types/book";
+import { t, getUILanguage, setUILanguage, UI_LANGUAGES, UILanguage } from "@/lib/i18n";
+import { DevModeUnlockDialog } from "@/components/DevModeUnlockDialog";
+import { isDevMode, exitDevMode, useDevMode } from "@/lib/dev-mode";
+import { BetaActivationDialog } from "@/components/BetaActivationDialog";
+import { usePlan } from "@/lib/plan";
+import { FlaskConical } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+
+
+function normalizeDashboardLanguage(value?: string): string {
+  const v = String(value || "").trim().toLowerCase();
+  if (!v) return "Italian";
+  if (["it", "ita", "italian", "italiano"].includes(v)) return "Italian";
+  if (["en", "eng", "english", "inglese"].includes(v)) return "English";
+  if (["es", "spanish", "espanol", "español"].includes(v)) return "Spanish";
+  if (["fr", "french", "francese", "français"].includes(v)) return "French";
+  if (["de", "german", "tedesco", "deutsch"].includes(v)) return "German";
+  return value || "Italian";
+}
+
+interface DetectedIntent {
+  genre: string;
+  subcategory: string;
+  level: "beginner" | "intermediate" | "advanced";
+  readerPromise: string;
+  targetAudience: string;
+  tone: string;
+  numberOfChapters: number;
+  suggestedTitles: string[];
+  suggestedSubtitles: string[];
+  bestTitleIndex: number;
+}
+
+export default function Home() {
+  const navigate = useNavigate();
+  const devOn = useDevMode();
+  const [showNewBook, setShowNewBook] = useState(false);
+  const [showProjects, setShowProjects] = useState(false);
+  const [showExport, setShowExport] = useState(false);
+  const [showLibrary, setShowLibrary] = useState(false);
+  const [showIdeaModal, setShowIdeaModal] = useState(false);
+  const [projects, setProjects] = useState<BookProject[]>([]);
+  const [showLangMenu, setShowLangMenu] = useState(false);
+  const [, setLangTick] = useState(0);
+  const [activeRun, setActiveRun] = useState<{ runId: string; title: string; startedAt: number } | null>(null);
+
+  // One-click idea state
+  const [idea, setIdea] = useState("");
+  const [detecting, setDetecting] = useState(false);
+  const [intent, setIntent] = useState<DetectedIntent | null>(null);
+  const [launching, setLaunching] = useState(false);
+  const [showDevUnlock, setShowDevUnlock] = useState(false);
+  const [showBetaDialog, setShowBetaDialog] = useState(false);
+  const { plan: currentPlan } = usePlan();
+  const [logoClicks, setLogoClicks] = useState<number[]>([]);
+  const { user, signOut } = useAuth();
+
+  const greeting = (() => {
+    const hour = new Date().getHours();
+    const firstName =
+      user?.user_metadata?.full_name?.split(" ")[0] ||
+      user?.user_metadata?.name?.split(" ")[0] ||
+      user?.email?.split("@")[0] ||
+      "";
+
+    const namePart = firstName ? `, ${firstName}` : "";
+
+    if (hour >= 5 && hour < 12) {
+      return {
+        title: `Buongiorno${namePart}. Il tuo spazio di scrittura è pronto.`,
+        subtitle: "Apri un progetto, riprendi il manoscritto o costruisci qualcosa che oggi può restare.",
+      };
+    }
+    if (hour >= 12 && hour < 18) {
+      return {
+        title: `Buon pomeriggio${namePart}. Bentornato in Scriptora.`,
+        subtitle: "Riprendi il flusso, raffina il progetto e porta avanti il libro con lucidità.",
+      };
+    }
+    if (hour >= 18 && hour < 23) {
+      return {
+        title: `Buonasera${namePart}. Le idee migliori amano quest'ora.`,
+        subtitle: "Il tuo ecosistema editoriale è pronto: scrivi, migliora e chiudi ciò che conta.",
+      };
+    }
+    return {
+      title: `Bentornato${namePart}. Anche la notte può partorire pagine forti.`,
+      subtitle: "Scriptora è pronta a riprendere il filo della tua visione, senza farti perdere slancio.",
+    };
+  })();
+  const avatarUrl = (user?.user_metadata as any)?.avatar_url || (user?.user_metadata as any)?.picture || null;
+  const displayName = (user?.user_metadata as any)?.full_name || (user?.user_metadata as any)?.name || user?.email || "";
+  const initials = displayName
+    ? displayName.split(/[\s@]+/).filter(Boolean).slice(0, 2).map((s: string) => s[0]?.toUpperCase()).join("")
+    : "U";
+  const [bookLang, setBookLang] = useState<string>(() => {
+    const ui = getUILanguage();
+    return ({ en: "English", it: "Italian", es: "Spanish", fr: "French", de: "German" } as Record<string, string>)[ui] || "English";
+  });
+
+  const BOOK_LANGUAGES = [
+    { value: "English", label: "🇬🇧 English" },
+    { value: "Italian", label: "🇮🇹 Italiano" },
+    { value: "Spanish", label: "🇪🇸 Español" },
+    { value: "French", label: "🇫🇷 Français" },
+    { value: "German", label: "🇩🇪 Deutsch" },
+  ];
+
+  useEffect(() => {
+    // Optimistic load: shows local projects immediately, refreshes from server
+    // in the background. Eliminates the visible "frozen" gap on first paint.
+    loadProjects((fresh) => setProjects(fresh)).then(setProjects);
+    try {
+      const raw = sessionStorage.getItem("nexora-active-run");
+      if (raw) setActiveRun(JSON.parse(raw));
+    } catch { /* noop */ }
+
+    // Re-load when DEV MODE is toggled — projects are scoped per environment.
+    const onDevChange = () => {
+      setProjects([]);
+      setActiveRun(null);
+      loadProjects((fresh) => setProjects(fresh)).then(setProjects);
+    };
+    window.addEventListener("nexora-dev-mode-change", onDevChange);
+    return () => window.removeEventListener("nexora-dev-mode-change", onDevChange);
+  }, []);
+
+  // Reset intent if user edits the idea after detection
+  useEffect(() => {
+    if (intent) setIntent(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idea]);
+
+  const lastId = getLastProjectId();
+  // Only surface "continue last" when the project still belongs to the active
+  // environment (DEV vs USER). Cross-scope ids are silently ignored.
+  const lastProject = lastId ? projects.find(p => p.id === lastId) : null;
+
+  const changeLang = (lang: UILanguage) => {
+    setUILanguage(lang);
+    setLangTick(p => p + 1);
+    setShowLangMenu(false);
+  };
+
+  const goApp = (opts?: { section?: string; projectId?: string; action?: string }) => {
+    if (opts?.projectId) sessionStorage.setItem("nexora-open-project", opts.projectId);
+    if (opts?.section) sessionStorage.setItem("nexora-open-section", opts.section);
+    if (opts?.action) sessionStorage.setItem("nexora-open-action", opts.action);
+    navigate("/app");
+  };
+
+  const handleNewBook = (config: BookConfig) => {
+    sessionStorage.setItem("nexora-new-book", JSON.stringify(config));
+    setShowNewBook(false);
+    navigate("/app");
+  };
+
+  const handleDelete = async (id: string) => {
+    // Optimistic UI: drop from list instantly, then sync to backend.
+    setProjects((prev) => prev.filter((p) => p.id !== id));
+    deleteProjectAsync(id).catch(() => {
+      // On failure, refetch to recover state.
+      loadProjects((fresh) => setProjects(fresh)).then(setProjects);
+    });
+  };
+
+  const detectIntent = async (): Promise<DetectedIntent | null> => {
+    if (idea.trim().length < 6) return null;
+    setDetecting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("detect-book-intent", {
+        body: { idea: idea.trim(), language: normalizeDashboardLanguage(bookLang) },
+      });
+      if (error) throw error;
+      if (data?.fallback) {
+        if (data.code === "CREDITS_EXHAUSTED") {
+          toast.error("AI credits exhausted. Open Advanced to fill the brief manually.");
+        } else if (data.code === "RATE_LIMIT") {
+          toast.error("Rate limit hit, retry in a moment.");
+        } else {
+          toast.error(data.error || "Detection unavailable");
+        }
+        return null;
+      }
+      if (data?.error) throw new Error(data.error);
+      setIntent(data as DetectedIntent);
+      return data as DetectedIntent;
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Detection failed");
+      return null;
+    } finally {
+      setDetecting(false);
+    }
+  };
+
+  const launchOneClick = async () => {
+    if (!heroValid) return;
+    setLaunching(true);
+    try {
+      let i = intent;
+      if (!i) i = await detectIntent();
+      if (!i) return;
+
+      sessionStorage.setItem(
+        "nexora-auto-brief",
+        JSON.stringify({
+          idea: idea.trim(),
+          genre: i.genre,
+          subcategory: i.subcategory,
+          targetAudience: i.targetAudience || "General readers",
+          tone: i.tone || "natural",
+          language: normalizeDashboardLanguage(bookLang),
+          numberOfChapters: i.numberOfChapters || 8,
+          level: i.level || "beginner",
+          readerPromise: i.readerPromise,
+          prefilledTitle: i.suggestedTitles?.[i.bestTitleIndex] || i.suggestedTitles?.[0],
+          prefilledSubtitle: i.suggestedSubtitles?.[i.bestTitleIndex] || i.suggestedSubtitles?.[0],
+          totalWordTarget: i.totalWordTarget,
+          autoStart: false,
+        }),
+      );
+
+      setShowIdeaModal(false);
+      toast.info("Brief pronto: scegli lunghezza, capitoli e struttura prima di generare.");
+      navigate("/auto-bestseller");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to prepare bestseller brief");
+    } finally {
+      setLaunching(false);
+    }
+  };
+
+  const heroValid = idea.trim().length >= 6;
+
+  const currentLang = getUILanguage();
+  const currentLangLabel = UI_LANGUAGES.find(l => l.value === currentLang)?.label || "English";
+
+  const cards = [
+    {
+      icon: FolderOpen,
+      title: "Continua Progetto",
+      desc: "Apri bozze, lavori in corso e manoscritti da completare.",
+      color: "text-blue-400",
+      action: () => setShowProjects(!showProjects),
+    },
+    {
+      icon: Flame,
+      title: "Auto Bestseller",
+      desc: "Motore principale di generazione guidata.",
+      color: "text-rose-400",
+      action: () => navigate("/auto-bestseller"),
+    },
+    {
+      icon: Library,
+      title: "Cover Studio",
+      desc: "Scegli un progetto finito e lavora sulla copertina.",
+      color: "text-emerald-400",
+      action: () => setShowLibrary(true),
+    },
+    {
+      icon: FileDown,
+      title: "Export",
+      desc: "Scegli un progetto finito ed esporta in EPUB, PDF o DOCX.",
+      color: "text-orange-400",
+      action: () => setShowExport(true),
+      feature: "export_epub" as const,
+    },
+  ];
+
+  return (
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* Ambient background — subtle radial glow, pro feel */}
+      <div className="pointer-events-none absolute inset-0 -z-0">
+        <div
+          className="absolute -top-40 left-1/2 -translate-x-1/2 h-[480px] w-[820px] rounded-full opacity-[0.18] blur-3xl"
+          style={{ background: "radial-gradient(closest-side, hsl(var(--primary)), transparent 70%)" }}
+        />
+        <div
+          className="absolute top-1/3 -right-40 h-[360px] w-[360px] rounded-full opacity-[0.10] blur-3xl"
+          style={{ background: "radial-gradient(closest-side, hsl(var(--accent)), transparent 70%)" }}
+        />
+      </div>
+
+      {/* Sticky top bar */}
+      <header className="sticky top-0 z-20 backdrop-blur-md bg-background/70 border-b border-border/50">
+        <div className="max-w-3xl mx-auto px-6 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              const now = Date.now();
+              const recent = [...logoClicks.filter(t => now - t < 1500), now];
+              if (recent.length >= 5) {
+                setLogoClicks([]);
+                if (isDevMode()) {
+                  navigate("/usage");
+                } else {
+                  setShowDevUnlock(true);
+                }
+                return;
+              }
+              setLogoClicks(recent);
+              if (recent.length === 1) {
+                // Single click → normal navigation after a short delay if no follow-ups
+                setTimeout(() => {
+                  setLogoClicks(curr => {
+                    if (curr.length === 1 && curr[0] === now) {
+
+=== 3) AUTO BESTSELLER PAGE ===
+import { useCallback, useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Sparkles, ChevronDown, ChevronUp, Pencil, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { InputPanel } from "@/components/AutoBestseller/InputPanel";
+import { ProgressTimeline } from "@/components/AutoBestseller/ProgressTimeline";
+import { ResultView } from "@/components/AutoBestseller/ResultView";
+import { BookLivePreview, GenerationErrorPanel } from "@/components/AutoBestseller/BookLivePreview";
+import { BatchRun, MultiRunPanel } from "@/components/AutoBestseller/MultiRunPanel";
+import { RecentRunsPanel } from "@/components/AutoBestseller/RecentRunsPanel";
+import { useAutoBestseller } from "@/hooks/useAutoBestseller";
+import { AutoBestsellerInput, AutoBestsellerResult, updateRunRow } from "@/services/autoBestsellerService";
+import { autoBestsellerToProject } from "@/lib/auto-bestseller-to-project";
+import { saveProjectAsync } from "@/services/storageService";
+import { LeavePageDialog } from "@/components/AutoBestseller/LeavePageDialog";
+import { getBookProgress } from "@/lib/book-progress";
+import { ProgressBar } from "@/components/AutoBestseller/ProgressBar";
+
+const VARIATION_ANGLES = [
+  "emotional / personal transformation angle",
+  "outcome-driven / measurable results angle",
+  "contrarian / against conventional wisdom angle",
+  "urgent / problem-solution angle",
+  "niche-specific deep dive angle",
+  "story-driven / case study angle",
+  "scientific / evidence-based angle",
+  "practical / step-by-step angle",
+  "philosophical / deeper meaning angle",
+  "controversial / bold claim angle",
+];
+
+const ACTIVE_RUN_KEY = "nexora-active-run";
+
+export default function AutoBestsellerPage() {
+  const navigate = useNavigate();
+  const engine = useAutoBestseller();
+  const [batchRuns, setBatchRuns] = useState<BatchRun[]>([]);
+  const [batchRunning, setBatchRunning] = useState(false);
+  const [selectedBatchResult, setSelectedBatchResult] = useState<AutoBestsellerResult | null>(null);
+  const [recentKey, setRecentKey] = useState(0);
+  const [prefill, setPrefill] = useState<Partial<AutoBestsellerInput> | null>(null);
+  const [autoStart, setAutoStart] = useState(false);
+  const [lastInput, setLastInput] = useState<Partial<AutoBestsellerInput> | null>(null);
+  const [savingProject, setSavingProject] = useState(false);
+  const [briefCollapsed, setBriefCollapsed] = useState(false);
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
+  const [savingDraft, setSavingDraft] = useState(false);
+
+  const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
+  const [elapsedMs, setElapsedMs] = useState(0);
+
+  useEffect(() => {
+    if (!engine.isRunning) {
+      setRunStartedAt(null);
+      setElapsedMs(0);
+      return;
+    }
+
+    const started = runStartedAt ?? Date.now();
+    if (!runStartedAt) setRunStartedAt(started);
+
+    const timer = window.setInterval(() => {
+      setElapsedMs(Date.now() - started);
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [engine.isRunning, runStartedAt]);
+
+  function normalizeBriefLanguage(value?: string): "English" | "Italian" | "Spanish" | "French" | "German" {
+  const raw = (value || "").trim().toLowerCase();
+
+  const aliases: Record<string, "English" | "Italian" | "Spanish" | "French" | "German"> = {
+    en: "English",
+    english: "English",
+
+    it: "Italian",
+    italian: "Italian",
+    italiano: "Italian",
+
+    es: "Spanish",
+    spanish: "Spanish",
+    espanol: "Spanish",
+    español: "Spanish",
+
+    fr: "French",
+    french: "French",
+    francais: "French",
+    français: "French",
+
+    de: "German",
+    german: "German",
+    deutsch: "German",
+  };
+
+  return aliases[raw] || "English";
+}
+
+const elapsedLabel = (() => {
+    const total = Math.max(0, Math.floor(elapsedMs / 1000));
+    const min = Math.floor(total / 60);
+    const sec = total % 60;
+    return `${min}:${String(sec).padStart(2, "0")}`;
+  })();
+
+  // Pick up brief from Home OR re-attach to an active run from a previous navigation
+  useEffect(() => {
+    const raw = sessionStorage.getItem("nexora-auto-brief");
+    if (raw) {
+      sessionStorage.removeItem("nexora-auto-brief");
+      try {
+        const parsed = JSON.parse(raw);
+        setPrefill(parsed);
+        setLastInput(parsed);
+        if (parsed.autoStart) {
+          const fullInput: AutoBestsellerInput = {
+            idea: parsed.idea,
+            genre: parsed.genre,
+            subcategory: parsed.subcategory,
+            targetAudience: parsed.targetAudience,
+            tone: parsed.tone,
+            language: normalizeBriefLanguage(parsed.language),
+            numberOfChapters: parsed.numberOfChapters,
+            level: parsed.level,
+            readerPromise: parsed.readerPromise,
+            prefilledTitle: parsed.prefilledTitle,
+            prefilledSubtitle: parsed.prefilledSubtitle,
+            totalWordTarget: parsed.totalWordTarget,
+          };
+          // Do NOT auto-start here.
+          // First show the full brief so the user can choose length, chapter mode,
+          // number of chapters and pro structure before generation starts.
+          setPrefill(fullInput);
+          setLastInput(fullInput);
+          setAutoStart(false);
+          setBriefCollapsed(false);
+          toast.info("Brief caricato: scegli lunghezza, capitoli e struttura, poi genera.");
+        }
+        return;
+      } catch { /* ignore */ }
+    }
+    // No fresh brief — check for active run started in a previous navigation
+    const activeRaw = sessionStorage.getItem(ACTIVE_RUN_KEY);
+    if (activeRaw) {
+      try {
+        const active = JSON.parse(activeRaw);
+        if (active?.input) setLastInput(active.input);
+        if (active?.runId) {
+          setBriefCollapsed(true);
+          void engine.attachToRun(active.runId);
+        }
+      } catch { /* ignore */ }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-collapse brief when generation starts; expand when finished without result
+  useEffect(() => {
+    if (engine.isRunning) setBriefCollapsed(true);
+  }, [engine.isRunning]);
+
+  const handleDeleteGeneration = async () => {
+    setSavingDraft(true);
+    try {
+      engine.cancel();
+
+      if (engine.runId) {
+        await updateRunRow(engine.runId, {
+          status: "cancelled",
+          error: "Cancelled by user",
+        } as any);
+      }
+
+      engine.reset();
+      setShowLeaveDialog(false);
+      toast.success("Generazione eliminata");
+    } catch (e) {
+      console.error("Delete generation failed:", e);
+      toast.error("Non sono riuscito a eliminare la generazione");
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+
+
+  // Persist active run flag so user can navigate away & come back
+  useEffect(() => {
+    if (engine.isRunning && engine.runId) {
+      sessionStorage.setItem(ACTIVE_RUN_KEY, JSON.stringify({
+        runId: engine.runId,
+        title: engine.liveBook.title || lastInput?.idea?.slice(0, 60) || "Generating book…",
+        input: lastInput,
+        startedAt: Date.now(),
+      }));
+    } else if (!engine.isRunning && engine.result) {
+      sessionStorage.removeItem(ACTIVE_RUN_KEY);
+    }
+  }, [engine.isRunning, engine.runId, engine.liveBook.title, engine.result, lastInput]);
+
+  // Warn before unload during active generation
+  useEffect(() => {
+    if (!engine.isRunning) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+
+
+  return () => window.removeEventListener("beforeunload", handler);
+  }, [engine.isRunning]);
+
+  const handleGenerateOne = useCallback(async (input: AutoBestsellerInput) => {
+    setBatchRuns([]);
+    setSelectedBatchResult(null);
+    setLastInput(input);
+    setAutoStart(false);
+    setBriefCollapsed(true);
+    try {
+      const result = await engine.start(input);
+      if (result) toast.success(`Generation complete — ${result.status}`);
+      setRecentKey((k) => k + 1);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Generation failed");
+    }
+  }, [engine]);
+
+  const handleGenerateBatch = useCallback(async (baseInput: AutoBestsellerInput, count: number) => {
+    setSelectedBatchResult(null);
+    setLastInput(baseInput);
+    setAutoStart(false);
+    setBriefCollapsed(true);
+    const batchId = crypto.randomUUID();
+    const initialRuns: BatchRun[] = Array.from({ length: count }, (_, i) => ({
+      index: i,
+      variation: VARIATION_ANGLES[i % VARIATION_ANGLES.length],
+      status: "pending",
+    }));
+    setBatchRuns(initialRuns);
+    setBatchRunning(true);
+
+    for (let i = 0; i < count; i++) {
+      const angle = VARIATION_ANGLES[i % VARIATION_ANGLES.length];
+      const variantInput: AutoBestsellerInput = {
+        ...baseInput,
+        idea: `${baseInput.idea}\n\nAPPROACH ANGLE: ${angle}`,
+      };
+      setBatchRuns((prev) => prev.map((r) => r.index === i ? { ...r, status: "running" } : r));
+      try {
+        const result = await engine.start(variantInput, batchId);
+        setBatchRuns((prev) => prev.map((r) =>
+          r.index === i ? { ...r, status: result ? "done" : "error", result, error: result ? undefined : "no result" } : r
+        ));
+        setRecentKey((k) => k + 1);
+      } catch (e) {
+        setBatchRuns((prev) => prev.map((r) =>
+          r.index === i ? { ...r, status: "error", error: e instanceof Error ? e.message : "failed" } : r
+        ));
+      }
+    }
+    setBatchRunning(false);
+    toast.success(`Batch complete (${count} runs)`);
+  }, [engine]);
+
+  const handleSaveAsProject = useCallback(async (result: AutoBestsellerResult) => {
+    if (savingProject) return;
+    setSavingProject(true);
+    try {
+      const project = autoBestsellerToProject(result, lastInput || undefined);
+      await saveProjectAsync(project);
+      toast.success("Project ready — opening Scriptora Studio…");
+      sessionStorage.setItem("nexora-open-project", project.id);
+      setTimeout(() => navigate("/app"), 300);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to save project");
+    } finally {
+      setSavingProject(false);
+    }
+  }, [navigate, lastInput, savingProject]);
+
+  const handleRecentOpen = useCallback((r: AutoBestsellerResult) => {
+    setSelectedBatchResult(r);
+  }, []);
+
+  const handleRecentOpenRunning = useCallback((runId: string, input: AutoBestsellerInput) => {
+    setLastInput(input);
+    setSelectedBatchResult(null);
+    setBriefCollapsed(true);
+    sessionStorage.setItem(ACTIVE_RUN_KEY, JSON.stringify({
+      runId,
+      title: input?.idea?.slice(0, 60) || "Generating book…",
+      input,
+      startedAt: Date.now(),
+    }));
+    void engine.attachToRun(runId);
+    toast.info("Live preview attiva — riconnesso alla generazione");
+  }, [engine]);
+
+  const handleRecentRegenerate = useCallback((input: AutoBestsellerInput) => {
+    setPrefill({ ...input });
+    setAutoStart(true);
+  }, []);
+
+  const handleRecentUseAsBase = useCallback((input: AutoBestsellerInput) => {
+    setPrefill({ ...input });
+    setAutoStart(false);
+    setBriefCollapsed(false);
+    toast.info("Brief loaded — adjust and generate");
+  }, []);
+
+  const handleLeaveToHome = useCallback(() => {
+    if (engine.isRunning) {
+      setShowLeaveDialog(true);
+      return;
+    }
+    navigate("/dashboard");
+  }, [engine.isRunning, navigate]);
+
+  const handleContinueInBackground = useCallback(() => {
+    setShowLeaveDialog(false);
+    toast.info("Generazione in background. La trovi in 'In corso' sulla home.");
+    navigate("/dashboard");
+  }, [navigate]);
+
+  const handleSaveDraftAndStop = useCallback(async () => {
+    setSavingDraft(true);
+    try {
+      const projectId = await engine.stopAndSaveDraft();
+      if (projectId) {
+        toast.success("Bozza salvata. Puoi riprenderla da 'I miei libri'.");
+        sessionStorage.removeItem("nexora-active-run");
+      } else {
+        toast.info("Niente da salvare ancora.");
+      }
+      setShowLeaveDialog(false);
+      navigate("/dashboard");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Salvataggio fallito");
+    } finally {
+      setSavingDraft(false);
+    }
+  }, [engine, navigate]);
+
+  const displayedResult = selectedBatchResult ?? engine.result;
+  const isAnyRunning = engine.isRunning || batchRunning;
+  const showLivePreview = engine.isRunning || (!selectedBatchResult && !engine.result && engine.liveBook.chapters.length > 0);
+  // During an active run, hide the brief panel entirely (focus on writing); show only "Edit brief" button
+  const showBriefPanel = !isAnyRunning && !briefCollapsed;
+  const bookProgress = getBookProgress(engine.liveBook, lastInput?.numberOfChapters);
+  const showHeaderProgress = isAnyRunning && (engine.liveBook.chapters.length > 0 || !!engine.liveBook.outlines);
+
+  return (
+    <div className="min-h-screen bg-background">
+      <header className="sticky top-0 z-20 border-b border-border/60 bg-card/80 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={handleLeaveToHome}>
+              <ArrowLeft className="mr-1 h-4 w-4" /> Home
+            </Button>
+
+=== 4) AUTO BESTSELLER -> PROJECT MAPPERS ===
+import { AutoBestsellerResult, AutoBestsellerInput } from "@/services/autoBestsellerService";
+import { BookProject, BookConfig, Chapter, BookBlueprint, Genre, Language, FrontMatter, BackMatter, GenerationLock } from "@/types/book";
+import { createProjectId } from "@/lib/storage";
+import type { LiveBook } from "@/hooks/useAutoBestseller";
+
+const ALLOWED_GENRES: Genre[] = [
+  "self-help", "romance", "dark-romance", "thriller", "fantasy", "philosophy", "business", "memoir",
+];
+const ALLOWED_LANGUAGES: Language[] = ["English", "Italian", "Spanish", "French", "German"];
+
+function normalizeGenre(g?: string): Genre {
+  if (!g) return "self-help";
+  const slug = g.toLowerCase().replace(/\s+/g, "-");
+  return (ALLOWED_GENRES.find((x) => x === slug) ?? "self-help") as Genre;
+}
+function normalizeLanguage(l?: string): Language {
+  if (!l) return "English";
+
+  const raw = l.trim().toLowerCase();
+
+  const aliases: Record<string, Language> = {
+    en: "English",
+    english: "English",
+
+    it: "Italian",
+    italian: "Italian",
+    italiano: "Italian",
+
+    es: "Spanish",
+    spanish: "Spanish",
+    espanol: "Spanish",
+    español: "Spanish",
+
+    fr: "French",
+    french: "French",
+    francais: "French",
+    français: "French",
+
+    de: "German",
+    german: "German",
+    deutsch: "German",
+  };
+
+  if (aliases[raw]) return aliases[raw];
+
+  const cap = raw.charAt(0).toUpperCase() + raw.slice(1);
+  return (ALLOWED_LANGUAGES.find((x) => x === cap) ?? "English") as Language;
+}
+
+function buildFrontMatter(title: string, subtitle: string, authorName = "Antonino Campanella"): FrontMatter {
+  return {
+    titlePage: [title, subtitle].filter(Boolean).join("\n"),
+    copyright: `© ${new Date().getFullYear()} ${authorName}. All rights reserved.`,
+    dedication: "",
+    aboutAuthor: "",
+    howToUse: "Use this workspace to generate, expand, rewrite, and refine each section of the book.",
+    letterToReader: "",
+  };
+}
+
+function buildBackMatter(title: string): BackMatter {
+  return {
+    conclusion: "",
+    authorNote: "",
+    callToAction: `Continue refining "${title}" inside Scriptora Studio.`,
+    reviewRequest: "If this book helps you, consider leaving an honest review.",
+    otherBooks: "",
+  };
+}
+
+function buildOutlinePlaceholderChapters(
+  outlines: Array<{ title: string; summary?: string; subchapters?: { title: string; summary?: string }[] }>
+): Chapter[] {
+  return outlines.map((o) => ({
+    title: o.title || "Untitled Chapter",
+    content: "",
+    subchapters: (o.subchapters || []).map((s) => ({
+      title: s.title || "Untitled Subchapter",
+      content: "",
+    })),
+    status: "idle",
+  }));
+}
+
+function buildGenerationLock(
+  language: Language,
+  numberOfChapters: number,
+  totalWordTarget?: number,
+  source: "manual" | "auto_bestseller_launch" = "auto_bestseller_launch",
+): GenerationLock {
+  const safeBookWords = Math.max(10000, totalWordTarget || 50000);
+  const safeChapters = Math.max(1, numberOfChapters || 8);
+  return {
+    source,
+    lockedLanguage: language,
+    targetBookWords: safeBookWords,
+    targetChapterWords: Math.max(1200, Math.round(safeBookWords / safeChapters)),
+    lengthLocked: source === "auto_bestseller_launch",
+  };
+}
+
+export function autoBestsellerToProject(
+  result: AutoBestsellerResult,
+  input?: Partial<AutoBestsellerInput>,
+): BookProject {
+  const now = new Date().toISOString();
+  const genre = normalizeGenre(input?.genre);
+  const language = normalizeLanguage(input?.language);
+
+  const blueprint: BookBlueprint | null = result.blueprint
+    ? {
+        overview: result.blueprint.overview || input?.readerPromise || "",
+        themes: result.blueprint.themes || [],
+        emotionalArc: result.blueprint.emotionalArc || "",
+        chapterOutlines:
+          result.blueprint.chapterOutlines?.map((c: any) => ({
+            title: c.title || "",
+            summary: c.summary || "",
+            subchapters: c.subchapters || [],
+          })) || [],
+      }
+    : null;
+
+  const fallbackOutlineChapters = blueprint?.chapterOutlines?.length
+    ? buildOutlinePlaceholderChapters(blueprint.chapterOutlines)
+    : [];
+
+  const generatedChapters: Chapter[] = (result.chapters || []).map((c) => ({
+    title: c.title || "Untitled Chapter",
+    content: c.content || "",
+    subchapters: [],
+    status: "completed",
+    qualityRating: typeof c.finalScore === "number" ? c.finalScore : undefined,
+  }));
+
+  const chapters: Chapter[] = generatedChapters.length > 0 ? generatedChapters : fallbackOutlineChapters;
+
+  const config: BookConfig = {
+    title: result.title || "Untitled Bestseller",
+    subtitle: result.subtitle || "",
+    tone: input?.tone || "Engaging, authoritative, accessible",
+    authorStyle: "",
+    language,
+    genre,
+    category: "Self Help",
+    subcategory: input?.subcategory || "",
+    chapterLength: "medium",
+    bookLength: "medium",
+    customTotalWords: input?.totalWordTarget,
+    numberOfChapters: chapters.length || input?.numberOfChapters || 8,
+    subchaptersEnabled: chapters.some((c) => c.subchapters.length > 0),
+  };
+
+  const generationLock = buildGenerationLock(
+    language,
+    config.numberOfChapters,
+    input?.totalWordTarget,
+    "auto_bestseller_launch",
+  );
+
+  return {
+    id: createProjectId(),
+    config,
+    blueprint,
+    frontMatter: buildFrontMatter(config.title, config.subtitle),
+    chapters,
+    backMatter: buildBackMatter(config.title),
+    phase: chapters.length > 0 ? "chapters" : "blueprint",
+    frontMatterStatus: "idle",
+    backMatterStatus: "idle",
+    generationLock,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+/**
+ * Convert in-progress live state to a partial BookProject (auto-save during generation).
+ * Reuses existing projectId if provided so we update the same row.
+ */
+export function liveBookToPartialProject(
+  liveBook: LiveBook,
+  input?: Partial<AutoBestsellerInput>,
+  existingId?: string,
+): BookProject {
+  const now = new Date().toISOString();
+  const genre = normalizeGenre(input?.genre);
+  const language = normalizeLanguage(input?.language);
+
+  const blueprint: BookBlueprint | null = liveBook.outlines
+    ? {
+        overview: input?.readerPromise || "",
+        themes: [],
+        emotionalArc: "",
+        chapterOutlines: liveBook.outlines.map((o) => ({
+          title: o.title,
+          summary: o.summary || "",
+          subchapters: [],
+        })),
+      }
+    : null;
+
+  const completedChapters: Chapter[] = liveBook.chapters
+    .filter((c) => c.phase === "done" && c.content)
+    .map((c) => ({
+      title: c.title || "Untitled Chapter",
+      content: c.content || "",
+      subchapters: [],
+      status: "completed" as const,
+      qualityRating: typeof c.score === "number" ? c.score : undefined,
+    }));
+
+  const placeholderChapters =
+    completedChapters.length === 0 && blueprint?.chapterOutlines?.length
+      ? buildOutlinePlaceholderChapters(blueprint.chapterOutlines)
+      : [];
+
+  const chapters: Chapter[] = completedChapters.length > 0 ? completedChapters : placeholderChapters;
+
+  const config: BookConfig = {
+    title: liveBook.title || input?.prefilledTitle || "Generating…",
+    subtitle: liveBook.subtitle || input?.prefilledSubtitle || "",
+    tone: input?.tone || "Engaging, authoritative, accessible",
+    authorStyle: "",
+    language,
+    genre,
+    category: "Self Help",
+    subcategory: input?.subcategory || "",
+    chapterLength: "medium",
+    bookLength: "medium",
+    customTotalWords: input?.totalWordTarget,
+    numberOfChapters: chapters.length || input?.numberOfChapters || liveBook.outlines?.length || 8,
+    subchaptersEnabled: chapters.some((c) => c.subchapters.length > 0),
+  };
+
+  const generationLock = buildGenerationLock(
+    language,
+    config.numberOfChapters,
+    input?.totalWordTarget,
+    "auto_bestseller_launch",
+  );
+
+  return {
+    id: existingId || createProjectId(),
+    config,
+    blueprint,
+    frontMatter: buildFrontMatter(config.title, config.subtitle),
+    chapters,
+    backMatter: buildBackMatter(config.title),
+    phase: chapters.length > 0 ? "chapters" : "blueprint",
+    frontMatterStatus: "idle",
+    backMatterStatus: "idle",
+    generationLock,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+=== 5) BOOK ENGINE ===
+import { useState, useCallback, useRef } from "react";
+import { BookProject, BookConfig, ChatMessage, GenerationPhase, GenerationStatus, AIQualityRating } from "@/types/book";
+import { saveProjectAsync, createProjectId, setLastProjectId } from "@/services/storageService";
+import { saveProject } from "@/lib/storage";
+import { generateBlueprint, generateFrontMatter, generateChapter, generateChapterChunked, generateSubchapter, generateBackMatter, rewriteChapter, evaluateChapterQuality, RewriteLevel, ChunkProgress, buildGenreLock } from "@/lib/generation";
+import { toast } from "sonner";
+import { t } from "@/lib/i18n";
+
+// Debounce remote saves: local save is instant, but Supabase upserts are
+// throttled to avoid flooding the network during chunked generation.
+let remoteSaveTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingRemoteSave: { project: BookProject; cbs?: any } | null = null;
+function scheduleRemoteSave(project: BookProject, cbs?: any) {
+  pendingRemoteSave = { project, cbs };
+  if (remoteSaveTimer) return;
+  remoteSaveTimer = setTimeout(() => {
+    remoteSaveTimer = null;
+    const p = pendingRemoteSave;
+    pendingRemoteSave = null;
+    if (p) saveProjectAsync(p.project, p.cbs).catch(() => {});
+  }, 1500);
+}
+
+export interface SyncCallbacks {
+  onSaving?: () => void;
+  onSaved?: () => void;
+  onOffline?: () => void;
+}
+export function useBookEngine(syncCallbacks?: SyncCallbacks) {
+  const [project, setProject] = useState<BookProject | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [generatingSet, setGeneratingSet] = useState<Set<string>>(new Set());
+  const [chunkProgress, setChunkProgress] = useState<Record<string, ChunkProgress>>({});
+  const projectRef = useRef<BookProject | null>(null);
+  const abortControllers = useRef<Map<string, AbortController>>(new Map());
+  // Throttle UI updates during streaming to keep the app fluid even when
+  // multiple chapters generate in parallel and emit hundreds of token events.
+  const lastProgressRenderAt = useRef<Map<string, number>>(new Map());
+  const lastSaveAt = useRef<Map<string, number>>(new Map());
+  const PROGRESS_RENDER_MS = 150; // ~6fps for streaming text — perceptually smooth
+  const SAVE_THROTTLE_MS = 1000;  // local IDB save throttled during streaming
+
+  const syncRef = (p: BookProject | null) => { projectRef.current = p; };
+  const isAnythingGenerating = generatingSet.size > 0;
+
+  const addGenerating = (key: string) => setGeneratingSet(prev => new Set(prev).add(key));
+  const removeGenerating = (key: string) => setGeneratingSet(prev => {
+    const next = new Set(prev);
+    next.delete(key);
+    return next;
+  });
+
+  const addMessage = useCallback((role: ChatMessage["role"], content: string) => {
+    const msg: ChatMessage = { id: crypto.randomUUID(), role, content, timestamp: new Date().toISOString() };
+    setMessages(prev => [...prev, msg]);
+  }, []);
+
+  const updateAndSave = useCallback((updater: (p: BookProject) => BookProject) => {
+    setProject(prev => {
+      if (!prev) return prev;
+      const updated = updater({ ...prev, updatedAt: new Date().toISOString() });
+      saveProject(updated); // local — instant, compressed + IDB fallback
+      scheduleRemoteSave(updated, syncCallbacks); // remote — debounced 1.5s
+      syncRef(updated);
+      return updated;
+    });
+  }, [syncCallbacks]);
+
+  const getLatestProject = (): BookProject | null => projectRef.current;
+
+  const startNewBook = useCallback(async (config: BookConfig) => {
+    // Genre Lock — capture editorial blueprint at creation time so the
+    // entire book stays consistent (no drift between chapters/front/back).
+    const genreLock = buildGenreLock(config);
+    const newProject: BookProject = {
+      id: createProjectId(),
+      config,
+      blueprint: null, frontMatter: null, chapters: [], backMatter: null,
+      phase: "blueprint",
+      genreLock,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    setProject(newProject);
+    syncRef(newProject);
+    setMessages([]);
+    saveProject(newProject);
+    saveProjectAsync(newProject, syncCallbacks).catch(() => {});
+
+    addMessage("system", `Starting book: "${config.title}" — ${config.numberOfChapters} chapters, ${config.language}, ${config.genre}, ${config.bookLength} book`);
+    addGenerating("blueprint");
+
+    try {
+      addMessage("assistant", "Generating book blueprint... 🏗️");
+      const blueprint = await generateBlueprint(config, genreLock);
+      updateAndSave(p => ({ ...p, blueprint, phase: "front-matter" as GenerationPhase }));
+      addMessage("assistant", `Blueprint ready! ${blueprint.chapterOutlines.length} chapters planned.`);
+    } catch (e: any) {
+      addMessage("assistant", `❌ Error: ${e.message}`);
+      toast.error(getReadableError(e));
+    } finally {
+      removeGenerating("blueprint");
+    }
+  }, [addMessage, updateAndSave]);
+
+  const getReadableError = useCallback((e: unknown): string => {
+    if (e instanceof Error && e.message?.trim()) return e.message.trim();
+    if (typeof e === "string" && e.trim()) return e.trim();
+    return t("toast_gen_failed");
+  }, []);
+
+  const hasAllChaptersGenerated = useCallback((p: BookProject): boolean => {
+    const total = p.config.numberOfChapters || 0;
+    if (p.chapters.length < total) return false;
+    return p.chapters.slice(0, total).every((c) => (c?.content || "").trim().length > 200);
+  }, []);
+
+  const generateNext = useCallback(async () => {
+    const p = getLatestProject() || project;
+    if (!p) return;
+
+    if (p.blueprint && (!p.frontMatter || p.phase === "front-matter")) {
+      addGenerating("front-matter");
+      updateAndSave(pr => ({ ...pr, frontMatterStatus: "generating" as GenerationStatus }));
+      try {
+        addMessage("assistant", "Generating front matter... 📖");
+        const fm = await generateFrontMatter(p.config, p.blueprint, p.genreLock);
+        updateAndSave(pr => ({
+          ...pr,
+          frontMatter: fm,
+          phase: pr.phase === "front-matter" ? "chapters" as GenerationPhase : pr.phase,
+          frontMatterStatus: "completed" as GenerationStatus,
+        }));
+        addMessage("assistant", "Front matter complete!");
+      } catch (e: unknown) {
+        const msg = getReadableError(e);
+        updateAndSave(pr => ({ ...pr, frontMatterStatus: "error" as GenerationStatus }));
+        addMessage("assistant", `❌ Front matter error: ${msg}`);
+        toast.error(msg);
+      } finally {
+        removeGenerating("front-matter");
+      }
+      return;
+    }
+
+    const latest = getLatestProject() || p;
+    const allChaptersGenerated = hasAllChaptersGenerated(latest);
+
+    if (latest.blueprint && allChaptersGenerated && !latest.backMatter) {
+      addGenerating("back-matter");
+      updateAndSave(pr => ({
+        ...pr,
+        phase: "back-matter" as GenerationPhase,
+        backMatterStatus: "generating" as GenerationStatus,
+      }));
+      try {
+        addMessage("assistant", "Generating back matter... 📝");
+        const freshest = getLatestProject() || latest;
+        const bm = await generateBackMatter(freshest.config, freshest.blueprint!, freshest.chapters, freshest.genreLock);
+        updateAndSave(pr => ({
+          ...pr,
+          backMatter: bm,
+          phase: "complete" as GenerationPhase,
+          backMatterStatus: "completed" as GenerationStatus,
+        }));
+        addMessage("assistant", "🎉 Book generation complete!");
+      } catch (e: unknown) {
+        const msg = getReadableError(e);
+        updateAndSave(pr => ({ ...pr, backMatterStatus: "error" as GenerationStatus }));
+        addMessage("assistant", `❌ Back matter error: ${msg}`);
+        toast.error(msg);
+      } finally {
+        removeGenerating("back-matter");
+      }
+      return;
+    }
+
+    if (latest.blueprint && !allChaptersGenerated) {
+      addMessage("assistant", "ℹ️ Chapters are not complete yet. Generate the missing chapters before back matter.");
+      toast.error("Capitoli non ancora completi. Genera prima tutti i capitoli.");
+    }
+  }, [project, addMessage, updateAndSave, getReadableError, hasAllChaptersGenerated]);
+
+function latestChapterTitleFromBlueprint(proj: any, index: number): string {
+  return proj?.blueprint?.chapterOutlines?.[index]?.title || `Chapter ${index + 1}`;
+}
+
+  const generateSingleChapter = useCallback(async (index: number) => {
+    const p = getLatestProject() || project;
+    if (!p?.blueprint) return;
+    const genKey = `chapter-${index}`;
+    if (generatingSet.has(genKey)) return;
+
+    addGenerating(genKey);
+    updateAndSave(proj => {
+      const chapters = [...proj.chapters];
+      while (chapters.length <= index) chapters.push({ title: "", content: "", subchapters: [], status: "idle" });
+      chapters[index] = { ...chapters[index], status: "generating" };
+      return { ...proj, chapters };
+    });
+
+    try {
+      addMessage("assistant", `Writing Chapter ${index + 1}... ✍️`);
+      const latestP = getLatestProject() || p;
+      const prevChapters = latestP.chapters.filter((_, i) => i < index && latestP.chapters[i]?.content?.length > 0);
+      const chapterOverride = latestP.chapters[index]?.lengthOverride;
+
+      const chapter = await generateChapterChunked(
+        latestP.config, latestP.blueprint!, index, prevChapters, chapterOverride,
+        (progress) => {
+          // Throttle: skip UI/state churn when tokens arrive faster than ~6fps.
+          // Always allow phase-change events through so UI feels responsive.
+          const key = `chapter-${index}`;
+          const now = performance.now();
+          const lastRender = lastProgressRenderAt.current.get(key) ?? 0;
+          if (now - lastRender < PROGRESS_RENDER_MS) return;
+          lastProgressRenderAt.current.set(key, now);
+
+          setChunkProgress(prev => ({ ...prev, [key]: progress }));
+          // Heavier work (setProject + IDB save) throttled more aggressively.
+          const lastSave = lastSaveAt.current.get(key) ?? 0;
+          if (now - lastSave < SAVE_THROTTLE_MS) return;
+          lastSaveAt.current.set(key, now);
+          updateAndSave(proj => {
+            const chapters = [...proj.chapters];
+            while (chapters.length <= index) chapters.push({ title: "", content: "", subchapters: [], status: "idle" });
+            chapters[index] = {
+              ...chapters[index],
+              content: progress.content,
+              status: "generating" as GenerationStatus,
+            };
+            return { ...proj, chapters };
+          });
+        },
+        latestP.genreLock,
+        latestP.generationLock,
+      );
+
+      updateAndSave(proj => {
+        const chapters = [...proj.chapters];
+        while (chapters.length <= index) chapters.push({ title: "", content: "", subchapters: [], status: "idle" });
+        chapters[index] = { ...chapter, status: "completed" as GenerationStatus, lengthOverride: proj.chapters[index]?.lengthOverride };
+        const allGenerated = chapters.length >= proj.config.numberOfChapters && chapters.every(c => c.content.length > 0);
+        return { ...proj, chapters, phase: allGenerated ? "back-matter" as GenerationPhase : proj.phase };
+      });
+      const finalWords = chapter.content.split(/\s+/).length;
+      addMessage("assistant", `Chapter ${index + 1} "${chapter.title}" complete! ✅ (${finalWords} words)`);
+    } catch (e: any) {
+      updateAndSave(proj => {
+        const chapters = [...proj.chapters];
+        const existing = chapters[index];
+
+        // Preserve partial content instead of throwing away useful manuscript text.
+        if (existing?.content?.trim()) {
+          chapters[index] = {
+            ...existing,
+            title: existing.title || latestChapterTitleFromBlueprint(proj, index),
+            status: "completed" as GenerationStatus,
+          };
+        } else if (existing) {
+          chapters[index] = { ...existing, status: "error" as GenerationStatus };
+        }
+
+        return { ...proj, chapters };
+      });
+
+      addMessage("assistant", `⚠️ Chapter ${index + 1} stopped before perfect completion, but any generated text was preserved. Error: ${e.message}`);
+      toast.error(getReadableError(e));
+    } finally {
+      removeGenerating(genKey);
+      setChunkProgress(prev => { const next = { ...prev }; delete next[genKey]; return next; });
+      lastProgressRenderAt.current.delete(`chapter-${index}`);
+      lastSaveAt.current.delete(`chapter-${index}`);
+    }
+  }, [project, generatingSet, addMessage, updateAndSave]);
+
+  const generateSingleSubchapter = useCallback(async (chapterIndex: number, subIndex: number) => {
+    const p = getLatestProject() || project;
+    if (!p?.blueprint) return;
+    const chapter = p.chapters[chapterIndex];
+    if (!chapter) return;
+    const genKey = `chapter-${chapterIndex}-sub-${subIndex}`;
+    if (generatingSet.has(genKey)) return;
+
+    addGenerating(genKey);
+    try {
+      addMessage("assistant", `Writing Subchapter ${subIndex + 1} of Chapter ${chapterIndex + 1}... ✍️`);
+      const prevChapters = p.chapters.filter((_, i) => i < chapterIndex);
+      const sub = await generateSubchapter(p.config, p.blueprint, chapterIndex, subIndex, chapter, prevChapters, p.genreLock);
+      updateAndSave(proj => {
+        const chapters = [...proj.chapters];
+        const ch = { ...chapters[chapterIndex] };
+        const subs = [...ch.subchapters];
+        while (subs.length <= subIndex) subs.push({ title: "", content: "" });
+        subs[subIndex] = sub;
+        ch.subchapters = subs;
+        chapters[chapterIndex] = ch;
+        return { ...proj, chapters };
+      });
+      addMessage("assistant", `Subchapter "${sub.title}" complete!`);
+    } catch (e: any) {
+      addMessage("assistant", `❌ Error: ${e.message}`);
+    } finally {
+      removeGenerating(genKey);
+    }
+  }, [project, generatingSet, addMessage, updateAndSave]);
+
+  const regenerateChapter = useCallback(async (index: number) => {
+    const p = getLatestProject() || project;
+    if (!p?.blueprint) return;
+    const genKey = `chapter-${index}`;
+    if (generatingSet.has(genKey)) return;
+
+    addGenerating(genKey);
+    updateAndSave(proj => {
+      const chapters = [...proj.chapters];
+      if (chapters[index]) chapters[index] = { ...chapters[index], status: "generating" as GenerationStatus };
+      return { ...proj, chapters };
+    });
+
+    try {
+      addMessage("assistant", `Regenerating Chapter ${index + 1}... 🔄`);
+      const latestP = getLatestProject() || p;
+      const prevChapters = latestP.chapters.slice(0, index);
+      const chapter = await generateChapter(
+        latestP.config,
+        latestP.blueprint!,
+        index,
+        prevChapters,
+        latestP.chapters[index]?.lengthOverride,
+        latestP.genreLock,
+        latestP.generationLock,
+      );
+      updateAndSave(proj => {
+        const chapters = [...proj.chapters];
+        chapters[index] = { ...chapter, status: "completed" as GenerationStatus, lengthOverride: proj.chapters[index]?.lengthOverride };
+        return { ...proj, chapters };
+      });
+      addMessage("assistant", `Chapter ${index + 1} regenerated!`);
+    } catch (e: any) {
+
+=== 6) GENERATION LANGUAGE CORE ===
+  const sentences = content.split(/[.!?]+/).filter(s => s.trim().length > 40 && s.trim().length < 200);
+  // Take the first and last meaningful sentences as bookends
+  const first = sentences.slice(0, 2).map(s => s.trim());
+  const last = sentences.slice(-2).map(s => s.trim());
+  return [...new Set([...first, ...last])].slice(0, 4);
+}
+
+function buildContextMemory(config: BookConfig, blueprint: BookBlueprint, previousChapters: Chapter[], chapterIndex: number): string {
+  if (previousChapters.length === 0) return "This is the FIRST chapter — establish the tone, introduce the core premise, and hook the reader immediately.";
+
+  const summaries = previousChapters.map((c, i) => {
+    const wordCount = c.content.split(/\s+/).length;
+    const keyIdeas = extractKeyIdeas(c.content);
+    const subTitles = c.subchapters.map(s => s.title).join(", ");
+    return `Ch ${i + 1} "${c.title}" (${wordCount} words):
+  Opening: ${c.content.substring(0, 150)}...
+  Key ideas: ${keyIdeas.join(" | ")}
+  Ending: ...${c.content.substring(Math.max(0, c.content.length - 150))}${subTitles ? `\n  Subchapters: ${subTitles}` : ""}`;
+  }).join("\n\n");
+
+  const arcPosition = chapterIndex / config.numberOfChapters;
+  const arcPhase = arcPosition < 0.25 ? "OPENING — establishing foundations"
+    : arcPosition < 0.5 ? "RISING — deepening and developing"
+    : arcPosition < 0.75 ? "CLIMAX — peak tension and transformation"
+    : "RESOLUTION — integration and closure";
+
+  // Track emotional progression across chapters
+  const emotionalTrack = previousChapters.length >= 2
+    ? `Emotional trajectory: The book has moved from "${previousChapters[0].title}" through "${previousChapters[previousChapters.length - 1].title}". Continue escalating.`
+    : "";
+
+  return `NARRATIVE MEMORY (you MUST maintain perfect continuity):
+
+PREVIOUS CHAPTERS:
+${summaries}
+
+${emotionalTrack}
+
+BOOK ARCHITECTURE:
+- Emotional arc: ${blueprint.emotionalArc}
+- Arc position: Chapter ${chapterIndex + 1} of ${config.numberOfChapters} — ${arcPhase}
+- Core themes: ${blueprint.themes.join(", ")}
+
+CONTINUITY RULES (MANDATORY):
+- Reference and BUILD UPON ideas from previous chapters — create callbacks
+- NEVER repeat examples, metaphors, anecdotes, or structural patterns
+- Progress the emotional arc naturally — escalate, deepen, transform
+- Each chapter must feel like the NEXT step in a journey, not a standalone piece
+- The reader must sense ONE author mind behind the entire book
+- Include 2-4 sentences per chapter that are highlight-worthy — emotionally powerful, quotable, shareable
+- These "highlight sentences" must feel natural, not forced — embed them within the flow`;
+}
+
+/* ============ Style Lock ============ */
+
+function getStyleLock(config: BookConfig): string {
+  const effectiveLanguage = resolveEffectiveLanguage(config);
+
+  // Risolvi un eventuale preset (per id o per label legacy) per esporre il nome leggibile
+  const preset = findStylePresetById(config.authorStyle) ?? findStylePresetByLabel(config.authorStyle);
+  const styleLabel = preset?.label ?? config.authorStyle;
+  const styleBlock = buildWritingStyleBlock(config.authorStyle);
+
+  return `STYLE LOCK — MAINTAIN CONSISTENTLY:
+- Tone: "${config.tone}" — NEVER deviate from this voice
+- Author/Style DNA: "${styleLabel}" — channel this voice's rhythm, vocabulary, and sensibility
+- Genre conventions: ${config.genre} — honor genre expectations while transcending them
+- Language: ${effectiveLanguage} — EVERY word in ${config.language}, no exceptions
+
+${styleBlock}
+
+If previous chapters established a specific vocabulary, rhythm, or narrative device, CONTINUE using it. Style drift = failure.`;
+}
+
+/* ============ Word Budget System ============ */
+
+function resolveEffectiveLanguage(config: BookConfig, generationLock?: GenerationLock): Language {
+  return generationLock?.lockedLanguage || config.language;
+}
+
+
+function getChapterTargetWords(config: BookConfig, chapterIndex: number, totalChapters: number, chapterLengthOverride?: string, generationLock?: GenerationLock): number {
+  const bookTotal = generationLock?.targetBookWords || getBookTotalWords(config);
+  const chapterBase = Math.round(bookTotal / totalChapters);
+  const localLength = chapterLengthOverride || config.chapterLength;
+  const multiplier = localLength === "short" ? 0.6 : localLength === "long" ? 1.5 : 1.0;
+  return Math.round(chapterBase * multiplier);
+}
+
+function getChapterLengthInstruction(config: BookConfig, chapterIndex: number, totalChapters: number, chapterLengthOverride?: string, generationLock?: GenerationLock): string {
+  const target = generationLock?.targetChapterWords || getChapterTargetWords(config, chapterIndex, totalChapters, chapterLengthOverride, generationLock);
+  const min = Math.round(target * 0.8);
+  const max = Math.round(target * 1.2);
+
+  const effectiveLanguage = resolveEffectiveLanguage(config, generationLock);
+  const langNote = effectiveLanguage !== "English" ? ` Write in ${effectiveLanguage}.` : "";
+  const depthNote = config.bookLength === "long"
+    ? " Write with deep, immersive, layered narrative."
+    : config.bookLength === "short"
+      ? " Concise, high-density writing."
+      : "";
+
+  return `Write approximately ${min}–${max} words.${depthNote}${langNote}`;
+}
+
+/* ============ Genre Prompts (delegated to Genre Intelligence Engine) ============ */
+
+function getGenrePrompt(config: BookConfig): string {
+  // Usa il modulo Genre Intelligence per profili profondi per genere/sottocategoria
+  return buildGenreSystemBlock(config.genre, (config as any).subcategory);
+}
+
+function getSystemPrompt(
+  config: BookConfig,
+  lock?: GenreLock,
+  opts?: { dominateMode?: boolean; generationLock?: GenerationLock }
+): string {
+  const effectiveLanguage = resolveEffectiveLanguage(config, opts?.generationLock);
+  const langMap: Record<string, string> = {
+    English: "English", Italian: "Italian (Italiano)", Spanish: "Spanish (Español)",
+    French: "French (Français)", German: "German (Deutsch)",
+  };
+  const lang = langMap[effectiveLanguage] || effectiveLanguage;
+  const genrePrompt = getGenrePrompt(config);
+  const bp = resolveLockedBlueprint(config, lock);
+  const editorialBlock = `EDITORIAL BLUEPRINT — ${resolveGenreKey(config.genre, (config as any).subcategory).toUpperCase()}${lock ? " (LOCKED)" : ""}
+Book structure (sections): ${bp.structure.join(" → ")}
+Editorial tone: ${bp.tone}
+Chapter style: ${bp.chapterStyle}
+Subchapters expected: ${bp.hasSubchapters ? "yes" : "no"}
+
+CONTENT RULES (mandatory for every chapter):
+${bp.contentRules.map(r => `• ${r}`).join("\n")}`;
+
+  const masteryBlock = buildEditorialMasteryBlock({
+    genre: config.genre,
+    subcategory: (config as any).subcategory,
+    language: lang,
+    tone: config.tone,
+    dominateMode: opts?.dominateMode,
+  });
+
+  return `${genrePrompt}
+
+${editorialBlock}
+
+${getStyleLock(config, opts?.generationLock)}
+
+${masteryBlock}
+
+ABSOLUTE RULES — BESTSELLER STANDARD:
+1. WRITE EVERYTHING IN ${lang.toUpperCase()}. Every word, title, sentence MUST be in ${lang}. No exceptions.
+2. START every chapter with a powerful HOOK — tension, uncomfortable truth, or scene-in-motion. Never throat-clearing.
+3. Include at least 3–5 quotable, highlight-worthy sentences per chapter.
+4. NEVER repeat ideas, phrases, examples, or structural patterns across chapters.
+5. Each chapter must escalate — building emotional, cognitive, or narrative momentum.
+6. Write at PUBLISHED BESTSELLER quality — superior to current market average.
+7. Create sentences readers will screenshot, highlight, and share.
+8. Use varied sentence rhythm — short punches mixed with flowing prose.
+9. Book scope: ${BOOK_LENGTH_CONFIG[config.bookLength].description} (target: ~${getBookTotalWords(config).toLocaleString()} total words)
+10. RESPECT THE EDITORIAL BLUEPRINT — chapter style and content rules are MANDATORY${lock ? " AND LOCKED" : ""}.
+11. RESPECT THE EDITORIAL MASTERY LAYER — apply silently, never expose its rules in the text.
+12. OUTPUT RULE: return ONLY the final content. No commentary, no explanations, no labels, no apologies.`;
+}
+
+/* ============ Phase Logic for Chunked Writing ============ */
+
+type ChunkPhase = "OPENING" | "DEVELOPMENT" | "EXPANSION" | "TRANSITION" | "CLOSURE";
+
+function getChunkPhase(currentWords: number, targetWords: number): ChunkPhase {
+  const ratio = currentWords / targetWords;
+  if (ratio < 0.2) return "OPENING";
+  if (ratio < 0.4) return "DEVELOPMENT";
+  if (ratio < 0.7) return "EXPANSION";
+  if (ratio < 0.85) return "TRANSITION";
+  return "CLOSURE";
+}
+
+function getPhaseInstruction(phase: ChunkPhase): string {
+  switch (phase) {
+    case "OPENING":
+      return "Hook the reader immediately. Build intrigue and establish the emotional premise. Create a compelling opening that demands continued reading.";
+    case "DEVELOPMENT":
+      return "Expand on the core ideas. Deepen the narrative with examples, insights, and emotional layers. Build momentum.";
+    case "EXPANSION":
+      return "Add richness: new perspectives, vivid examples, emotional complexity. This is the heart of the chapter — make it resonate deeply.";
+    case "TRANSITION":
+      return "Begin guiding toward resolution. Tie threads together. Start the emotional convergence toward the chapter's conclusion.";
+    case "CLOSURE":
+      return "Write toward a powerful, satisfying ending only when the chapter genuinely feels complete. Create emotional payoff, but do not rush closure or cut the chapter short.";
+  }
+}
+
+function countWords(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function checkOverlap(existingText: string, newChunk: string): number {
+  const existingSentences = existingText.split(/[.!?]+/).filter(s => s.trim().length > 20).slice(-10);
+  const newSentences = newChunk.split(/[.!?]+/).filter(s => s.trim().length > 20);
+  if (newSentences.length === 0) return 0;
+
+  targetWords: number;
+  phase: ChunkPhase;
+  content: string;
+  chunkSize?: ChunkSize;
+}
+
+export async function generateChapterChunked(
+  config: BookConfig,
+  blueprint: BookBlueprint,
+  chapterIndex: number,
+  previousChapters: Chapter[],
+  chapterLengthOverride?: string,
+  onChunkProgress?: (progress: ChunkProgress) => void,
+  genreLock?: GenreLock,
+  generationLock?: GenerationLock,
+  opts?: { adaptive?: { plan: import("@/lib/plan").PlanTier } },
+): Promise<Chapter> {
+  const outline = blueprint.chapterOutlines[chapterIndex];
+  const targetWords = getChapterTargetWords(config, chapterIndex, config.numberOfChapters, chapterLengthOverride, generationLock);
+  const effectiveLanguage = resolveEffectiveLanguage(config, generationLock);
+  const contextMemory = buildContextMemory(config, blueprint, previousChapters, chapterIndex);
+  const systemBase = getSystemPrompt(config, genreLock, { generationLock });
+  const genreDirective = buildPromptByGenre({
+    genre: genreLock?.genre || config.genre,
+    subcategory: genreLock?.subcategory || (config as any).subcategory,
+    chapterTitle: outline.title,
+    chapterSummary: outline.summary,
+    language: effectiveLanguage,
+  });
+
+  let accumulatedContent = "";
+  let chapterTitle = outline.title;
+  let chunkIndex = 0;
+  let consecutiveFailures = 0;
+  const maxChunks = Math.max(80, Math.ceil(targetWords / 250) + 30); // safety cap only: prevents infinite loops, never acts as chapter-length wall
+
+  if (DEV_DEBUG_STREAM) console.log(`[Nexora] Adaptive chunked generation: target=${targetWords} words, safetyMaxChunks=${maxChunks}`);
+
+  while (chunkIndex < maxChunks) {
+    const currentWords = countWords(accumulatedContent);
+    const phase = getChunkPhase(currentWords, targetWords);
+    const phaseInstruction = getPhaseInstruction(phase);
+    const remainingWords = Math.max(600, targetWords - currentWords);
+
+    // Stop if past target
+    // Target words are guidance only, never a hard wall.
+    // Do not stop just because the estimated chapter target was exceeded.
+
+    // Professional continuation guard:
+    // Never close the chapter early at 850/1200 words.
+    // Keep generating until the real target range is reached.
+    // Do not force closure merely because the chapter is near the estimated target.
+    // The continuation loop decides based on safety caps and generated content.
+
+    // Adaptive chunk size selection
+    const chunkSize = selectChunkSize(consecutiveFailures);
+    const sizeConfig = CHUNK_SIZES[chunkSize];
+    const chunkTarget = phase === "CLOSURE"
+      ? Math.min(remainingWords + 100, sizeConfig.max)
+      : Math.min(Math.max(sizeConfig.min, remainingWords), sizeConfig.max);
+
+    if (DEV_DEBUG_STREAM) console.log(`[Nexora] Chunk ${chunkIndex + 1}: size=${chunkSize} (${sizeConfig.label}), failures=${consecutiveFailures}`);
+
+    const isFirstChunk = chunkIndex === 0;
+    const lastTextSegment = accumulatedContent.slice(-1200);
+    const adaptiveSuffix = getAdaptivePromptSuffix(chunkSize);
+
+    const chunkPrompt = isFirstChunk
+      ? `Write the OPENING of Chapter ${chapterIndex + 1} of "${config.title}".
+Chapter title: "${outline.title}"
+Chapter plan: ${outline.summary}
+Genre: ${config.genre}
+Language: ${effectiveLanguage} — WRITE ENTIRELY IN ${effectiveLanguage}
+
+BLUEPRINT EXECUTION RULES:
+- This chapter MUST execute ONLY this chapter's blueprint.
+- Mandatory chapter title to express internally: "${outline.title}"
+- Mandatory chapter scope: ${outline.summary}
+- Do NOT invent a different thesis, topic, structure, or promise.
+- Do NOT drift into generic advice outside this assigned chapter role.
+- Every major paragraph must directly serve this exact chapter blueprint.
+- If even one sentence is not in ${effectiveLanguage}, the output is invalid.
+- If the chapter drifts away from the blueprint, the output is invalid.
+
+${genreDirective}
+
+${contextMemory}
+
+TARGET: Write approximately ${chunkTarget} words for this segment.
+TOTAL CHAPTER TARGET: ${targetWords} words (you will write more chunks after this).
+PHASE: ${phase} — ${phaseInstruction}
+
+BESTSELLER QUALITY REQUIREMENTS:
+- Open with a line that stops the reader — a hook they'll remember
+- Include 2-3 highlight-worthy sentences
+- Write like a PUBLISHED BESTSELLER
+- Use varied sentence rhythm
+- HONOR the GENRE DIRECTIVE above — chapter style and content rules are MANDATORY
+
+Return ONLY the chapter text. Start with the chapter content directly.
+Do NOT return JSON. Do NOT include the chapter title in the text.
+Write ONLY in ${effectiveLanguage}. Any English output is forbidden.${adaptiveSuffix}`
+
+      : `CONTINUE writing Chapter ${chapterIndex + 1} of "${config.title}".
+Chapter title: "${chapterTitle}"
+Chapter plan: ${outline.summary}
+Genre: ${config.genre}
+Language: ${effectiveLanguage}
+
+${genreDirective}
+
+PREVIOUS TEXT (last segment):
+"""
+${lastTextSegment}
+"""
+
+CURRENT PROGRESS: ${currentWords} / ${targetWords} words written
+REMAINING: ~${remainingWords} words needed
+PHASE: ${phase} — ${phaseInstruction}
+
+TARGET for this chunk: Write approximately ${chunkTarget} words.
+
+BLUEPRINT CONTINUATION RULES:
+- Continue executing ONLY this chapter blueprint: ${outline.summary}
+- Do NOT widen the topic beyond this chapter's assigned role in the book.
+- Do NOT introduce ideas that belong to later chapters.
+- If even one sentence is not in ${effectiveLanguage}, the output is invalid.
+
+CRITICAL RULES:
+- Continue EXACTLY from where the previous text ended
+- DO NOT restart, summarize, or repeat what was already written
+- DO NOT repeat ideas, metaphors, or phrases from previous text
+- Maintain narrative coherence and emotional continuity
+- HONOR the GENRE DIRECTIVE — same chapter style throughout the book
+- Increase depth and quality with each chunk
+${phase === "CLOSURE" ? `
+ENDING RULES:
+- Write toward a POWERFUL, SATISFYING conclusion
+- The final lines must feel inevitable and emotionally resonant
+- DO NOT leave the chapter unfinished
+- Create a strong final paragraph that provides closure
+- DO NOT exceed the remaining word budget significantly
+` : ""}
+Return ONLY the continuation text. No JSON. No titles. No meta-commentary.
+Write in ${effectiveLanguage}.${adaptiveSuffix}`;
+
+    const systemPrompt = `${systemBase}
+
+LANGUAGE LOCK (ABSOLUTE):
+- Output language must be ONLY ${effectiveLanguage}.
+- Do not write any sentence, phrase, heading, transition, or expression in English unless the target language itself is English.
+- If the source prompts are in English, IGNORE their language and obey ONLY the requested output language: ${effectiveLanguage}.
+- A single English sentence in a non-English chapter is a failure.
+
+You are writing ${isFirstChunk ? "the opening of" : "a continuation for"} chapter ${chapterIndex + 1} of ${config.numberOfChapters}. Phase: ${phase}. Chunk size: ${chunkSize}.`;
+
+    let chunkText: string | null = null;
+
+    try {
+      chunkText = await callAIOnce(systemPrompt, chunkPrompt, sizeConfig.timeout);
+      consecutiveFailures = 0; // Reset on success
+    } catch (e: any) {
+      consecutiveFailures++;
+      console.error(`[Nexora] Chunk ${chunkIndex + 1} failed (failures=${consecutiveFailures}):`, e.message);
+
+      // Credit/auth errors = bail immediately
+      if (e instanceof AICreditsError) throw e;
+
+      // After 6 consecutive failures, try emergency fallback or stop gracefully
+      if (consecutiveFailures > 4 && countWords(accumulatedContent) >= targetWords * 0.92) {
+        console.warn(`[Nexora] Emergency finish activated near target at ${countWords(accumulatedContent)}/${targetWords} words after ${consecutiveFailures} failures`);
+        break;
+      }
+
+      if (consecutiveFailures > 6) {
+        if (chunkIndex === 0) {
+          // Last-resort fallback for first chunk: smaller/simpler prompt
+          console.warn(`[Nexora] Emergency fallback for first chunk`);
+          try {
+            chunkText = await callAIOnce(
+              `You are a ${config.genre} author writing in ${effectiveLanguage}. Be concise and complete.`,
+
+
+  return {
+    title: chapterTitle,
+    content: accumulatedContent,
+    subchapters: [],
+  };
+}
+
+/* ============ Blueprint ============ */
+
+export async function generateBlueprint(config: BookConfig, genreLock?: GenreLock): Promise<BookBlueprint> {
+  const effectiveLanguage = resolveEffectiveLanguage(config);
+  const bookInfo = BOOK_LENGTH_CONFIG[config.bookLength];
+  const totalWords = getBookTotalWords(config);
+  const editorialBP = resolveLockedBlueprint(config, genreLock);
+  const structureScaffold = editorialBP.structure.length
+    ? `\nGENRE STRUCTURE SCAFFOLD${genreLock ? " (LOCKED)" : ""} (use as backbone, expand into ${config.numberOfChapters} chapters):\n${editorialBP.structure.map((s, i) => `${i + 1}. ${s}`).join("\n")}\nMap and expand this scaffold across the ${config.numberOfChapters} chapters — fold/split sections so EVERY chapter advances the editorial structure above.`
+    : "";
+
+  const prompt = `Create a detailed book blueprint for:
+Title: "${config.title}"
+Subtitle: "${config.subtitle}"
+Genre: ${config.genre}
+Tone: ${config.tone}
+Language: ${effectiveLanguage} — ALL content MUST be in ${config.language}
+Book length: ${bookInfo.label} (~${totalWords.toLocaleString()} total words)
+Number of chapters: ${config.numberOfChapters}
+${config.subchaptersEnabled ? "Include 2-4 subchapters per chapter." : "No subchapters."}
+${structureScaffold}
+
+${buildGenreBlueprintBlock(config.genre, (config as any).subcategory)}
+
+CRITICAL — BESTSELLER QUALITY TITLES:
+- Chapter titles must be EMOTIONALLY COMPELLING — the kind that make readers flip to that page
+- Titles should be evocative, intriguing, or provocative — NOT generic or descriptive
+- Think bestseller table of contents that sells the book on its own
+
+Return a COMPACT valid JSON object with:
+- overview: maximum 900 characters, clear and marketable (in ${config.language})
+- chapterOutlines: Array of {title, summary${config.subchaptersEnabled ? ', subchapters: [{title, summary}]' : ''}} (in ${config.language})
+- themes: 4-8 short core themes (in ${config.language})
+- emotionalArc: maximum 700 characters (in ${config.language})
+
+STRICT JSON SIZE RULES:
+- Each chapter summary must be maximum 260 characters.
+- Each subchapter summary must be maximum 180 characters.
+- Do NOT write long paragraphs inside JSON fields.
+- Do NOT add extra keys.
+- Do NOT include markdown.
+- Do NOT include commentary before or after the JSON.
+- The JSON must be complete and parseable.
+
+Return ONLY valid JSON, no markdown.`;
+
+  const blueprintResult = await safeGenerateAI(
+    () => callBlueprintFast(
+      getSystemPrompt(config, genreLock) + " You are creating a book architecture optimized for the genre profile above.",
+      prompt,
+    ),
+    {
+      mode: "blueprint",
+      retries: 2,
+      minChars: 120,
+      allowPartial: true,
+      extractJsonOnly: true,
+      systemPrompt: getSystemPrompt(config, genreLock),
+      userPrompt: prompt,
+    },
+  );
+
+  const result = blueprintResult.content;
+
+  try {
+    return JSON.parse(result.replace(/```json\n?|```/g, "").trim());
+  } catch {
+    return {
+      overview: result,
+      chapterOutlines: Array.from({ length: config.numberOfChapters }, (_, i) => ({
+        title: `Chapter ${i + 1}`, summary: "To be generated",
+      })),
+      themes: [],
+      emotionalArc: "",
+    };
+  }
+}
+
+/* ============ Front Matter — TEMPLATE-DRIVEN PER GENRE ============ */
+
+/**
+ * Map a genre's frontMatterTemplate sections to the canonical FrontMatter
+ * fields. The AI is instructed to write each section as if it belongs in
+ * that specific kind of book (e.g. "Kitchen Equipment Notes" for cookbook).
+ */
+export async function generateFrontMatter(
+  config: BookConfig,
+  blueprint: BookBlueprint,
+  genreLock?: GenreLock,
+): Promise<FrontMatter> {
+  const effectiveLanguage = resolveEffectiveLanguage(config);
+  const bp = resolveLockedBlueprint(config, genreLock);
+  const genreKey = resolveGenreKey(config.genre, (config as any).subcategory);
+  const sectionsList = bp.frontMatterTemplate.length
+    ? bp.frontMatterTemplate
+    : ["Title Page", "Copyright", "Dedication", "About the Author", "How to Use This Book", "Letter to the Reader"];
+
+  const prompt = `Generate FRONT MATTER for a ${genreKey.toUpperCase()} book — sections must read as if written by a domain expert in this genre.
+
+BOOK:
+- Title: "${config.title}"
+- Subtitle: "${config.subtitle}"
+- Genre: ${genreKey}
+- Language: ${effectiveLanguage} — ALL content MUST be in ${config.language}
+- Overview: ${blueprint.overview}
+
+GENRE-SPECIFIC FRONT MATTER SECTIONS TO PRODUCE (in this exact spirit):
+${sectionsList.map((s, i) => `${i + 1}. ${s}`).join("\n")}
+
+CRITICAL EDITORIAL RULES:
+- Tone of every section must match: ${bp.tone}
+- Use the genre's authentic vocabulary and conventions (e.g. recipes → kitchen equipment notes; medical → disclaimers; software → version notes)
+- NEVER produce generic placeholders. Each section must feel domain-native.
+- Every field MUST be in ${config.language}.
+
+Map your sections to this JSON shape (combine extra sections into the closest field, NEVER omit domain-specific content):
+{
+  "titlePage": "Title page content (Title + Subtitle + Author placeholder)",
+  "copyright": "Professional copyright notice for current year + any genre-specific legal/disclaimer line",
+  "dedication": "A heartfelt, brief dedication (or genre-equivalent: e.g. 'To every gardener who...' / 'To the cooks who...')",
+  "aboutAuthor": "Compelling author bio paragraph (positioned as expert in this genre)",
+  "howToUse": "How to read and apply THIS specific kind of book — include any genre-specific notes (equipment, prerequisites, climate zone, software version, medical disclaimer, safety, etc.)",
+  "letterToReader": "Intimate, warm letter to the reader anchored in the genre's reader promise"
+}
+
+Return ONLY valid JSON. No markdown.`;
+
+  const frontMatterResult = await safeGenerateAI(
+    () => callAI(getSystemPrompt(config, genreLock), prompt),
+    {
+      mode: "frontMatter",
+      retries: 2,
+      minChars: 120,
+      allowPartial: true,
+      extractJsonOnly: true,
+      systemPrompt: getSystemPrompt(config, genreLock),
+      userPrompt: prompt,
+    },
+  );
+
+  const result = frontMatterResult.content;
+
+  try {
+    return JSON.parse(result.replace(/```json\n?|```/g, "").trim());
+  } catch {
+    return {
+      titlePage: config.title,
+      copyright: `© ${new Date().getFullYear()}`,
+      dedication: "",
+      aboutAuthor: "",
+      howToUse: "",
+      letterToReader: result,
+    };
+  }
+}
+
+/* ============ Chapter (legacy single-call, kept for subchapters) ============ */
+
+export async function generateChapter(
+  config: BookConfig,
+  blueprint: BookBlueprint,
+  chapterIndex: number,
+  previousChapters: Chapter[],
+  chapterLengthOverride?: string,
+  genreLock?: GenreLock,
+  generationLock?: GenerationLock,
+): Promise<Chapter> {
+  // Delegate to chunked generation
+  return generateChapterChunked(
+    config,
+    blueprint,
+    chapterIndex,
+    previousChapters,
+    chapterLengthOverride,
+    undefined,
+    genreLock,
+    generationLock,
+  );
+}
+
+/* ============ Subchapter ============ */
+
+export async function generateSubchapter(
+  config: BookConfig, blueprint: BookBlueprint, chapterIndex: number,
+  subchapterIndex: number, chapter: Chapter, previousChapters: Chapter[],
+  genreLock?: GenreLock,
+): Promise<{ title: string; content: string }> {
+  const effectiveLanguage = resolveEffectiveLanguage(config);
+  const outline = blueprint.chapterOutlines[chapterIndex];
+  const subOutline = (outline as any).subchapters?.[subchapterIndex];
+  const contextMemory = buildContextMemory(config, blueprint, previousChapters, chapterIndex);
+  const existingSubs = chapter.subchapters.map((s, i) =>
+    `Subchapter ${i + 1} "${s.title}": ${s.content.substring(0, 200)}...`
+  ).join("\n");
+
+  const bookTotal = getBookTotalWords(config);
+  const subWordTarget = Math.round((bookTotal / config.numberOfChapters) / 3);
+  const subMin = Math.max(400, Math.round(subWordTarget * 0.8));
+  const subMax = Math.round(subWordTarget * 1.2);
+
+  const genreDirective = buildPromptByGenre({
+    genre: genreLock?.genre || config.genre,
+    subcategory: genreLock?.subcategory || (config as any).subcategory,
+    chapterTitle: subOutline?.title || `Subchapter ${subchapterIndex + 1}`,
+    chapterSummary: subOutline?.summary || "",
+    language: config.language,
+  });
+
+  const prompt = `Write Subchapter ${subchapterIndex + 1} of Chapter ${chapterIndex + 1} "${chapter.title}" in "${config.title}".
+${subOutline ? `Subchapter plan: "${subOutline.title}" — ${subOutline.summary}` : `Write the ${subchapterIndex + 1}th subchapter.`}
+Genre: ${config.genre}
+Language: ${effectiveLanguage} — WRITE ENTIRELY IN ${effectiveLanguage}
+Write approximately ${subMin}–${subMax} words.
+
+${genreDirective}
+
+Parent chapter intro: ${chapter.content.substring(0, 500)}...
+${existingSubs ? `Already written subchapters (do NOT repeat):\n${existingSubs}` : ""}
+${contextMemory}
+
+BESTSELLER QUALITY — same standard as main chapters. HONOR the genre directive above.
+
+Return JSON: { "title": "...", "content": "..." }
+ALL in ${config.language}. Return ONLY valid JSON.`;
+
+  const result = await callAI(
+    getSystemPrompt(config, genreLock) + ` You are writing a subchapter for chapter ${chapterIndex + 1}. Maintain style lock.`,
+    prompt
+  );
+  try {
+    return JSON.parse(result.replace(/```json\n?|```/g, "").trim());
+  } catch {
+    return { title: subOutline?.title || `Subchapter ${subchapterIndex + 1}`, content: result };
+  }
+}
+
+/* ============ Back Matter ============ */
+
+export async function generateBackMatter(
+  config: BookConfig,
+  blueprint: BookBlueprint,
+  chapters: Chapter[],
+  genreLock?: GenreLock,
+): Promise<BackMatter> {
+  const effectiveLanguage = resolveEffectiveLanguage(config);
+  const bp = resolveLockedBlueprint(config, genreLock);
+  const genreKey = resolveGenreKey(config.genre, (config as any).subcategory);
+  const chapterTitles = chapters.map((c, i) => `${i + 1}. ${c.title}`).join("\n");
+  const sectionsList = bp.backMatterTemplate.length
+    ? bp.backMatterTemplate
+    : ["Conclusion", "Author Note", "Call to Action", "Review Request", "Other Books"];
+
+  const prompt = `Generate BACK MATTER for a ${genreKey.toUpperCase()} book — read as if written by a domain expert.
+
+BOOK:
+- Title: "${config.title}"
+- Genre: ${genreKey}
+- Language: ${effectiveLanguage} — ALL content MUST be in ${config.language}
+- Chapters:\n${chapterTitles}
+
+GENRE-SPECIFIC BACK MATTER SECTIONS TO PRODUCE (in this exact spirit):
+${sectionsList.map((s, i) => `${i + 1}. ${s}`).join("\n")}
+
+CRITICAL EDITORIAL RULES:
+- Tone: ${bp.tone}
+- Use authentic genre conventions (cookbook → conversion tables; medical → references; software → shortcuts; fitness → progression tables; gardening → seasonal calendar; etc.)
+- NEVER produce generic placeholders. Each section must feel domain-native.
+- All in ${config.language}.
+
+Map your sections to this JSON shape (combine extra/domain-specific sections into the closest field, NEVER omit them — fold them into authorNote/callToAction/otherBooks as needed):
+{
+  "conclusion": "Powerful, emotionally or practically resonant conclusion that closes the book in this genre's voice",
+  "authorNote": "Personal note from the author — use it ALSO for any technical reference content (glossary, calendar, references) when it fits",
+  "callToAction": "Concrete call to action specific to this genre (try the first recipe, schedule the workout week, set up the system today, etc.)",
+  "reviewRequest": "Warm, specific request for a review",
+  "otherBooks": "Placeholder for other books / further reading / resources in this genre"
+}
+
+
+=== 7) SEARCH EXACT LANGUAGE ASSIGNMENTS ===
+src/types/book.ts:125:  language: Language;
+src/types/book.ts:157:  lockedLanguage: Language;
+src/contexts/DominationContext.tsx:94:            language: project.config.language,
+src/contexts/DominationContext.tsx:201:          language: project.config.language,
+src/components/LiveCoachTab.tsx:83:          language: project.config.language,
+src/components/LiveCoachTab.tsx:123:          language: project.config.language,
+src/components/LiveCoachTab.tsx:210:          language: project.config.language,
+src/components/TopBar.tsx:83:      <MiniSelect label={t("lang")} value={config.language} options={LANGUAGES.map(l => ({ value: l, label: l }))} onChange={(v) => onUpdateConfig("language", v)} />
+src/components/ChapterIntelligencePanel.tsx:188:          language: project.config.language,
+src/components/ChapterIntelligencePanel.tsx:213:          language: project.config.language,
+src/components/AutoBestseller/InputPanel.tsx:91:      language: mode === "guided" ? "English" : language,
+src/components/NewBookDialog.tsx:53:    language: "English",
+src/components/NewBookDialog.tsx:147:              <select value={config.language} onChange={e => update("language", e.target.value)}
+src/components/EditorPanel.tsx:593:          language={project.config.language}
+src/components/HomeExportDialog.tsx:181:                          {p.chapters.length} cap · {wordCount.toLocaleString()} parole · {p.config.language}
+src/components/BookPreview.tsx:68:          <span className="px-2 py-0.5 rounded bg-surface">{config.language}</span>
+src/components/kdp/KdpTitleDomination.tsx:72:    language: defaults?.language ?? restored?.input?.language ?? "Italian",
+src/components/AICoachPanel.tsx:73:    const bookLang = project.config.language;
+src/components/AICoachPanel.tsx:100:Language: ${bookLang} — ALL output MUST be in ${bookLang}
+src/components/BookConfigForm.tsx:24:    language: "English",
+src/components/BookConfigForm.tsx:81:              value={config.language}
+src/components/PublishPanel.tsx:26:  language: "Italian",
+src/components/PublishPanel.tsx:191:                  <ConfigChip label={project.config.language} />
+src/components/PublishPanel.tsx:202:                    <ConfigSelect label="Lingua" value={project.config.language} onChange={(v) => onUpdateConfig("language", v as Language)}
+src/hooks/useBookEngine.ts:90:    addMessage("system", `Starting book: "${config.title}" — ${config.numberOfChapters} chapters, ${config.language}, ${config.genre}, ${config.bookLength} book`);
+src/lib/genre-intelligence.ts:1193:  language: string;
+src/lib/genre-intelligence.ts:1217:Language: ${opts.language} — write entirely in ${opts.language}.
+src/lib/epub.ts:274:  const lang = config.language;
+src/lib/epub.ts:278:  const langCode = { English: "en", Italian: "it", Spanish: "es", French: "fr", German: "de" }[config.language] || "en";
+src/lib/editorial-mastery.ts:172:const LANGUAGE_HYGIENE = (language: string) => `LANGUAGE HYGIENE (${language}):
+src/lib/editorial-mastery.ts:221:  language: string;
+src/lib/i18n.ts:60:  language: { en: "Language", it: "Lingua", es: "Idioma", fr: "Langue", de: "Sprache" },
+src/lib/i18n.ts:105:  interface_language: { en: "Interface Language", it: "Lingua Interfaccia", es: "Idioma de Interfaz", fr: "Langue d'Interface", de: "Oberflächensprache" },
+src/lib/kdp/money-engine.ts:203:    { kind: "analyzeMarket", idea, genre: opts.genre, language: opts.language },
+src/lib/kdp/money-engine.ts:228:      language: opts.language,
+src/lib/kdp/money-engine.ts:241:    { kind: "coverIntelligence", genre: opts.genre, mood: opts.mood, language: opts.language },
+src/lib/auto-bestseller-to-project.ts:86:  language: Language,
+src/lib/auto-bestseller-to-project.ts:95:    lockedLanguage: language,
+src/lib/generation.ts:276:  const effectiveLanguage = resolveEffectiveLanguage(config);
+src/lib/generation.ts:287:- Language: ${effectiveLanguage} — EVERY word in ${config.language}, no exceptions
+src/lib/generation.ts:296:function resolveEffectiveLanguage(config: BookConfig, generationLock?: GenerationLock): Language {
+src/lib/generation.ts:297:  return generationLock?.lockedLanguage || config.language;
+src/lib/generation.ts:314:  const effectiveLanguage = resolveEffectiveLanguage(config, generationLock);
+src/lib/generation.ts:315:  const langNote = effectiveLanguage !== "English" ? ` Write in ${effectiveLanguage}.` : "";
+src/lib/generation.ts:337:  const effectiveLanguage = resolveEffectiveLanguage(config, opts?.generationLock);
+src/lib/generation.ts:342:  const lang = langMap[effectiveLanguage] || effectiveLanguage;
+src/lib/generation.ts:357:    language: lang,
+src/lib/generation.ts:499:  const effectiveLanguage = resolveEffectiveLanguage(config, generationLock);
+src/lib/generation.ts:507:    language: effectiveLanguage,
+src/lib/generation.ts:552:Language: ${effectiveLanguage} — WRITE ENTIRELY IN ${effectiveLanguage}
+src/lib/generation.ts:561:- If even one sentence is not in ${effectiveLanguage}, the output is invalid.
+src/lib/generation.ts:581:Write ONLY in ${effectiveLanguage}. Any English output is forbidden.${adaptiveSuffix}`
+src/lib/generation.ts:587:Language: ${effectiveLanguage}
+src/lib/generation.ts:606:- If even one sentence is not in ${effectiveLanguage}, the output is invalid.
+src/lib/generation.ts:624:Write in ${effectiveLanguage}.${adaptiveSuffix}`;
+src/lib/generation.ts:629:- Output language must be ONLY ${effectiveLanguage}.
+src/lib/generation.ts:631:- If the source prompts are in English, IGNORE their language and obey ONLY the requested output language: ${effectiveLanguage}.
+src/lib/generation.ts:660:              `You are a ${config.genre} author writing in ${effectiveLanguage}. Be concise and complete.`,
+src/lib/generation.ts:790:            const userPrompt = `Original chapter text to revise (in ${config.language}):\n\n${text}`;
+src/lib/generation.ts:811:  const effectiveLanguage = resolveEffectiveLanguage(config);
+src/lib/generation.ts:824:Language: ${effectiveLanguage} — ALL content MUST be in ${config.language}
+src/lib/generation.ts:838:- overview: maximum 900 characters, clear and marketable (in ${config.language})
+src/lib/generation.ts:839:- chapterOutlines: Array of {title, summary${config.subchaptersEnabled ? ', subchapters: [{title, summary}]' : ''}} (in ${config.language})
+src/lib/generation.ts:840:- themes: 4-8 short core themes (in ${config.language})
+src/lib/generation.ts:841:- emotionalArc: maximum 700 characters (in ${config.language})
+src/lib/generation.ts:898:  const effectiveLanguage = resolveEffectiveLanguage(config);
+src/lib/generation.ts:911:- Language: ${effectiveLanguage} — ALL content MUST be in ${config.language}
+src/lib/generation.ts:921:- Every field MUST be in ${config.language}.
+src/lib/generation.ts:995:  const effectiveLanguage = resolveEffectiveLanguage(config);
+src/lib/generation.ts:1013:    language: config.language,
+src/lib/generation.ts:1019:Language: ${effectiveLanguage} — WRITE ENTIRELY IN ${effectiveLanguage}
+src/lib/generation.ts:1031:ALL in ${config.language}. Return ONLY valid JSON.`;
+src/lib/generation.ts:1052:  const effectiveLanguage = resolveEffectiveLanguage(config);
+src/lib/generation.ts:1065:- Language: ${effectiveLanguage} — ALL content MUST be in ${config.language}
+src/lib/generation.ts:1075:- All in ${config.language}.
+src/lib/generation.ts:1146:Language: Respond in ${config.language}.
+src/lib/generation.ts:1281:Language: ${effectiveLanguage} — WRITE ENTIRELY IN ${effectiveLanguage}
+src/lib/generation.ts:1290:ALL in ${config.language}. Return ONLY valid JSON.`;
+src/pages/AutoBestsellerPage.tsx:70:  function normalizeBriefLanguage(value?: string): "English" | "Italian" | "Spanish" | "French" | "German" {
+src/pages/AutoBestsellerPage.tsx:122:            language: normalizeBriefLanguage(parsed.language),
+src/pages/Dashboard.tsx:24:function normalizeDashboardLanguage(value?: string): string {
+src/pages/Dashboard.tsx:186:        body: { idea: idea.trim(), language: normalizeDashboardLanguage(bookLang) },
+src/pages/Dashboard.tsx:226:          language: normalizeDashboardLanguage(bookLang),
+
+=== 8) SEARCH ENGLISH FALLBACKS ===
+src/types/book.ts:1:export type Language = "English" | "Italian" | "Spanish" | "French" | "German";
+src/components/TopBar.tsx:34:const LANGUAGES: Language[] = ["English", "Italian", "Spanish", "French", "German"];
+src/components/AutoBestseller/InputPanel.tsx:30:const LANGUAGES = ["English", "Italian", "Spanish", "French", "German", "Portuguese"];
+src/components/AutoBestseller/InputPanel.tsx:58:  const [language, setLingua] = useState(initialInput?.language ?? "English");
+src/components/AutoBestseller/InputPanel.tsx:91:      language: mode === "guided" ? "English" : language,
+src/components/NewBookDialog.tsx:14:const LANGUAGES: Language[] = ["English", "Italian", "Spanish", "French", "German"];
+src/components/NewBookDialog.tsx:53:    language: "English",
+src/components/kdp/KdpTitleDomination.tsx:195:                <SelectItem value="English">English</SelectItem>
+src/components/AICoachPanel.tsx:37:  en: "English", it: "Italian", es: "Spanish", fr: "French", de: "German",
+src/components/BookConfigForm.tsx:8:const LANGUAGES: Language[] = ["English", "Italian", "Spanish", "French", "German"];
+src/components/BookConfigForm.tsx:24:    language: "English",
+src/components/TitleIntelligenceDialog.tsx:21:  en: "English", it: "Italian", es: "Spanish", fr: "French", de: "German",
+src/components/TitleIntelligenceDialog.tsx:32:  const [language, setLanguage] = useState<string>(UI_LANG_TO_NAME[uiLang] ?? "English");
+src/components/TitleIntelligenceDialog.tsx:147:                language={UI_LANG_TO_NAME[uiLang] ?? "English"}
+src/components/TitleIntelligenceDialog.tsx:203:                    <option value="English">English</option>
+src/components/PublishPanel.tsx:203:                      options={["English", "Italian", "Spanish", "French", "German"]} />
+src/lib/i18n.ts:4:  { value: "en", label: "English" },
+src/lib/auto-bestseller-to-project.ts:9:const ALLOWED_LANGUAGES: Language[] = ["English", "Italian", "Spanish", "French", "German"];
+src/lib/auto-bestseller-to-project.ts:17:  if (!l) return "English";
+src/lib/auto-bestseller-to-project.ts:22:    en: "English",
+src/lib/auto-bestseller-to-project.ts:23:    english: "English",
+src/lib/auto-bestseller-to-project.ts:47:  return (ALLOWED_LANGUAGES.find((x) => x === cap) ?? "English") as Language;
+src/lib/generation.ts:315:  const langNote = effectiveLanguage !== "English" ? ` Write in ${effectiveLanguage}.` : "";
+src/lib/generation.ts:339:    English: "English", Italian: "Italian (Italiano)", Spanish: "Spanish (Español)",
+src/pages/AutoBestsellerPage.tsx:70:  function normalizeBriefLanguage(value?: string): "English" | "Italian" | "Spanish" | "French" | "German" {
+src/pages/AutoBestsellerPage.tsx:73:  const aliases: Record<string, "English" | "Italian" | "Spanish" | "French" | "German"> = {
+src/pages/AutoBestsellerPage.tsx:74:    en: "English",
+src/pages/AutoBestsellerPage.tsx:75:    english: "English",
+src/pages/AutoBestsellerPage.tsx:96:  return aliases[raw] || "English";
+src/pages/Dashboard.tsx:28:  if (["en", "eng", "english", "inglese"].includes(v)) return "English";
+src/pages/Dashboard.tsx:112:    return ({ en: "English", it: "Italian", es: "Spanish", fr: "French", de: "German" } as Record<string, string>)[ui] || "English";
+src/pages/Dashboard.tsx:116:    { value: "English", label: "🇬🇧 English" },
+src/pages/Dashboard.tsx:250:  const currentLangLabel = UI_LANGUAGES.find(l => l.value === currentLang)?.label || "English";
+
+=== 9) SEARCH PROJECT CREATION / REMAP ===
+src/types/book.ts:106:export const BOOK_LENGTH_CONFIG: Record<BookLength, { label: string; totalWords: number; description: string }> = {
+src/types/book.ts:113:export function getBookTotalWords(config: { bookLength: BookLength; customTotalWords?: number }): number {
+src/types/book.ts:165:  config: BookConfig;
+src/config/payments.ts:75:export const paymentsConfig: PaymentsConfig = {
+src/components/ui/chart.tsx:17:  config: ChartConfig;
+src/components/ui/chart.tsx:35:    config: ChartConfig;
+src/components/ui/chart.tsx:61:const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
+src/components/ui/chart.tsx:278:function getPayloadConfigFromPayload(config: ChartConfig, payload: unknown, key: string) {
+src/components/TopBar.tsx:17:  config: BookConfig | null;
+src/components/TopBar.tsx:18:  onUpdateConfig: (key: keyof BookConfig, value: any) => void;
+src/components/NewBookDialog.tsx:11:  onSubmit: (config: BookConfig) => void;
+src/components/BookConfigForm.tsx:5:  onSubmit: (config: BookConfig) => void;
+src/components/PublishPanel.tsx:12:  onStartFresh: (config: BookConfig) => void;
+src/components/PublishPanel.tsx:23:const BLANK_CONFIG: BookConfig = {
+src/hooks/useBookEngine.ts:3:import { saveProjectAsync, createProjectId, setLastProjectId } from "@/services/storageService";
+src/hooks/useBookEngine.ts:71:  const startNewBook = useCallback(async (config: BookConfig) => {
+src/hooks/useBookEngine.ts:75:    const newProject: BookProject = {
+src/hooks/useBookEngine.ts:76:      id: createProjectId(),
+src/hooks/useBookEngine.ts:468:    updateAndSave(p => ({ ...p, config: { ...p.config, [key]: value } }));
+src/hooks/useBookEngine.ts:721:    startNewBook, generateNext, generateSingleChapter, generateSingleSubchapter,
+src/hooks/useAutoBestseller.ts:14:import { liveBookToPartialProject } from "@/lib/auto-bestseller-to-project";
+src/hooks/useAutoBestseller.ts:16:import { createProjectId } from "@/lib/storage";
+src/hooks/useAutoBestseller.ts:162:      partialProjectIdRef.current = createProjectId();
+src/hooks/useAutoBestseller.ts:165:    const project = liveBookToPartialProject(liveBook, lastInputRef.current, partialProjectIdRef.current);
+src/hooks/useAutoBestseller.ts:461:      partialProjectIdRef.current = createProjectId();
+src/hooks/useAutoBestseller.ts:464:    const project = liveBookToPartialProject(snapshot, lastInputRef.current, partialProjectIdRef.current);
+src/lib/storage.ts:271:export function createProjectId(): string {
+src/lib/auto-bestseller-to-project.ts:3:import { createProjectId } from "@/lib/storage";
+src/lib/auto-bestseller-to-project.ts:102:export function autoBestsellerToProject(
+src/lib/auto-bestseller-to-project.ts:138:  const config: BookConfig = {
+src/lib/auto-bestseller-to-project.ts:162:    id: createProjectId(),
+src/lib/auto-bestseller-to-project.ts:181:export function liveBookToPartialProject(
+src/lib/auto-bestseller-to-project.ts:220:  const config: BookConfig = {
+src/lib/auto-bestseller-to-project.ts:244:    id: existingId || createProjectId(),
+src/lib/ai/intelligence-router.ts:204:  config: GenerationConfig;
+src/lib/generation.ts:31:export function buildGenreLock(config: BookConfig): GenreLock {
+src/lib/generation.ts:48:function resolveLockedBlueprint(config: BookConfig, lock?: GenreLock) {
+src/lib/generation.ts:227:function buildContextMemory(config: BookConfig, blueprint: BookBlueprint, previousChapters: Chapter[], chapterIndex: number): string {
+src/lib/generation.ts:275:function getStyleLock(config: BookConfig): string {
+src/lib/generation.ts:296:function resolveEffectiveLanguage(config: BookConfig, generationLock?: GenerationLock): Language {
+src/lib/generation.ts:301:function getChapterTargetWords(config: BookConfig, chapterIndex: number, totalChapters: number, chapterLengthOverride?: string, generationLock?: GenerationLock): number {
+src/lib/generation.ts:309:function getChapterLengthInstruction(config: BookConfig, chapterIndex: number, totalChapters: number, chapterLengthOverride?: string, generationLock?: GenerationLock): string {
+src/lib/generation.ts:327:function getGenrePrompt(config: BookConfig): string {
+src/lib/generation.ts:333:  config: BookConfig,
+src/lib/generation.ts:487:  config: BookConfig,
+src/lib/generation.ts:810:export async function generateBlueprint(config: BookConfig, genreLock?: GenreLock): Promise<BookBlueprint> {
+src/lib/generation.ts:894:  config: BookConfig,
+src/lib/generation.ts:967:  config: BookConfig,
+src/lib/generation.ts:991:  config: BookConfig, blueprint: BookBlueprint, chapterIndex: number,
+src/lib/generation.ts:1047:  config: BookConfig,
+src/lib/generation.ts:1119:  config: BookConfig, chapter: Chapter, chapterIndex: number
+src/lib/generation.ts:1251:  config: BookConfig, blueprint: BookBlueprint, chapter: Chapter,
+src/pages/AutoBestsellerPage.tsx:14:import { autoBestsellerToProject } from "@/lib/auto-bestseller-to-project";
+src/pages/AutoBestsellerPage.tsx:270:      const project = autoBestsellerToProject(result, lastInput || undefined);
+src/pages/Index.tsx:169:          engine.startNewBook(config);
+src/pages/Index.tsx:554:          engine.startNewBook(config);
+src/pages/Index.tsx:575:            engine.startNewBook(config);
+src/pages/Dashboard.tsx:166:  const handleNewBook = (config: BookConfig) => {
+src/services/storageService.ts:9:  createProjectId,
+src/services/storageService.ts:257:export { getLastProjectId, setLastProjectId, createProjectId };
+
+=== 10) SEARCH WORD-LENGTH UI MISMATCH ===
+src/types/book.ts:106:export const BOOK_LENGTH_CONFIG: Record<BookLength, { label: string; totalWords: number; description: string }> = {
+src/types/book.ts:107:  short: { label: "Short Book", totalWords: 10000, description: "~10,000 words — Concise, high-density" },
+src/types/book.ts:108:  medium: { label: "Medium Book", totalWords: 50000, description: "~50,000 words — Balanced development" },
+src/types/book.ts:109:  long: { label: "Long Book", totalWords: 100000, description: "~100,000+ words — Deep, immersive narrative" },
+src/types/book.ts:110:  custom: { label: "Custom", totalWords: 30000, description: "Choose your exact word count" },
+src/types/book.ts:113:export function getBookTotalWords(config: { bookLength: BookLength; customTotalWords?: number }): number {
+src/types/book.ts:114:  if (config.bookLength === "custom" && config.customTotalWords && config.customTotalWords > 0) {
+src/types/book.ts:115:    return config.customTotalWords;
+src/types/book.ts:117:  return BOOK_LENGTH_CONFIG[config.bookLength].totalWords;
+src/types/book.ts:131:  customTotalWords?: number;
+src/components/NewBookDialog.tsx:105:                    {key === "custom" ? "Choose words" : `~${(val.totalWords / 1000).toFixed(0)}k words`}
+src/components/NewBookDialog.tsx:115:                    {(config.customTotalWords ?? 30000).toLocaleString()} words
+src/components/NewBookDialog.tsx:123:                  value={config.customTotalWords ?? 30000}
+src/components/NewBookDialog.tsx:124:                  onChange={e => update("customTotalWords", parseInt(e.target.value))}
+src/components/NewBookDialog.tsx:133:                    value={config.customTotalWords ?? 30000}
+src/components/NewBookDialog.tsx:134:                    onChange={e => update("customTotalWords", Math.max(1000, parseInt(e.target.value) || 30000))}
+src/components/NewBookDialog.tsx:138:                    ≈ {Math.round((config.customTotalWords ?? 30000) / config.numberOfChapters).toLocaleString()} words/chapter
+src/components/ProgressTracker.tsx:1:import { BookProject, getBookTotalWords } from "@/types/book";
+src/components/ProgressTracker.tsx:11:  const totalTargetWords = getBookTotalWords(config);
+src/components/ProgressTracker.tsx:14:  let totalWords = 0;
+src/components/ProgressTracker.tsx:16:    totalWords += Object.values(frontMatter).join(" ").split(/\s+/).length;
+src/components/ProgressTracker.tsx:19:    if (ch.content) totalWords += ch.content.split(/\s+/).length;
+src/components/ProgressTracker.tsx:21:      if (sub.content) totalWords += sub.content.split(/\s+/).length;
+src/components/ProgressTracker.tsx:25:    totalWords += Object.values(backMatter).join(" ").split(/\s+/).length;
+src/components/ProgressTracker.tsx:40:  const wordPercent = Math.min(100, Math.round((totalWords / totalTargetWords) * 100));
+src/components/ProgressTracker.tsx:65:          <span className="text-[10px] font-medium text-foreground font-mono">{totalWords.toLocaleString()}/{(totalTargetWords / 1000).toFixed(0)}k</span>
+src/components/BookConfigForm.tsx:10:  { value: "short", label: "Short (~1000 words)" },
+src/components/BookConfigForm.tsx:11:  { value: "medium", label: "Medium (~2000 words)" },
+src/components/BookConfigForm.tsx:12:  { value: "long", label: "Long (~4000 words)" },
+src/lib/auto-bestseller-to-project.ts:149:    customTotalWords: input?.totalWordTarget,
+src/lib/auto-bestseller-to-project.ts:231:    customTotalWords: input?.totalWordTarget,
+src/lib/generation.ts:1:import { BookConfig, Chapter, FrontMatter, BackMatter, BookBlueprint, Genre, AIQualityRating, BOOK_LENGTH_CONFIG, getBookTotalWords, GenreLock, GenerationLock, Language } from "@/types/book";
+src/lib/generation.ts:302:  const bookTotal = generationLock?.targetBookWords || getBookTotalWords(config);
+src/lib/generation.ts:379:9. Book scope: ${BOOK_LENGTH_CONFIG[config.bookLength].description} (target: ~${getBookTotalWords(config).toLocaleString()} total words)
+src/lib/generation.ts:813:  const totalWords = getBookTotalWords(config);
+src/lib/generation.ts:825:Book length: ${bookInfo.label} (~${totalWords.toLocaleString()} total words)
+src/lib/generation.ts:1003:  const bookTotal = getBookTotalWords(config);
+
