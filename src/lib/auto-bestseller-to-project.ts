@@ -94,6 +94,7 @@ export function liveBookToPartialProject(
   const now = new Date().toISOString();
   const genre = normalizeGenre(input?.genre);
   const language = normalizeLanguage(input?.language);
+  const authorName = (input?.authorName || "Antonino Campanella").trim();
 
   const config: BookConfig = {
     title: liveBook.title || input?.prefilledTitle || "Generating…",

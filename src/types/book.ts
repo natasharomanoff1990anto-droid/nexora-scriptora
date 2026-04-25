@@ -121,6 +121,14 @@ export interface BookConfig {
   title: string;
   subtitle: string;
   tone: string;
+  /**
+   * Real publishing author / pen name.
+   * Examples: Antonino Campanella, Livia Emerson, Lua Galli.
+   * This is NOT the writing-style preset.
+   */
+  author?: string;
+  authorName?: string;
+  writerName?: string;
   authorStyle: string;
   language: Language;
   genre: Genre;
