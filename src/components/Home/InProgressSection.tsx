@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, ArrowRight, Save } from "lucide-react";
+import { Loader2, ArrowRight, Save, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { loadProjects, getCurrentUserId } from "@/services/storageService";
+import { loadProjects, getCurrentUserId, deleteProjectAsync } from "@/services/storageService";
 import { BookProject } from "@/types/book";
 import { isProjectComplete } from "@/lib/project-status";
 
@@ -30,6 +30,16 @@ export function InProgressSection({ refreshKey = 0 }: Props) {
   const [runs, setRuns] = useState<RunRow[]>([]);
   const [drafts, setDrafts] = useState<BookProject[]>([]);
   const [scopeTick, setScopeTick] = useState(0);
+
+  const deleteDraft = async (projectId: string, title?: string) => {
+    const name = title || "questa bozza";
+    const ok = window.confirm(`Eliminare "${name}" dai libri in corso? Questa azione non si annulla.`);
+    if (!ok) return;
+
+    await deleteProjectAsync(projectId);
+    setDrafts((items) => items.filter((p) => p.id !== projectId));
+    window.dispatchEvent(new Event("nexora-projects-change"));
+  };
 
   useEffect(() => {
     const onScope = () => {
@@ -122,31 +132,46 @@ export function InProgressSection({ refreshKey = 0 }: Props) {
           const done = p.chapters.length;
           const pct = Math.min(100, Math.round((done / Math.max(1, total)) * 100));
           return (
-            <button
+            <div
               key={p.id}
-              onClick={() => {
-                sessionStorage.setItem("nexora-open-project", p.id);
-                navigate("/app");
-              }}
-              className="group flex w-full items-center gap-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-left transition-colors hover:border-amber-500/60 hover:bg-amber-500/10"
+              className="group flex w-full items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-2 text-left transition-colors hover:border-amber-500/60 hover:bg-amber-500/10"
             >
-              <Save className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-foreground">{p.config.title || "Untitled"}</p>
-                <div className="mt-1.5 flex items-center gap-2">
-                  <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full bg-amber-500 transition-all" style={{ width: `${pct}%` }} />
+              <button
+                type="button"
+                onClick={() => {
+                  sessionStorage.setItem("nexora-open-project", p.id);
+                  navigate("/app");
+                }}
+                className="flex min-w-0 flex-1 items-center gap-3 rounded-md p-1 text-left"
+              >
+                <Save className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-foreground">{p.config.title || "Untitled"}</p>
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <div className="h-1 flex-1 overflow-hidden rounded-full bg-muted">
+                      <div className="h-full bg-amber-500 transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="shrink-0 text-[10px] font-semibold tabular-nums text-foreground/80">
+                      {pct}%
+                    </span>
+                    <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
+                      Bozza · {done}/{total}
+                    </span>
                   </div>
-                  <span className="shrink-0 text-[10px] font-semibold tabular-nums text-foreground/80">
-                    {pct}%
-                  </span>
-                  <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
-                    Bozza · {done}/{total}
-                  </span>
                 </div>
-              </div>
-              <ArrowRight className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 opacity-0 transition-opacity group-hover:opacity-100" />
-            </button>
+                <ArrowRight className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 opacity-0 transition-opacity group-hover:opacity-100" />
+              </button>
+
+              <button
+                type="button"
+                aria-label="Elimina bozza"
+                title="Elimina bozza"
+                onClick={() => deleteDraft(p.id, p.config.title)}
+                className="shrink-0 rounded-md border border-destructive/30 bg-destructive/5 p-2 text-destructive opacity-80 transition hover:bg-destructive/10 hover:opacity-100"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
           );
         })}
       </div>
