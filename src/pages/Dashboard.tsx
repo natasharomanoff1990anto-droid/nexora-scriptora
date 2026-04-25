@@ -260,7 +260,7 @@ export default function Home() {
                 setTimeout(() => {
                   setLogoClicks(curr => {
                     if (curr.length === 1 && curr[0] === now) {
-                      navigate("/");
+                      navigate("/dashboard");
                       return [];
                     }
                     return curr;

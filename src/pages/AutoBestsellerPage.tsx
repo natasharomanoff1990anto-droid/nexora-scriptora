@@ -225,13 +225,13 @@ export default function AutoBestsellerPage() {
       setShowLeaveDialog(true);
       return;
     }
-    navigate("/");
+    navigate("/dashboard");
   }, [engine.isRunning, navigate]);
 
   const handleContinueInBackground = useCallback(() => {
     setShowLeaveDialog(false);
     toast.info("Generazione in background. La trovi in 'In corso' sulla home.");
-    navigate("/");
+    navigate("/dashboard");
   }, [navigate]);
 
   const handleSaveDraftAndStop = useCallback(async () => {
@@ -245,7 +245,7 @@ export default function AutoBestsellerPage() {
         toast.info("Niente da salvare ancora.");
       }
       setShowLeaveDialog(false);
-      navigate("/");
+      navigate("/dashboard");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Salvataggio fallito");
     } finally {

@@ -281,7 +281,7 @@ const Index = () => {
         {engine.project ? (
           <div className="p-2">
             <Link
-              to="/"
+              to="/dashboard"
               className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium bg-card border border-border text-foreground hover:bg-muted/40 transition-colors"
             >
               <ArrowLeft className="h-3 w-3" /> My Books
