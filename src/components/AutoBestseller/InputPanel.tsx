@@ -38,6 +38,7 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
   const [tone, setTone] = useState(initialInput?.tone ?? "natural");
   const [language, setLanguage] = useState(initialInput?.language ?? "English");
   const [numberOfChapters, setNumberOfChapters] = useState(initialInput?.numberOfChapters ?? 8);
+  const [charactersText, setCharactersText] = useState(initialInput?.charactersText ?? "");
 
   // Apply external prefill (e.g. from Home or Recent Runs)
   useEffect(() => {
@@ -50,6 +51,7 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
     if (initialInput.tone !== undefined) setTone(initialInput.tone);
     if (initialInput.language !== undefined) setLanguage(initialInput.language);
     if (initialInput.numberOfChapters !== undefined) setNumberOfChapters(initialInput.numberOfChapters);
+    if (initialInput.charactersText !== undefined) setCharactersText(initialInput.charactersText);
   }, [initialInput]);
 
   const valid = idea.trim().length > 10 && targetAudience.trim().length > 2;

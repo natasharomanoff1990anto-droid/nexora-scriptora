@@ -17,6 +17,7 @@ export interface AutoBestsellerInput {
   totalWordTarget?: number;
   prefilledTitle?: string;
   prefilledSubtitle?: string;
+  charactersText?: string;
 }
 
 export type StageId = "titles" | "market" | "blueprint" | "gono" | "chapters" | "aggregate";

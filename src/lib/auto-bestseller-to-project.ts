@@ -8,6 +8,27 @@ const ALLOWED_GENRES: Genre[] = [
 ];
 const ALLOWED_LANGUAGES: Language[] = ["English", "Italian", "Spanish", "French", "German"];
 
+
+function charactersFromText(text?: string): any[] {
+  const raw = String(text || "").trim();
+  if (!raw) return [];
+  return raw
+    .split(/\n{2,}|^\s*[-•]\s*/gm)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((block) => {
+      const firstLine = block.split("\n")[0]?.trim() || "";
+      const name = firstLine.replace(/^Nome[:\-]\s*/i, "").split(/[,.—-]/)[0]?.trim() || firstLine;
+      return {
+        name,
+        role: "",
+        personality: block,
+        strictRules: "Never rename this character. Preserve role, personality, relationships and continuity."
+      };
+    });
+}
+
+
 function normalizeGenre(g?: string): Genre {
   if (!g) return "self-help";
   const slug = g.toLowerCase().replace(/\s+/g, "-");
@@ -26,9 +47,10 @@ export function autoBestsellerToProject(
   const now = new Date().toISOString();
   const genre = normalizeGenre(input?.genre);
   const language = normalizeLanguage(input?.language);
-  const authorName = (input?.authorName || "Antonino Campanella").trim();
+  const authorName = (input?.authorName || "").trim();
+  const characters = charactersFromText(input?.charactersText);
 
-  const config: BookConfig = {
+const config: BookConfig = {
     title: result.title || "Untitled Bestseller",
     subtitle: result.subtitle || "",
     authorName,
@@ -44,6 +66,7 @@ export function autoBestsellerToProject(
     bookLength: "medium",
     numberOfChapters: result.chapters?.length || input?.numberOfChapters || 8,
     subchaptersEnabled: false,
+    characters,
   };
 
   const blueprint: BookBlueprint | null = result.blueprint
@@ -94,9 +117,10 @@ export function liveBookToPartialProject(
   const now = new Date().toISOString();
   const genre = normalizeGenre(input?.genre);
   const language = normalizeLanguage(input?.language);
-  const authorName = (input?.authorName || "Antonino Campanella").trim();
+  const authorName = (input?.authorName || "").trim();
+  const characters = charactersFromText(input?.charactersText);
 
-  const config: BookConfig = {
+const config: BookConfig = {
     title: liveBook.title || input?.prefilledTitle || "Generating…",
     subtitle: liveBook.subtitle || input?.prefilledSubtitle || "",
     authorName,
@@ -112,6 +136,7 @@ export function liveBookToPartialProject(
     bookLength: "medium",
     numberOfChapters: input?.numberOfChapters || liveBook.outlines?.length || liveBook.chapters.length || 8,
     subchaptersEnabled: false,
+    characters,
   };
 
   const blueprint: BookBlueprint | null = liveBook.outlines

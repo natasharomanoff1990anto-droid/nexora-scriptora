@@ -278,6 +278,52 @@ If previous chapters established a specific vocabulary, rhythm, or narrative dev
 /* ============ Word Budget System ============ */
 
 
+
+function buildCharacterLock(config: BookConfig): string {
+  const chars = Array.isArray((config as any).characters) ? (config as any).characters : [];
+  const usable = chars.filter((c: any) => String(c?.name || "").trim());
+
+  if (!usable.length) {
+    return `
+CHARACTER LOCK:
+- No formal character bible was provided.
+- Maintain every character name, role, backstory, relationship and emotional continuity already established in previous chapters.
+- Never rename an existing character.
+- Never invent a new major character unless the outline explicitly requires it.
+`;
+  }
+
+  const rows = usable.map((c: any, i: number) => {
+    const fullName = [c.name, c.surname].filter(Boolean).join(" ").trim();
+    return `${i + 1}. ${fullName}
+   Role: ${c.role || "not specified"}
+   Age: ${c.age || "not specified"}
+   Physical: ${c.physicalDescription || "not specified"}
+   Personality: ${c.personality || "not specified"}
+   Wound: ${c.wound || "not specified"}
+   External desire: ${c.externalDesire || "not specified"}
+   Internal need: ${c.internalNeed || "not specified"}
+   Secret: ${c.secret || "not specified"}
+   Relationships: ${c.relationships || "not specified"}
+   Strict rules: ${c.strictRules || "Never rename this character. Never change their role, age, wound, desire, secret, or relationship continuity."}`;
+  }).join("\\n\\n");
+
+  return `
+CHARACTER LOCK — ABSOLUTE CANON:
+These are the canonical main characters. Treat this as law.
+
+${rows}
+
+MANDATORY RULES:
+- Never rename a character. If the protagonist is Laura, she stays Laura in every chapter.
+- Never replace a character with a similar name.
+- Never change age, role, wound, desire, secret, relationship, nationality, or personality unless the user explicitly changes the bible.
+- Never invent a new main character to solve a scene.
+- New minor characters are allowed only when necessary, and must not steal the emotional role of the canonical cast.
+- Every scene must respect the characters' established psychology and relationship tension.
+`;
+}
+
 function buildScriptoraWritingBrain(config: BookConfig): string {
   const genre = String(config.genre || "").toLowerCase();
 
@@ -586,6 +632,8 @@ TOTAL CHAPTER TARGET: ${targetWords} words (you will write more chunks after thi
 PHASE: ${phase} — ${phaseInstruction}
 
 ${scriptoraWritingBrain}
+
+${characterLock}
 
 BESTSELLER QUALITY REQUIREMENTS:
 - Open with a line that stops the reader — a hook they'll remember

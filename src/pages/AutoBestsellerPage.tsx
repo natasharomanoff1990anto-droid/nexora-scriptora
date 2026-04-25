@@ -71,6 +71,7 @@ export default function AutoBestsellerPage() {
             prefilledSubtitle: parsed.prefilledSubtitle,
             authorName: parsed.authorName,
             totalWordTarget: parsed.totalWordTarget,
+            charactersText: parsed.charactersText,
           };
           handleGenerateOne(fullInput);
         }

@@ -117,6 +117,22 @@ export function getBookTotalWords(config: { bookLength: BookLength; customTotalW
   return BOOK_LENGTH_CONFIG[config.bookLength].totalWords;
 }
 
+
+export interface BookCharacter {
+  name: string;
+  surname?: string;
+  age?: string;
+  role?: string;
+  physicalDescription?: string;
+  personality?: string;
+  wound?: string;
+  externalDesire?: string;
+  internalNeed?: string;
+  secret?: string;
+  relationships?: string;
+  strictRules?: string;
+}
+
 export interface BookConfig {
   title: string;
   subtitle: string;
@@ -139,6 +155,7 @@ export interface BookConfig {
   customTotalWords?: number;
   numberOfChapters: number;
   subchaptersEnabled: boolean;
+  characters?: BookCharacter[];
 }
 
 /**

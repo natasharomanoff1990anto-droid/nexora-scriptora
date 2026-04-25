@@ -42,6 +42,7 @@ interface OrchestratorInput {
   totalWordTarget?: number; // default 30000
   prefilledTitle?: string;
   prefilledSubtitle?: string;
+  charactersText?: string;
 }
 
 // =============================================================
@@ -576,6 +577,35 @@ async function runGoNoGoOnConcept(input: OrchestratorInput, title: string, subti
 }
 
 
+
+function buildCharacterLockFromInput(input: OrchestratorInput): string {
+  const raw = String(input.charactersText || "").trim();
+  if (!raw) {
+    return `
+CHARACTER LOCK:
+- No formal character bible was provided.
+- Preserve every character name, relationship, wound, desire and continuity once established.
+- Never rename existing characters.
+- Never invent a new major character unless the outline explicitly requires it.
+`;
+  }
+
+  return `
+CHARACTER LOCK — ABSOLUTE CANON:
+The following character bible is mandatory. Treat it as law.
+
+${raw}
+
+RULES:
+- Never rename any character listed above.
+- Never replace a character with a similar name.
+- Never change age, role, backstory, wound, desire, secret, or relationships unless the user explicitly changes the bible.
+- Do not invent new main characters to solve weak scenes.
+- Every scene must respect the established psychology and relationship tension.
+`;
+}
+
+
 const SCRIPTORA_WRITING_BRAIN_PRO = `
 SCRIPTORA WRITING BRAIN PRO — REQUIRED BEFORE WRITING:
 Think like a bestselling author AND a ruthless story editor.
@@ -624,6 +654,7 @@ async function writeChapter(
   onDelta?: (accumulated: string) => void | Promise<void>,
 ) {
   const outline = blueprint.chapterOutlines[chapterIndex];
+  const characterLock = buildCharacterLockFromInput(input);
   const total = blueprint.chapterOutlines.length;
   const level = input.level || "beginner";
   const promise = input.readerPromise || "deliver a clear transformation for the reader";
@@ -657,6 +688,8 @@ PRACTICAL REQUIREMENT (mandatory):
 ${ctx.practicalDirective}
 
 ${SCRIPTORA_WRITING_BRAIN_PRO}
+
+${characterLock}
 
 WRITE THIS CHAPTER NOW.
 - Target length: ${ctx.targetWords} words (±10%)
