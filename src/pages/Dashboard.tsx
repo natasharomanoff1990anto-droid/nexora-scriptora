@@ -5,7 +5,7 @@ import { isProjectComplete } from "@/lib/project-status";
 import { NewBookDialog } from "@/components/NewBookDialog";
 import { HomeExportDialog } from "@/components/HomeExportDialog";
 import { TitleIntelligenceDialog } from "@/components/TitleIntelligenceDialog";
-import { CharacterStudioDialog, SCRIPTORA_CHARACTER_BIBLE_KEY } from "@/components/CharacterStudioDialog";
+import { CharacterStudioDialog, SCRIPTORA_CHARACTER_BIBLE_KEY, SCRIPTORA_CHARACTER_PROJECT_KEY } from "@/components/CharacterStudioDialog";
 import { InProgressSection } from "@/components/Home/InProgressSection";
 import { LibrarySection } from "@/components/Home/LibrarySection";
 import { PlansSection } from "@/components/PlansSection";
@@ -44,6 +44,22 @@ interface DetectedIntent {
 function isNarrativeGenreForCharacters(genre?: string): boolean {
   const g = String(genre || "").toLowerCase();
   return ["romance", "dark-romance", "thriller", "fantasy", "fiction", "memoir", "historical", "horror", "sci-fi"].some(x => g.includes(x));
+}
+
+
+function getPendingCharacterProject(): any | null {
+  try {
+    const raw =
+      sessionStorage.getItem(SCRIPTORA_CHARACTER_PROJECT_KEY) ||
+      localStorage.getItem(SCRIPTORA_CHARACTER_PROJECT_KEY);
+
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.characterBible && !parsed?.idea) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
 }
 
 function charactersFromBibleText(text?: string): any[] {
@@ -185,14 +201,27 @@ export default function Home() {
     let finalConfig: BookConfig = config;
 
     try {
-      const bible = sessionStorage.getItem(SCRIPTORA_CHARACTER_BIBLE_KEY) || localStorage.getItem(SCRIPTORA_CHARACTER_BIBLE_KEY) || "";
-      const shouldAttachCharacters = bible.trim() && isNarrativeGenreForCharacters(config.genre);
+      const pending = getPendingCharacterProject();
+      const bible =
+        pending?.characterBible ||
+        sessionStorage.getItem(SCRIPTORA_CHARACTER_BIBLE_KEY) ||
+        localStorage.getItem(SCRIPTORA_CHARACTER_BIBLE_KEY) ||
+        "";
+
+      const shouldAttachCharacters = String(bible || "").trim() && isNarrativeGenreForCharacters(pending?.genre || config.genre);
+
       if (shouldAttachCharacters) {
         finalConfig = {
           ...config,
+          genre: (pending?.genre || config.genre || "romance") as any,
+          category: pending?.category || "Fiction",
+          subcategory: pending?.subcategory || config.subcategory || "",
+          tone: pending?.tone || config.tone || "poetic, emotional, cinematic",
+          language: pending?.language || config.language,
           characters: charactersFromBibleText(bible),
         } as BookConfig;
-        toast.success("Personaggi collegati al romanzo.");
+
+        toast.success(`Personaggi collegati al romanzo · ${finalConfig.genre}${finalConfig.subcategory ? " / " + finalConfig.subcategory : ""}`);
       }
     } catch {
       finalConfig = config;

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, forwardRef } from "react";
+import { SCRIPTORA_CHARACTER_PROJECT_KEY } from "@/components/CharacterStudioDialog";
 import { BookConfig, Language, Genre, ChapterLength, BookLength, CATEGORIES, BOOK_LENGTH_CONFIG } from "@/types/book";
 import { BookOpen, X, Sparkles, PenTool } from "lucide-react";
 import { t } from "@/lib/i18n";
@@ -45,6 +46,17 @@ const GENRES: { value: Genre; label: string; group: string }[] = [
 ];
 
 export function NewBookDialog({ open, onClose, onSubmit }: NewBookDialogProps) {
+  const [pendingCharacterProject, setPendingCharacterProject] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    try {
+      const raw = sessionStorage.getItem(SCRIPTORA_CHARACTER_PROJECT_KEY) || localStorage.getItem(SCRIPTORA_CHARACTER_PROJECT_KEY);
+      setPendingCharacterProject(raw ? JSON.parse(raw) : null);
+    } catch {
+      setPendingCharacterProject(null);
+    }
+  }, [open]);
   const [config, setConfig] = useState<BookConfig>({
     title: "",
     subtitle: "",
@@ -95,6 +107,15 @@ export function NewBookDialog({ open, onClose, onSubmit }: NewBookDialogProps) {
 
           <Field label={t("book_length")}>
             <div className="grid grid-cols-4 gap-2">
+
+        {pendingCharacterProject?.characterBible && (
+          <div className="rounded-xl border border-pink-500/30 bg-pink-500/10 p-3 text-sm text-pink-200">
+            <strong>Character Studio collegato.</strong>
+            <span className="block text-xs text-muted-foreground mt-1">
+              Scriptora userà personaggi, genere romanzo e filone: {pendingCharacterProject.genre || "romanzo"}{pendingCharacterProject.subcategory ? ` / ${pendingCharacterProject.subcategory}` : ""}.
+            </span>
+          </div>
+        )}
               {(Object.entries(BOOK_LENGTH_CONFIG) as [BookLength, typeof BOOK_LENGTH_CONFIG[BookLength]][]).map(([key, val]) => (
                 <button key={key} type="button"
                   onClick={() => update("bookLength", key)}
