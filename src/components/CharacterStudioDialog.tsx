@@ -54,6 +54,44 @@ const CHARACTER_DYNAMICS_PRO = [
 ];
 
 
+
+function ChoiceGrid({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <Label>{label}</Label>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        {options.map((option) => {
+          const active = value === option;
+          return (
+            <button
+              key={option}
+              type="button"
+              onClick={() => onChange(option)}
+              className={`rounded-xl border px-3 py-2 text-left text-xs transition-all ${
+                active
+                  ? "border-primary bg-primary/15 text-foreground shadow-sm"
+                  : "border-border/70 bg-background/50 text-muted-foreground hover:border-primary/50 hover:bg-muted/40 hover:text-foreground"
+              }`}
+            >
+              {option}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -357,7 +395,51 @@ export function CharacterStudioDialog({ open, onClose }: Props) {
             )}
           </div>
 
-          <div>
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-border/60 bg-background/40 p-4 space-y-5">
+            <div>
+              <p className="text-sm font-semibold">Regia del romanzo</p>
+              <p className="text-xs text-muted-foreground">
+                Scegli genere, filone, tono, intensità e dinamica narrativa. Scriptora userà queste coordinate per creare personaggi coerenti e agganciarli a Nuovo Libro.
+              </p>
+            </div>
+
+            <ChoiceGrid
+              label="Genere romanzo"
+              value={genre}
+              options={ROMAN_GENRES_PRO}
+              onChange={setGenre}
+            />
+
+            <ChoiceGrid
+              label="Filone / sottogenere"
+              value={subcategory}
+              options={SUBGENRES_PRO}
+              onChange={setSubcategory}
+            />
+
+            <ChoiceGrid
+              label="Tono narrativo"
+              value={tone}
+              options={TONES_PRO}
+              onChange={setTone}
+            />
+
+            <ChoiceGrid
+              label="Intensità"
+              value={intensity}
+              options={INTENSITIES_PRO}
+              onChange={setIntensity}
+            />
+
+            <ChoiceGrid
+              label="Dinamica centrale"
+              value={centralDynamic}
+              options={CHARACTER_DYNAMICS_PRO}
+              onChange={setCentralDynamic}
+            />
+            </div>
+
             <div className="mb-2 flex items-center justify-between">
               <Label>Output personaggi / Character Bible</Label>
               <span className="text-[11px] text-muted-foreground">
