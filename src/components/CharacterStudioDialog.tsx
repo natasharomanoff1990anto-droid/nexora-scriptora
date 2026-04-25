@@ -381,9 +381,10 @@ export function CharacterStudioDialog({ open, onClose }: Props) {
   };
 
   const saveAndLink = () => {
-    const bible = characterBible.trim();
+    const bible = String(characterBible || "").trim();
+
     if (!bible) {
-      toast.error("Prima genera o scrivi i personaggi.");
+      toast.error("Prima genera i personaggi: l’output Character Bible è vuoto.");
       return;
     }
 
@@ -393,14 +394,19 @@ export function CharacterStudioDialog({ open, onClose }: Props) {
       savedAt: new Date().toISOString(),
     };
 
-    localStorage.setItem(SCRIPTORA_CHARACTER_BIBLE_KEY, bible);
-    sessionStorage.setItem(SCRIPTORA_CHARACTER_BIBLE_KEY, bible);
-    localStorage.setItem(SCRIPTORA_CHARACTER_PROJECT_KEY, JSON.stringify(payload));
-    sessionStorage.setItem(SCRIPTORA_CHARACTER_PROJECT_KEY, JSON.stringify(payload));
+    try {
+      localStorage.setItem(SCRIPTORA_CHARACTER_BIBLE_KEY, bible);
+      sessionStorage.setItem(SCRIPTORA_CHARACTER_BIBLE_KEY, bible);
+      localStorage.setItem(SCRIPTORA_CHARACTER_PROJECT_KEY, JSON.stringify(payload));
+      sessionStorage.setItem(SCRIPTORA_CHARACTER_PROJECT_KEY, JSON.stringify(payload));
 
-    window.dispatchEvent(new Event("scriptora-character-bible-change"));
-    setSaved(true);
-    toast.success("Personaggi collegati. Ora apri Nuovo Libro: Scriptora li userà nel romanzo.");
+      window.dispatchEvent(new Event("scriptora-character-bible-change"));
+      setSaved(true);
+      toast.success("Personaggi collegati a Nuovo Libro. Ora apri Nuovo Libro: Scriptora userà cast, genere, filone e tono.");
+    } catch (e) {
+      toast.error("Non sono riuscito a salvare il collegamento personaggi.");
+      console.error("[CharacterStudio] saveAndLink failed", e);
+    }
   };
 
   const clear = () => {
@@ -510,7 +516,7 @@ export function CharacterStudioDialog({ open, onClose }: Props) {
                 Genera personaggi con Scriptora
               </Button>
 
-              <Button variant="secondary" onClick={saveAndLink} disabled={!characterBible.trim()}>
+              <Button variant="secondary" onClick={saveAndLink} disabled={loading}>
                 <Save className="h-4 w-4 mr-2" />
                 Salva e collega a Nuovo Libro
               </Button>
