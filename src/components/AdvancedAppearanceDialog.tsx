@@ -18,35 +18,6 @@ interface Props {
   onLanguageChanged?: () => void;
 }
 
-
-function normalizeLanguageOption(option: any): { value: string; label: string } {
-  if (typeof option === "string") {
-    return { value: option, label: option };
-  }
-
-  const value = String(
-    option?.value ??
-    option?.code ??
-    option?.id ??
-    option?.lang ??
-    option?.language ??
-    "Italian"
-  );
-
-  const label = String(
-    option?.label ??
-    option?.name ??
-    option?.title ??
-    value
-  );
-
-  return { value, label };
-}
-
-function safeUpper(value: any): string {
-  return String(value ?? "").toUpperCase();
-}
-
 export function AdvancedAppearanceDialog({ open, onClose, onLanguageChanged }: Props) {
   const [backgroundId, setBackgroundId] = useState<ScriptoraBackgroundId>("midnight-ink");
   const [writingFont, setWritingFont] = useState<ScriptoraWritingFont>("system");
@@ -54,74 +25,48 @@ export function AdvancedAppearanceDialog({ open, onClose, onLanguageChanged }: P
 
   useEffect(() => {
     if (!open) return;
+
     const saved = loadScriptoraAppearance();
     setBackgroundId(saved.backgroundId);
     setWritingFont(saved.writingFont);
     setUiLanguage(getUILanguage());
   }, [open]);
 
-  const saveSettings = () => {
-    try {
-      localStorage.setItem("scriptora-appearance-settings", JSON.stringify(settings));
-      applyScriptoraAppearance();
-      onLanguageChanged?.();
-      window.dispatchEvent(new Event("scriptora-language-change"));
-      window.dispatchEvent(new Event("scriptora-appearance-change"));
-    } catch (e) {
-      console.warn("[Scriptora settings] save/apply failed", e);
-    }
+  const changeBackground = (id: ScriptoraBackgroundId) => {
+    const next = { backgroundId: id, writingFont };
+    setBackgroundId(id);
+    saveScriptoraAppearance(next);
+    window.dispatchEvent(new Event("scriptora-appearance-change"));
+    toast.success("Sfondo aggiornato.");
+  };
 
+  const changeFont = (id: ScriptoraWritingFont) => {
+    const next = { backgroundId, writingFont: id };
+    setWritingFont(id);
+    saveScriptoraAppearance(next);
+    window.dispatchEvent(new Event("scriptora-appearance-change"));
+    toast.success("Carattere aggiornato.");
+  };
+
+  const changeLanguage = (lang: UILanguage) => {
+    setUILanguage(lang);
+    setUiLanguage(lang);
+    onLanguageChanged?.();
+    window.dispatchEvent(new Event("scriptora-language-change"));
+    toast.success("Lingua app aggiornata.");
+  };
+
+  const saveSettings = () => {
+    saveScriptoraAppearance({ backgroundId, writingFont });
+    setUILanguage(uiLanguage);
+    onLanguageChanged?.();
+    window.dispatchEvent(new Event("scriptora-language-change"));
+    window.dispatchEvent(new Event("scriptora-appearance-change"));
     toast.success("Impostazioni salvate.");
     onClose();
   };
 
   if (!open) return null;
-
-  const changeBackground = (id: ScriptoraBackgroundId) => {
-    try {
-      setSettings((prev) => {
-        const next = { ...prev, backgroundId: id };
-        localStorage.setItem("scriptora-appearance-settings", JSON.stringify(next));
-        return next;
-      });
-      document.documentElement.setAttribute("data-scriptora-bg", id);
-      applyScriptoraAppearance();
-      toast.success("Sfondo aggiornato.");
-    } catch (e) {
-      console.warn("[Scriptora settings] background change failed", e);
-      toast.error("Non sono riuscito a cambiare sfondo.");
-    }
-  };
-
-  const changeFont = (id: ScriptoraWritingFontId) => {
-    try {
-      setSettings((prev) => {
-        const next = { ...prev, writingFontId: id };
-        localStorage.setItem("scriptora-appearance-settings", JSON.stringify(next));
-        return next;
-      });
-      document.documentElement.setAttribute("data-scriptora-font", id);
-      applyScriptoraAppearance();
-      toast.success("Carattere aggiornato.");
-    } catch (e) {
-      console.warn("[Scriptora settings] font change failed", e);
-      toast.error("Non sono riuscito a cambiare carattere.");
-    }
-  };
-
-  const changeLanguage = (value: any) => {
-    const next = normalizeLanguageOption(value).value as any;
-    try {
-      setUILanguage(next);
-      setUiLanguage(next);
-      onLanguageChanged?.();
-      window.dispatchEvent(new Event("scriptora-language-change"));
-      toast.success("Lingua app aggiornata.");
-    } catch (e) {
-      console.warn("[Scriptora settings] language change failed", e);
-      toast.error("Non sono riuscito a cambiare lingua.");
-    }
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
@@ -133,10 +78,14 @@ export function AdvancedAppearanceDialog({ open, onClose, onLanguageChanged }: P
             </div>
             <div>
               <h2 className="text-lg font-semibold">Impostazioni avanzate Scriptora</h2>
-              <p className="text-xs text-muted-foreground">Lingua app, sfondo e carattere di scrittura.</p>
+              <p className="text-xs text-muted-foreground">
+                Lingua app, sfondo e carattere di scrittura.
+              </p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}><X className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
         </div>
 
         <div className="space-y-6 p-5">
@@ -145,15 +94,26 @@ export function AdvancedAppearanceDialog({ open, onClose, onLanguageChanged }: P
               <Languages className="h-4 w-4 text-primary" />
               <h3 className="font-semibold">Lingua dell’app</h3>
             </div>
-            <p className="mb-3 text-xs text-muted-foreground">Cambia solo l’interfaccia. La lingua dei libri resta dentro “Nuovo Libro”.</p>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Cambia solo l’interfaccia. La lingua dei libri resta dentro “Nuovo Libro”.
+            </p>
+
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               {UI_LANGUAGES.map((lang) => {
-                const active = uiLanguage === lang;
+                const active = uiLanguage === lang.value;
                 return (
-                  <button key={lang} type="button" onClick={() => changeLanguage(normalizeLanguageOption(lang).value as any)}
-                    className={`rounded-xl border px-3 py-2 text-sm transition-all ${active ? "border-primary bg-primary/15 text-foreground" : "border-border bg-muted/20 text-muted-foreground hover:border-primary/50 hover:text-foreground"}`}>
+                  <button
+                    key={lang.value}
+                    type="button"
+                    onClick={() => changeLanguage(lang.value)}
+                    className={`rounded-xl border px-3 py-2 text-sm transition-all ${
+                      active
+                        ? "border-primary bg-primary/15 text-foreground"
+                        : "border-border bg-muted/20 text-muted-foreground hover:border-primary/50 hover:text-foreground"
+                    }`}
+                  >
                     {active && <Check className="mr-1 inline h-3 w-3" />}
-                    {safeUpper(normalizeLanguageOption(lang).label)}
+                    {lang.label}
                   </button>
                 );
               })}
@@ -165,12 +125,21 @@ export function AdvancedAppearanceDialog({ open, onClose, onLanguageChanged }: P
               <ImageIcon className="h-4 w-4 text-primary" />
               <h3 className="font-semibold">Sfondi Scriptora</h3>
             </div>
+
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
               {SCRIPTORA_BACKGROUNDS.map((bg) => {
                 const active = backgroundId === bg.id;
                 return (
-                  <button key={bg.id} type="button" onClick={() => changeBackground(bg.id)}
-                    className={`overflow-hidden rounded-2xl border text-left transition-all ${active ? "border-primary ring-2 ring-primary/30" : "border-border/70 hover:border-primary/50"}`}>
+                  <button
+                    key={bg.id}
+                    type="button"
+                    onClick={() => changeBackground(bg.id)}
+                    className={`overflow-hidden rounded-2xl border text-left transition-all ${
+                      active
+                        ? "border-primary ring-2 ring-primary/30"
+                        : "border-border/70 hover:border-primary/50"
+                    }`}
+                  >
                     <div className="h-24" style={{ background: bg.css }} />
                     <div className="space-y-1 bg-card/90 p-3">
                       <div className="flex items-center justify-between gap-2">
@@ -190,18 +159,29 @@ export function AdvancedAppearanceDialog({ open, onClose, onLanguageChanged }: P
               <Type className="h-4 w-4 text-primary" />
               <h3 className="font-semibold">Carattere di scrittura</h3>
             </div>
+
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
               {WRITING_FONTS.map((font) => {
                 const active = writingFont === font.id;
                 return (
-                  <button key={font.id} type="button" onClick={() => changeFont(font.id)}
-                    className={`rounded-xl border p-3 text-left transition-all ${active ? "border-primary bg-primary/15" : "border-border bg-muted/20 hover:border-primary/50"}`}
-                    style={{ fontFamily: font.css }}>
+                  <button
+                    key={font.id}
+                    type="button"
+                    onClick={() => changeFont(font.id)}
+                    className={`rounded-xl border p-3 text-left transition-all ${
+                      active
+                        ? "border-primary bg-primary/15"
+                        : "border-border bg-muted/20 hover:border-primary/50"
+                    }`}
+                    style={{ fontFamily: font.css }}
+                  >
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-semibold">{font.name}</p>
                       {active && <Check className="h-4 w-4 text-primary" />}
                     </div>
-                    <p className="mt-2 text-sm text-muted-foreground">La prima frase è una porta. La seconda decide se il lettore entra.</p>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      La prima frase è una porta. La seconda decide se il lettore entra.
+                    </p>
                   </button>
                 );
               })}
