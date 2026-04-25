@@ -18,6 +18,35 @@ interface Props {
   onLanguageChanged?: () => void;
 }
 
+
+function normalizeLanguageOption(option: any): { value: string; label: string } {
+  if (typeof option === "string") {
+    return { value: option, label: option };
+  }
+
+  const value = String(
+    option?.value ??
+    option?.code ??
+    option?.id ??
+    option?.lang ??
+    option?.language ??
+    "Italian"
+  );
+
+  const label = String(
+    option?.label ??
+    option?.name ??
+    option?.title ??
+    value
+  );
+
+  return { value, label };
+}
+
+function safeUpper(value: any): string {
+  return String(value ?? "").toUpperCase();
+}
+
 export function AdvancedAppearanceDialog({ open, onClose, onLanguageChanged }: Props) {
   const [backgroundId, setBackgroundId] = useState<ScriptoraBackgroundId>("midnight-ink");
   const [writingFont, setWritingFont] = useState<ScriptoraWritingFont>("system");
@@ -77,10 +106,10 @@ export function AdvancedAppearanceDialog({ open, onClose, onLanguageChanged }: P
               {UI_LANGUAGES.map((lang) => {
                 const active = uiLanguage === lang;
                 return (
-                  <button key={lang} type="button" onClick={() => changeLanguage(lang)}
+                  <button key={lang} type="button" onClick={() => changeLanguage(normalizeLanguageOption(lang).value as any)}
                     className={`rounded-xl border px-3 py-2 text-sm transition-all ${active ? "border-primary bg-primary/15 text-foreground" : "border-border bg-muted/20 text-muted-foreground hover:border-primary/50 hover:text-foreground"}`}>
                     {active && <Check className="mr-1 inline h-3 w-3" />}
-                    {lang.toUpperCase()}
+                    {safeUpper(normalizeLanguageOption(lang).label)}
                   </button>
                 );
               })}
