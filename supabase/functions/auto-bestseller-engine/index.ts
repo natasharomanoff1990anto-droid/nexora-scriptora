@@ -251,13 +251,18 @@ async function callDeepSeekStream(
   };
 
   const doStream = async (): Promise<string> => {
-    // Idle watchdog: abort only when no bytes for STREAM_IDLE_MS.
-    const STREAM_IDLE_MS = 60_000;
+    // Idle + total watchdog: never let one chapter freeze the whole book.
+    const STREAM_IDLE_MS = 45_000;
+    const STREAM_TOTAL_MS = 150_000;
+    const startedAt = Date.now();
     let lastByte = Date.now();
+    let accumulated = "";
     const ctrl = new AbortController();
     const watchdog = setInterval(() => {
-      if (Date.now() - lastByte > STREAM_IDLE_MS) {
-        console.warn(`[callDeepSeekStream] idle ${STREAM_IDLE_MS}ms — aborting`);
+      const idleMs = Date.now() - lastByte;
+      const totalMs = Date.now() - startedAt;
+      if (idleMs > STREAM_IDLE_MS || totalMs > STREAM_TOTAL_MS) {
+        console.warn(`[callDeepSeekStream] aborting stream — idle=${idleMs}ms total=${totalMs}ms partial=${accumulated.length} chars`);
         ctrl.abort();
       }
     }, 5000);
@@ -275,7 +280,6 @@ async function callDeepSeekStream(
       const reader = r.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
-      let accumulated = "";
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -304,6 +308,14 @@ async function callDeepSeekStream(
         }
       }
       return accumulated;
+    } catch (e) {
+      // If the model produced enough usable text before stalling, keep it.
+      // This prevents a single frozen stream from restarting forever or blocking the book.
+      if (accumulated.trim().length > 800) {
+        console.warn(`[callDeepSeekStream] returning partial chapter after stream error: ${e instanceof Error ? e.message : e}`);
+        return accumulated;
+      }
+      throw e;
     } finally {
       clearInterval(watchdog);
     }
@@ -685,6 +697,28 @@ async function refineChapter(input: OrchestratorInput, chapterTitle: string, cha
   };
 }
 
+async function withTimeout<T>(
+  promise: Promise<T>,
+  ms: number,
+  label: string,
+  fallback: T,
+): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((resolve) => {
+        timer = setTimeout(() => {
+          console.warn(`[auto-bestseller] ${label} timed out after ${ms}ms — using safe fallback`);
+          resolve(fallback);
+        }, ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 // ---- Core pipeline (callable from both modes) ----------------------
 
 async function runPipeline(
@@ -827,10 +861,15 @@ Length: ~800 words. Self-contained, no preamble. Plain prose, no JSON.`;
     await send("chapter", { index: i, total, phase: "writing", title: outline.title, content: draft });
 
     // ====== Phase C: REFINE — best-effort, never blocks completion ======
-    await send("chapter", { index: i, total, phase: "refining", title: outline.title });
+    await send("chapter", { index: i, total, phase: "refining", title: outline.title, content: draft });
     let refined: { finalText: string; coachReport?: any; voice?: any; rewriteConfidence: number; finalScore: number };
     try {
-      refined = await refineChapter(input, outline.title, draft);
+      refined = await withTimeout(
+        refineChapter(input, outline.title, draft),
+        75_000,
+        `refineChapter ch${i + 1}`,
+        { finalText: draft, rewriteConfidence: 0.5, finalScore: 6 },
+      );
     } catch (e) {
       console.error(`[runPipeline] refineChapter ch${i + 1} failed — using draft as-is:`, e);
       refined = { finalText: draft, rewriteConfidence: 0.5, finalScore: 6 };
@@ -847,7 +886,12 @@ Length: ~800 words. Self-contained, no preamble. Plain prose, no JSON.`;
 
     // ====== Phase D: MEMORY — best-effort ======
     try {
-      const mem = await summarizeChapter(outline.title, refined.finalText);
+      const mem = await withTimeout(
+        summarizeChapter(outline.title, refined.finalText),
+        35_000,
+        `summarizeChapter ch${i + 1}`,
+        { summary: `${outline.title} — ${outline.summary}`, concepts: [] },
+      );
       previousSummaries.push(mem.summary);
       for (const c of mem.concepts) {
         if (!coveredConcepts.includes(c)) coveredConcepts.push(c);
