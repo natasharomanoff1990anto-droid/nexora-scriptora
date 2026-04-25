@@ -11,6 +11,49 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export const SCRIPTORA_CHARACTER_BIBLE_KEY = "scriptora-character-bible-v1";
 export const SCRIPTORA_CHARACTER_PROJECT_KEY = "scriptora-character-project-v1";
 
+const ROMAN_GENRES_PRO = [
+  "romance", "dark-romance", "romantasy", "thriller", "psychological thriller",
+  "crime", "mystery", "fantasy", "urban fantasy", "dark fantasy", "epic fantasy",
+  "horror", "gothic horror", "folk horror", "sci-fi", "dystopian", "cyberpunk",
+  "historical fiction", "literary fiction", "young adult", "paranormal",
+  "adventure", "suspense", "family saga", "memoir narrativo"
+];
+
+const SUBGENRES_PRO = [
+  "enemies to lovers", "second chance", "forbidden love", "slow burn",
+  "small town", "billionaire", "workplace romance", "fake dating",
+  "forced proximity", "age gap", "friends to lovers", "mafia romance",
+  "psychological suspense", "domestic thriller", "serial killer",
+  "missing person", "legal thriller", "conspiracy", "revenge story",
+  "chosen one", "portal fantasy", "academy", "royal court intrigue",
+  "monster romance", "haunted house", "survival horror", "coming of age",
+  "found family", "redemption arc", "morally grey characters"
+];
+
+const TONES_PRO = [
+  "poetico e cinematografico", "dark e sensuale", "elegante e letterario",
+  "veloce e commerciale", "BookTok emotional", "crudo e realistico",
+  "ironico e brillante", "gotico e atmosferico", "epico e mitico",
+  "intimo e confessionale", "sospeso e misterioso", "brutale e ad alta tensione",
+  "romantico slow burn", "spicy ma elegante", "clean e profondo",
+  "melanconico e struggente"
+];
+
+const INTENSITIES_PRO = [
+  "soft", "medium", "intense", "slow burn", "high drama",
+  "high suspense", "emotional devastation", "dark but elegant",
+  "commercial page-turner", "literary deep focus"
+];
+
+const CHARACTER_DYNAMICS_PRO = [
+  "amore proibito", "attrazione e colpa", "vendetta", "segreto familiare",
+  "tradimento", "redenzione", "indagine", "sopravvivenza",
+  "potere e corruzione", "destino contro libero arbitrio",
+  "rivalità", "ossessione", "perdita e rinascita",
+  "fuga dal passato", "identità nascosta", "nemici costretti a collaborare"
+];
+
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -34,6 +77,9 @@ function fallbackCharacterBible(input: {
   genre: string;
   subcategory: string;
   tone: string;
+  intensity?: string;
+  centralDynamic?: string;
+  protagonistType?: string;
   language: string;
 }) {
   const isItalian = input.language === "Italian";
@@ -70,8 +116,11 @@ Regole di continuità: Non rinominare mai ${loveName}. Non farlo confessare trop
 export function CharacterStudioDialog({ open, onClose }: Props) {
   const [idea, setIdea] = useState("");
   const [genre, setGenre] = useState("romance");
-  const [subcategory, setSubcategory] = useState("");
-  const [tone, setTone] = useState("poetic, emotional, cinematic, slow-burn");
+  const [subcategory, setSubcategory] = useState("slow burn");
+  const [tone, setTone] = useState("poetico e cinematografico");
+  const [intensity, setIntensity] = useState("slow burn");
+  const [centralDynamic, setCentralDynamic] = useState("attrazione e colpa");
+  const [protagonistType, setProtagonistType] = useState("protagonista ferita ma combattiva");
   const [language, setLanguage] = useState("Italian");
   const [characterBible, setCharacterBible] = useState("");
   const [loading, setLoading] = useState(false);
@@ -88,6 +137,9 @@ export function CharacterStudioDialog({ open, onClose }: Props) {
         if (parsed.genre) setGenre(parsed.genre);
         if (parsed.subcategory) setSubcategory(parsed.subcategory);
         if (parsed.tone) setTone(parsed.tone);
+        if (parsed.intensity) setIntensity(parsed.intensity);
+        if (parsed.centralDynamic) setCentralDynamic(parsed.centralDynamic);
+        if (parsed.protagonistType) setProtagonistType(parsed.protagonistType);
         if (parsed.language) setLanguage(parsed.language);
         if (parsed.characterBible) setCharacterBible(parsed.characterBible);
       } else if (savedBible) {
@@ -105,12 +157,15 @@ export function CharacterStudioDialog({ open, onClose }: Props) {
     genre,
     subcategory: subcategory.trim(),
     tone: tone.trim(),
+    intensity,
+    centralDynamic,
+    protagonistType: protagonistType.trim(),
     language,
     category: "Fiction",
     bookType: "novel",
     characterBible: characterBible.trim(),
     createdAt: new Date().toISOString(),
-  }), [idea, genre, subcategory, tone, language, characterBible]);
+  }), [idea, genre, subcategory, tone, intensity, centralDynamic, protagonistType, language, characterBible]);
 
   const generate = async () => {
     if (!canGenerate || loading) return;
@@ -124,6 +179,9 @@ export function CharacterStudioDialog({ open, onClose }: Props) {
           genre,
           subcategory: subcategory.trim(),
           tone: tone.trim(),
+          intensity,
+          centralDynamic,
+          protagonistType: protagonistType.trim(),
           language,
         },
       });
@@ -208,7 +266,7 @@ export function CharacterStudioDialog({ open, onClose }: Props) {
             <div>
               <h2 className="font-semibold text-lg">Scriptora Character Studio</h2>
               <p className="text-xs text-muted-foreground">
-                Crea personaggi canonici e collegali al prossimo romanzo.
+                Crea cast canonico, genere, filone, tono e dinamica narrativa. Poi collegalo a Nuovo Libro.
               </p>
             </div>
           </div>

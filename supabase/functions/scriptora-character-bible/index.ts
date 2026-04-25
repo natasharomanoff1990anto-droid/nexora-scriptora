@@ -49,6 +49,10 @@ serve(async (req) => {
     const genre = String(body.genre || "romance").trim();
     const language = String(body.language || "Italian").trim();
     const tone = String(body.tone || "").trim();
+    const subcategory = String(body.subcategory || "").trim();
+    const intensity = String(body.intensity || "").trim();
+    const centralDynamic = String(body.centralDynamic || "").trim();
+    const protagonistType = String(body.protagonistType || "").trim();
     const count = Math.max(2, Math.min(8, Number(body.count || 4)));
 
     if (idea.length < 10) {
@@ -67,7 +71,9 @@ Obiettivo:
 - creare personaggi coerenti, memorabili e utilizzabili direttamente dal motore di scrittura;
 - bloccare nomi, ruoli, età, ferite, desideri, segreti e relazioni;
 - evitare che nei capitoli futuri i personaggi cambino nome o identità;
-- creare tensione narrativa vera, non personaggi generici.`;
+- creare tensione narrativa vera, non personaggi generici;
+- adattare cast, ferite, desideri, segreti e relazioni al genere, sottogenere, tono, intensità e dinamica centrale;
+- progettare personaggi che producano trama, conflitto e continuità.`;
 
     const user = `IDEA ROMANZO:
 ${idea}
@@ -75,8 +81,20 @@ ${idea}
 GENERE:
 ${genre}
 
+SOTTOGENERE / FILONE:
+${subcategory || "da dedurre dal genere"}
+
 TONO:
 ${tone || "emotivo, cinematografico, bestseller"}
+
+INTENSITÀ:
+${intensity || "medium"}
+
+DINAMICA CENTRALE:
+${centralDynamic || "tensione emotiva, desiderio e conflitto"}
+
+TIPO PROTAGONISTA:
+${protagonistType || "protagonista memorabile, contraddittoria, ferita ma attiva"}
 
 NUMERO PERSONAGGI:
 ${count}
@@ -99,6 +117,8 @@ Rapporto con gli altri personaggi:
 Regole di continuità:
 
 REGOLE IMPORTANTI:
+- Rispetta in modo specifico genere, sottogenere, tono, intensità, dinamica centrale e tipo protagonista.
+- Il cast deve essere diverso per romance, dark romance, thriller, fantasy, horror, sci-fi, historical, literary fiction, young adult, family saga e memoir narrativo.
 - Il protagonista deve essere chiarissimo.
 - I nomi devono restare canonici per tutto il romanzo.
 - Non creare doppioni con nomi simili.
