@@ -575,6 +575,38 @@ async function runGoNoGoOnConcept(input: OrchestratorInput, title: string, subti
   });
 }
 
+
+const SCRIPTORA_WRITING_BRAIN_PRO = `
+SCRIPTORA WRITING BRAIN PRO — REQUIRED BEFORE WRITING:
+Think like a bestselling author AND a ruthless story editor.
+
+Every chapter must have:
+1. A clear mission: what changes from beginning to end.
+2. A concrete desire: what the reader/protagonist wants now.
+3. An obstacle: external, emotional, intellectual, or relational.
+4. Tension: something unresolved pressing against the page.
+5. A turn: a realization, decision, reveal, failure, escalation, or new problem.
+6. A closing hook: the final beat must pull the reader forward.
+
+Anti-generic rules:
+- Do not loop the same emotional insight.
+- Do not repeat the same metaphor in new clothing.
+- Do not explain the theme after every scene.
+- Do not use filler transitions or safe AI phrasing.
+- Do not make every paragraph lyrical; mix image, action, dialogue, and consequence.
+
+For fiction, romance, memoir:
+- Build intimacy through subtext, restraint, timing, and consequence.
+- Characters must not confess everything too quickly.
+- After an intimate moment, show changed behavior, not repeated declarations.
+- Respect continuity: never imply events that have not happened.
+
+For nonfiction, self-help, business, guide:
+- Deliver transformation through practical structure.
+- Include concrete examples, frameworks, exercises, or steps.
+- Inspiration without usable specificity is failure.
+`;
+
 async function writeChapter(
   input: OrchestratorInput,
   title: string,
@@ -623,6 +655,8 @@ BOOK OVERVIEW: ${blueprint.overview}
 ${previousBlock}${avoidBlock}
 PRACTICAL REQUIREMENT (mandatory):
 ${ctx.practicalDirective}
+
+${SCRIPTORA_WRITING_BRAIN_PRO}
 
 WRITE THIS CHAPTER NOW.
 - Target length: ${ctx.targetWords} words (±10%)

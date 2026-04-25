@@ -277,6 +277,62 @@ If previous chapters established a specific vocabulary, rhythm, or narrative dev
 
 /* ============ Word Budget System ============ */
 
+
+function buildScriptoraWritingBrain(config: BookConfig): string {
+  const genre = String(config.genre || "").toLowerCase();
+
+  const narrativeMode =
+    genre.includes("romance") ||
+    genre.includes("thriller") ||
+    genre.includes("fantasy") ||
+    genre.includes("memoir") ||
+    genre.includes("fiction") ||
+    genre.includes("dark");
+
+  return `
+SCRIPTORA WRITING BRAIN PRO — MANDATORY STORY INTELLIGENCE:
+Before writing, silently plan the chapter as a real publishing editor would.
+
+CORE SCENE LOGIC:
+- Every chapter must change something. If nothing changes, the chapter fails.
+- Every major scene needs: desire, obstacle, tension, choice, consequence.
+- The protagonist must want something concrete in the moment, not only feel something abstract.
+- Avoid emotional loops: do not restate the same realization in different words.
+- Never repeat the same inner conclusion across paragraphs, especially phrases like "I am not running anymore", "I want to stay", "this changed everything", unless there is a new consequence.
+- Show emotion through behavior, silence, physical detail, contradiction, and specific sensory images.
+- Do not explain the theme after every scene. Let the scene carry the theme.
+
+DIALOGUE AND SUBTEXT:
+- Dialogue must hide as much as it reveals.
+- Characters should avoid saying exactly what they feel too early.
+- Use interruption, hesitation, avoidance, gesture, and silence.
+- Every exchange must either increase intimacy, reveal danger, expose history, or create a new question.
+
+CONTINUITY AND CONSEQUENCE:
+- Respect what has actually happened. Do not imply physical or emotional events that have not occurred.
+- Track emotional escalation carefully: attraction → hesitation → vulnerability → choice → consequence.
+- Each chapter should build from the previous one, not restart the same emotional beat.
+- If a kiss happened, explore its aftermath through altered behavior, not repeated declarations.
+
+LANGUAGE QUALITY:
+- Prefer concrete images over generic emotional statements.
+- Cut AI-clichés, over-explaining, and repeated metaphors.
+- Use one fresh dominant image per scene; do not pile metaphors.
+- Make the ending create forward pull: a secret, a decision, a fear, a promise, or a complication.
+
+${narrativeMode ? `FICTION / ROMANCE / MEMOIR EXTRA RULES:
+- Build romantic tension through restraint, distance, almost-touch, timing, and emotional risk.
+- Do not let characters confess everything too soon.
+- Every intimate moment must have a cost, a fear, or a consequence.
+- Avoid making every paragraph lyrical; vary rhythm with action, sharp dialogue, and grounded detail.
+- The reader must feel: "I need the next scene."` : `NONFICTION / SELF-HELP / GUIDE EXTRA RULES:
+- Every chapter must deliver a usable transformation, not just inspiration.
+- Alternate story, principle, example, and practical application.
+- Include at least one concrete framework, exercise, checklist, or diagnostic moment when appropriate.
+- Avoid motivational fog. Make the advice specific enough to use today.`}
+`;
+}
+
 function getChapterTargetWords(config: BookConfig, chapterIndex: number, totalChapters: number, chapterLengthOverride?: string): number {
   const bookTotal = getBookTotalWords(config);
   const chapterBase = Math.round(bookTotal / totalChapters);
@@ -528,6 +584,8 @@ ${contextMemory}
 TARGET: Write approximately ${chunkTarget} words for this segment.
 TOTAL CHAPTER TARGET: ${targetWords} words (you will write more chunks after this).
 PHASE: ${phase} — ${phaseInstruction}
+
+${scriptoraWritingBrain}
 
 BESTSELLER QUALITY REQUIREMENTS:
 - Open with a line that stops the reader — a hook they'll remember
