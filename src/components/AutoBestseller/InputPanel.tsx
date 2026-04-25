@@ -1,4 +1,4 @@
-import { Wand2, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -133,7 +133,7 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
           <div className="flex items-center justify-between gap-2">
             <Label htmlFor="idea">Idea / Argomento</Label>
             <Button type="button" variant="ghost" size="sm" onClick={improveIdea} disabled={isRunning} className="h-7 px-2 text-xs">
-              <Wand2 className="mr-1 h-3.5 w-3.5" /> Genera con IA
+              <span className="mr-1">✨</span> Genera con IA
             </Button>
           </div>
           <Textarea
@@ -184,7 +184,7 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
             <div className="flex items-center justify-between gap-2">
               <Label htmlFor="tone">Tono</Label>
               <Button type="button" variant="ghost" size="sm" onClick={improveTone} disabled={isRunning} className="h-7 px-2 text-xs">
-                <Wand2 className="mr-1 h-3.5 w-3.5" /> Suggerisci
+                <span className="mr-1">✨</span> Suggerisci
               </Button>
             </div>
             <Select value={tone} onValueChange={setTone} disabled={isRunning}>
