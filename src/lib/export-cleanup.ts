@@ -171,13 +171,84 @@ function mergeMatterFromEmbeddedJson(matter: any): any {
 
   for (const key of keys) {
     merged[key] = firstClean(
-      pickMatterField(matter[key], key),
       pickMatterField(embedded[key], key),
+      pickMatterField(matter[key], key),
     );
   }
 
   return merged;
 }
+
+
+function repairDirtyFrontMatter(frontMatter: any, author: string): any {
+  const original = frontMatter || {};
+
+  const blob = [
+    original.titlePage,
+    original.copyright,
+    original.dedication,
+    original.aboutAuthor,
+    original.howToUse,
+    original.letterToReader,
+  ]
+    .map((v) => typeof v === "string" ? v : "")
+    .filter(Boolean)
+    .join("\n\n");
+
+  const repaired = { ...original };
+
+  // COPYRIGHT: deve partire da © o essere rigenerato.
+  let copyright = cleanExportText(original.copyright);
+  if (
+    /Lettera al Lettore/i.test(copyright) ||
+    /A chi ha/i.test(copyright) ||
+    /Dedica/i.test(copyright) ||
+    /Autore:\s*[“"]?\s*,/i.test(copyright)
+  ) {
+    copyright = "";
+  }
+
+  if (!copyright && blob.includes("©")) {
+    copyright = cleanExportText(
+      blob
+        .slice(blob.indexOf("©"))
+        .replace(/ISBN:\s*[“"]?\s*,[\s\S]*$/i, "ISBN:")
+        .replace(/A chi ha[\s\S]*$/i, "")
+        .replace(/Lettera al Lettore[\s\S]*$/i, "")
+    );
+  }
+
+  if (!copyright || !copyright.includes("©")) {
+    copyright = `© ${new Date().getFullYear()} ${author}. Tutti i diritti riservati.`;
+  }
+
+  // DEDICA: prova a recuperare la parte che inizia con "A chi..."
+  let dedication = cleanExportText(original.dedication);
+  if (!dedication || /©|Copyright|ISBN|Lettera al Lettore/i.test(dedication)) {
+    const m = blob.match(/(A chi[\s\S]*?)(?=\n\n|©|Copyright|ISBN|Lettera al Lettore|$)/i);
+    dedication = m ? cleanExportText(m[1]) : "";
+  }
+
+  // LETTERA: non deve contenere copyright/dedica/isbn.
+  let letterToReader = cleanExportText(original.letterToReader);
+  if (!letterToReader || /©|Copyright|ISBN|A chi ha/i.test(letterToReader)) {
+    const m = blob.match(/Lettera al Lettore\s*([\s\S]*?)(?=©|Copyright|ISBN|A chi ha|Dedica|$)/i);
+    letterToReader = m ? cleanExportText(m[1]) : "";
+  }
+
+  letterToReader = cleanExportText(
+    letterToReader
+      .replace(/^Lettera al Lettore\s*/i, "")
+      .replace(/Autore:\s*[“"]?\s*,?\s*$/i, "")
+  );
+
+  repaired.copyright = copyright;
+  repaired.dedication = dedication;
+  repaired.letterToReader = letterToReader;
+
+  return repaired;
+}
+
 
 function cleanAuthorSlug(value: unknown): string {
   const text = cleanExportText(value);
@@ -204,6 +275,9 @@ export function normalizeExportProject(project: AnyBookProject): AnyBookProject 
   config.title = cleanExportText(config.title || project?.title || "Senza titolo");
 
   frontMatter.titlePage = cleanExportText(frontMatter.titlePage || `${config.title}\n\nAutore: ${author}`);
+
+  Object.assign(frontMatter, repairDirtyFrontMatter(frontMatter, author));
+
   frontMatter.copyright = sanitizeCopyrightField(
     frontMatter.copyright || `© ${new Date().getFullYear()} ${author}. Tutti i diritti riservati.`,
     author
