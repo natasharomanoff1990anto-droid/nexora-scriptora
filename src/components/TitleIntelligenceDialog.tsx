@@ -94,6 +94,36 @@ export function TitleIntelligenceDialog({ open, onClose, initialTitle, initialGe
     }
   });
 
+  const openPostConfigurationFromNiche = (n: NicheImport) => {
+    const ideaParts = [
+      n.name,
+      n.genre ? `Categoria: ${n.genre}` : "",
+      n.bookPromise ? `Promessa: ${n.bookPromise}` : "",
+      n.angle ? `Angolo editoriale: ${n.angle}` : "",
+      n.keywords?.length ? `Keyword: ${n.keywords.join(", ")}` : "",
+    ].filter(Boolean);
+
+    sessionStorage.setItem("nexora-auto-brief", JSON.stringify({
+      idea: ideaParts.join("\n"),
+      genre: n.genre || bookGenre || "Self-help",
+      subcategory: n.name || "",
+      targetAudience: n.targetAudience || targetAudience || "",
+      tone,
+      language,
+      numberOfChapters: 8,
+      level: "intermediate",
+      readerPromise: n.bookPromise || bookPromise || "",
+      prefilledTitle: "",
+      prefilledSubtitle: "",
+      authorName: authorName?.trim() || "",
+      autoStart: false,
+    }));
+
+    onClose();
+    navigate("/auto-bestseller");
+  };
+
+
   const handleRegenerate = async () => {
     try {
       await regenerate();
@@ -174,10 +204,7 @@ export function TitleIntelligenceDialog({ open, onClose, initialTitle, initialGe
                 language={UI_LANG_TO_NAME[uiLang] ?? "English"}
                 initialFocus={bookGenre}
                 onImport={(n: NicheImport) => {
-                  setBookGenre(n.genre);
-                  setTargetAudience(n.targetAudience);
-                  setBookPromise(n.bookPromise);
-                  toast.success("Form compilato dalla nicchia · ora genera i titoli");
+                  openPostConfigurationFromNiche(n);
                 }}
               />
 

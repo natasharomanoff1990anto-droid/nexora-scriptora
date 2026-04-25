@@ -447,7 +447,7 @@ function NicheCard({
             onClick={onImport}
             className="flex-1 h-7 rounded text-[10px] font-semibold bg-gradient-to-r from-amber-500 to-purple-500 text-white flex items-center justify-center gap-1 hover:opacity-90"
           >
-            Domina questa <ArrowUpRight className="h-3 w-3" />
+            Configura progetto <ArrowUpRight className="h-3 w-3" />
           </button>
         )}
       </div>
