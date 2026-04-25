@@ -31,7 +31,7 @@ const LANGUAGES = ["English", "Italian", "Spanish", "French", "German", "Portugu
 
 export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, onGenerateBatch }: Props) {
   const [idea, setIdea] = useState(initialInput?.idea ?? "");
-  const [authorName, setAuthorName] = useState(initialInput?.authorName ?? "Antonino Campanella");
+  const [authorName, setAuthorName] = useState(initialInput?.authorName ?? "");
   const [genre, setGenre] = useState(initialInput?.genre ?? "self-help");
   const [subcategory, setSubcategory] = useState(initialInput?.subcategory ?? "");
   const [targetAudience, setTargetAudience] = useState(initialInput?.targetAudience ?? "");
@@ -106,7 +106,7 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
 
   const buildInput = (): AutoBestsellerInput => ({
     idea: idea.trim(),
-    authorName: authorName.trim() || "Antonino Campanella",
+    authorName: authorName.trim() || "",
     genre,
     subcategory: subcategory.trim() || undefined,
     targetAudience: targetAudience.trim(),

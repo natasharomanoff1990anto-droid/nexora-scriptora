@@ -50,9 +50,9 @@ export function NewBookDialog({ open, onClose, onSubmit }: NewBookDialogProps) {
     subtitle: "",
     tone: "warm, insightful, transformative",
     authorStyle: "Brianna Wiest",
-    authorName: "Antonino Campanella",
-    author: "Antonino Campanella",
-    writerName: "Antonino Campanella",
+    authorName: "",
+    author: "",
+    writerName: "",
     language: "English",
     genre: "self-help",
     category: "Self Help",
@@ -231,7 +231,7 @@ export function NewBookDialog({ open, onClose, onSubmit }: NewBookDialogProps) {
           </button>
           <button onClick={() => {
             if (!config.title) return;
-            const authorName = (config.authorName || config.author || config.writerName || "Antonino Campanella").trim();
+            const authorName = (config.authorName || config.author || config.writerName || "").trim();
             onSubmit({ ...config, authorName, author: authorName, writerName: authorName });
           }} disabled={!config.title}
             className="h-9 px-6 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 transition-colors">

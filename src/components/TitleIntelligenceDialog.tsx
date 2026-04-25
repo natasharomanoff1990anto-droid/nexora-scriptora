@@ -28,7 +28,7 @@ export function TitleIntelligenceDialog({ open, onClose, initialTitle, initialGe
   const [bookGenre, setBookGenre] = useState(initialGenre || "");
   const [targetAudience, setTargetAudience] = useState("");
   const [bookPromise, setBookPromise] = useState("");
-  const [authorName, setAuthorName] = useState("Antonino Campanella");
+  const [authorName, setAuthorName] = useState("");
   const [tone, setTone] = useState<"professionale" | "emotivo" | "aggressivo">("professionale");
   // Default = system UI language, but user can override per-book (5 supported languages).
   const uiLang = getUILanguage();
@@ -122,7 +122,7 @@ export function TitleIntelligenceDialog({ open, onClose, initialTitle, initialGe
       readerPromise: bookPromise || card.subtitle,
       prefilledTitle: card.title,
       prefilledSubtitle: card.subtitle,
-      authorName: authorName.trim() || "Antonino Campanella",
+      authorName: authorName.trim() || "",
       autoStart: false,
     }));
 
@@ -217,7 +217,7 @@ export function TitleIntelligenceDialog({ open, onClose, initialTitle, initialGe
 
               <Field label="Nome autore / Pen name">
                 <input value={authorName} onChange={e => setAuthorName(e.target.value)}
-                  placeholder="Es. Antonino Campanella, Livia Emerson, Lua Galli"
+                  placeholder="Es. Il nome che vuoi mostrare in copertina"
                   className="w-full px-3 py-2 text-sm rounded-md bg-background border border-border focus:border-primary outline-none" />
               </Field>
 
