@@ -420,6 +420,18 @@ export default function Home() {
                   {lastProject.chapters?.length || 0} {t("chapters").toLowerCase()} · {lastProject.phase}
                 </p>
               </div>
+              <button
+                type="button"
+                title="Elimina progetto"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  deleteHomeProject(lastProject.id, lastProject.config.title);
+                }}
+                className="h-9 w-9 rounded-full border border-destructive/30 bg-destructive/10 text-destructive flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors flex-shrink-0"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
               <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary transition-colors flex-shrink-0">
                 <ArrowRight className="h-4 w-4 text-primary group-hover:text-primary-foreground transition-colors" />
               </div>
