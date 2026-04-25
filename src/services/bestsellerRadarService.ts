@@ -12,6 +12,7 @@ export type RadarResult = {
   potential: number;
   insight: string;
   sourceUrl?: string;
+  coverUrl?: string;
 };
 
 export type BestsellerRadarResponse = {

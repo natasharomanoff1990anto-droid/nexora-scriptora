@@ -112,7 +112,7 @@ export default function BestsellerRadarPage() {
   const [error, setError] = useState("");
 
   const results = useMemo(() => {
-    return liveResults ?? sampleByGenre[genre] ?? fallbackResults;
+    return searched ? (liveResults ?? []) : (sampleByGenre[genre] ?? fallbackResults);
   }, [genre]);
 
   const marketScore = useMemo(() => {
@@ -234,17 +234,33 @@ export default function BestsellerRadarPage() {
               <h2 className="text-xl font-bold">Titoli concorrenti e opportunità</h2>
             </div>
 
+            {results.length === 0 ? (
+              <div className="rounded-2xl border border-border bg-card/70 p-5 text-sm text-muted-foreground">
+                Nessun risultato live trovato. Prova una keyword più specifica, per esempio “dark mafia romance”, “thriller psicologico italiano” o “self help abitudini”.
+              </div>
+            ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {results.map((book) => (
                 <article key={book.title} className="rounded-3xl border border-border/70 bg-card/70 p-5 shadow-lg">
                   <div className="flex gap-4">
-                    <div className="flex h-28 w-20 shrink-0 items-center justify-center rounded-2xl border border-border bg-muted">
-                      <BookOpen className="h-8 w-8 text-muted-foreground" />
+                    <div className="flex h-28 w-20 shrink-0 overflow-hidden rounded-2xl border border-border bg-muted">
+                      {book.coverUrl ? (
+                        <img src={book.coverUrl} alt={book.title} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                          <BookOpen className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                      )}
                     </div>
 
                     <div className="min-w-0 flex-1">
                       <h3 className="line-clamp-2 text-lg font-bold">{book.title}</h3>
-                      <p className="mt-1 text-sm text-muted-foreground">{book.author}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">{book.author || "Autore non rilevato"}</p>
+                      {book.sourceUrl && (
+                        <a href={book.sourceUrl} target="_blank" rel="noreferrer" className="mt-1 inline-block text-[11px] font-semibold text-primary hover:underline">
+                          Apri fonte
+                        </a>
+                      )}
                       <p className="mt-2 text-xs font-medium text-primary">{book.category}</p>
 
                       <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
@@ -283,6 +299,7 @@ export default function BestsellerRadarPage() {
                 </article>
               ))}
             </div>
+            )}
           </section>
         )}
 

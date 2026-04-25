@@ -15,6 +15,7 @@ type RadarBook = {
   potential: number;
   insight: string;
   sourceUrl?: string;
+  coverUrl?: string;
 };
 
 function safeJsonParse(text: string) {
@@ -107,7 +108,7 @@ ${JSON.stringify(webResults, null, 2)}
 
 Crea una lista di 4-6 libri/competitor o titoli plausibilmente rilevanti dai risultati.
 Per ogni item restituisci:
-title, author, category, price, rating, reviews, demand, competition, potential, insight, sourceUrl.
+title, author, category, price, rating, reviews, demand, competition, potential, insight, sourceUrl, coverUrl.
 
 Regole:
 - demand: Alta/Media/Bassa
@@ -116,6 +117,7 @@ Regole:
 - price/rating/reviews possono essere "Non rilevato" se non presenti
 - insight in italiano, breve, utile e commerciale
 - sourceUrl se disponibile
+- coverUrl solo se dai risultati pubblici emerge una thumbnail o immagine affidabile, altrimenti stringa vuota
 - Non dire mai che sono dati ufficiali Amazon.
 Formato:
 {
