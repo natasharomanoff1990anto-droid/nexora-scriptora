@@ -32,6 +32,48 @@ function tryParseObject(value: unknown): Record<string, any> | null {
   }
 }
 
+
+function pickMatterField(raw: unknown, field: string): string {
+  if (raw === null || raw === undefined) return "";
+  if (typeof raw !== "string") return cleanExportText(raw);
+
+  const parsed = tryParseObject(raw);
+  if (parsed && typeof parsed[field] === "string") {
+    return cleanExportText(parsed[field]);
+  }
+
+  return cleanExportText(raw);
+}
+
+function firstClean(...values: unknown[]): string {
+  for (const value of values) {
+    const cleaned = cleanExportText(value);
+    if (cleaned.trim()) return cleaned.trim();
+  }
+  return "";
+}
+
+function sanitizeCopyrightField(value: unknown, author: string): string {
+  let t = cleanExportText(value);
+
+  const copyrightIndex = t.indexOf("©");
+  if (copyrightIndex > 0) {
+    t = t.slice(copyrightIndex).trim();
+  }
+
+  t = t
+    .replace(/Lettera al Lettore[\s\S]*?©/i, "©")
+    .replace(/A chi ha[\s\S]*$/i, "")
+    .replace(/ISBN:\s*[“"]?\s*,[\s\S]*$/i, "ISBN: ")
+    .trim();
+
+  if (!t || !t.includes("©")) {
+    return `© ${new Date().getFullYear()} ${author}. Tutti i diritti riservati.`;
+  }
+
+  return t;
+}
+
 function looksLikeRawMatterJson(value: string): boolean {
   const text = normalizeSmartJson(value);
   return (
@@ -49,10 +91,9 @@ export function cleanExportText(value: unknown): string {
 
   const parsed = tryParseObject(text);
   if (parsed) {
-    return Object.values(parsed)
-      .filter((v) => typeof v === "string" && v.trim().length > 0)
-      .map((v) => cleanExportText(v))
-      .join("\n\n");
+    // Non unire mai tutti i valori del front matter:
+    // copyright, dedica e lettera devono restare campi separati.
+    return "";
   }
 
   if (looksLikeRawMatterJson(text)) {
@@ -90,25 +131,49 @@ export function cleanExportText(value: unknown): string {
 }
 
 function mergeMatterFromEmbeddedJson(matter: any): any {
-  if (!matter || typeof matter !== "object") return matter || {};
+  if (!matter || typeof matter !== "object") return {};
 
-  let merged = { ...matter };
+  const embeddedSources = [
+    matter.titlePage,
+    matter.copyright,
+    matter.dedication,
+    matter.aboutAuthor,
+    matter.howToUse,
+    matter.letterToReader,
+    matter.conclusion,
+    matter.authorNote,
+    matter.callToAction,
+    matter.reviewRequest,
+    matter.otherBooks,
+  ];
 
-  for (const value of Object.values(matter)) {
-    const parsed = tryParseObject(value);
-    if (parsed) {
-      merged = { ...merged, ...parsed };
-    }
+  let embedded: Record<string, any> = {};
+  for (const src of embeddedSources) {
+    const parsed = tryParseObject(src);
+    if (parsed) embedded = { ...embedded, ...parsed };
   }
 
-  for (const key of Object.keys(merged)) {
-    merged[key] = cleanExportText(merged[key]);
-  }
+  const keys = [
+    "titlePage",
+    "copyright",
+    "dedication",
+    "aboutAuthor",
+    "howToUse",
+    "letterToReader",
+    "conclusion",
+    "authorNote",
+    "callToAction",
+    "reviewRequest",
+    "otherBooks",
+  ];
 
-  // If letterToReader accidentally contains the whole front matter JSON, extract the real field.
-  const parsedLetter = tryParseObject(matter.letterToReader);
-  if (parsedLetter?.letterToReader) {
-    merged.letterToReader = cleanExportText(parsedLetter.letterToReader);
+  const merged: Record<string, any> = { ...embedded, ...matter };
+
+  for (const key of keys) {
+    merged[key] = firstClean(
+      pickMatterField(matter[key], key),
+      pickMatterField(embedded[key], key),
+    );
   }
 
   return merged;
@@ -139,8 +204,9 @@ export function normalizeExportProject(project: AnyBookProject): AnyBookProject 
   config.title = cleanExportText(config.title || project?.title || "Senza titolo");
 
   frontMatter.titlePage = cleanExportText(frontMatter.titlePage || `${config.title}\n\nAutore: ${author}`);
-  frontMatter.copyright = cleanExportText(
-    frontMatter.copyright || `© ${new Date().getFullYear()} ${author}. Tutti i diritti riservati.`
+  frontMatter.copyright = sanitizeCopyrightField(
+    frontMatter.copyright || `© ${new Date().getFullYear()} ${author}. Tutti i diritti riservati.`,
+    author
   );
 
   const chapters = Array.isArray(project?.chapters)
