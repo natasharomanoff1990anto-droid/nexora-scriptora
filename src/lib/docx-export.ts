@@ -1,3 +1,4 @@
+import { normalizeExportProject, exportLabel, cleanExportText } from "@/lib/export-cleanup";
 import {
   Document, Packer, Paragraph, TextRun, HeadingLevel,
   AlignmentType, PageBreak, Header, Footer, PageNumber,
@@ -77,7 +78,7 @@ function chapterOpener(num: number, title: string): Paragraph[] {
     new Paragraph({
       alignment: AlignmentType.CENTER,
       spacing: { after: 240 },
-      children: [new TextRun({ text: `Chapter ${num}`, font: "Garamond", size: 22, italics: true, color: "666666" })],
+      children: [new TextRun({ text: `Capitolo ${num}`, font: "Garamond", size: 22, italics: true, color: "666666" })],
     }),
     // Big title
     new Paragraph({
@@ -114,7 +115,8 @@ function sectionH2(text: string): Paragraph {
 }
 
 export async function generateDocx(project: BookProject): Promise<Blob> {
-  const { config, frontMatter, chapters, backMatter } = project;
+  const normalizedProject = normalizeExportProject(project);
+  const { config, frontMatter, chapters, backMatter } = normalizedProject;
   const author = config.authorStyle || "The Author";
   const bookTitle = config.title || "Untitled";
 
@@ -152,11 +154,11 @@ export async function generateDocx(project: BookProject): Promise<Blob> {
   // ===== FRONT MATTER =====
   if (frontMatter) {
     const fmSections: [string, string][] = [
-      ["Copyright", frontMatter.copyright],
-      ["Dedication", frontMatter.dedication],
-      ["About the Author", frontMatter.aboutAuthor],
-      ["How to Use This Book", frontMatter.howToUse],
-      ["Letter to the Reader", frontMatter.letterToReader],
+      [exportLabel("copyright", config.language), frontMatter.copyright],
+      [exportLabel("dedication", config.language), frontMatter.dedication],
+      [exportLabel("aboutAuthor", config.language), frontMatter.aboutAuthor],
+      [exportLabel("howToUse", config.language), frontMatter.howToUse],
+      [exportLabel("letterToReader", config.language), frontMatter.letterToReader],
     ];
     for (const [title, content] of fmSections) {
       const txt = safeText(content);
@@ -168,7 +170,7 @@ export async function generateDocx(project: BookProject): Promise<Blob> {
   }
 
   // ===== TABLE OF CONTENTS =====
-  children.push(sectionH1("Contents"));
+  children.push(sectionH1(exportLabel("contents", config.language)));
   for (let i = 0; i < chapters.length; i++) {
     const ch = chapters[i];
     if (!ch) continue;
@@ -177,7 +179,7 @@ export async function generateDocx(project: BookProject): Promise<Blob> {
       spacing: { after: 120 },
       tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
       children: [
-        new TextRun({ text: `${num}.   ${cleanMarkdown(ch.title || `Chapter ${i + 1}`)}`, font: "Garamond", size: 22 }),
+        new TextRun({ text: `${num}.   ${cleanMarkdown(ch.title || `${exportLabel("chapter", config.language)} ${i + 1}`)}`, font: "Garamond", size: 22 }),
       ],
     }));
   }
@@ -204,11 +206,11 @@ export async function generateDocx(project: BookProject): Promise<Blob> {
   // ===== BACK MATTER =====
   if (backMatter) {
     const bmSections: [string, string][] = [
-      ["Conclusion", backMatter.conclusion],
-      ["Author's Note", backMatter.authorNote],
-      ["What's Next", backMatter.callToAction],
-      ["A Small Request", backMatter.reviewRequest],
-      ["Other Books", backMatter.otherBooks],
+      [exportLabel("conclusion", config.language), backMatter.conclusion],
+      [exportLabel("authorNote", config.language), backMatter.authorNote],
+      [exportLabel("whatsNext", config.language), backMatter.callToAction],
+      [exportLabel("smallRequest", config.language), backMatter.reviewRequest],
+      [exportLabel("otherBooks", config.language), backMatter.otherBooks],
     ];
     for (const [title, content] of bmSections) {
       const txt = safeText(content);

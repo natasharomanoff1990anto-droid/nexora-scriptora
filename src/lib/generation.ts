@@ -794,7 +794,7 @@ export async function generateFrontMatter(
   const genreKey = resolveGenreKey(config.genre, (config as any).subcategory);
   const sectionsList = bp.frontMatterTemplate.length
     ? bp.frontMatterTemplate
-    : ["Title Page", "Copyright", "Dedication", "About the Author", "How to Use This Book", "Letter to the Reader"];
+    : ["Pagina titolo", "Copyright", "Dedica", "Nota sull’autore", "Come usare questo libro", "Lettera al lettore"];
 
   const prompt = `Generate FRONT MATTER for a ${genreKey.toUpperCase()} book — sections must read as if written by a domain expert in this genre.
 
@@ -913,7 +913,7 @@ export async function generateBackMatter(
   const chapterTitles = chapters.map((c, i) => `${i + 1}. ${c.title}`).join("\n");
   const sectionsList = bp.backMatterTemplate.length
     ? bp.backMatterTemplate
-    : ["Conclusion", "Author Note", "Call to Action", "Review Request", "Other Books"];
+    : ["Conclusione", "Nota dell’autore", "Prossimo passo", "Richiesta recensione", "Letture consigliate"];
 
   const prompt = `Generate BACK MATTER for a ${genreKey.toUpperCase()} book — read as if written by a domain expert.
 

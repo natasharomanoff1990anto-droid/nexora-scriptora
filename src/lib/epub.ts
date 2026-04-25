@@ -1,3 +1,4 @@
+import { normalizeExportProject, exportLabel, cleanExportText } from "@/lib/export-cleanup";
 import { BookProject } from "@/types/book";
 
 function escapeXml(str: unknown): string {
@@ -249,8 +250,8 @@ function getTocLabel(lang: string): string {
 
 function getFrontMatterLabels(lang: string) {
   const labels: Record<string, Record<string, string>> = {
-    English: { titlePage: "Title Page", copyright: "Copyright", dedication: "Dedication", aboutAuthor: "About the Author", howToUse: "How to Use This Book", letterToReader: "Letter to the Reader" },
-    Italian: { titlePage: "Pagina del Titolo", copyright: "Copyright", dedication: "Dedica", aboutAuthor: "L'Autore", howToUse: "Come Usare Questo Libro", letterToReader: "Lettera al Lettore" },
+    English: { titlePage: "Title Page", copyright: exportLabel("copyright", config.language), dedication: exportLabel("dedication", config.language), aboutAuthor: exportLabel("aboutAuthor", config.language), howToUse: exportLabel("howToUse", config.language), letterToReader: exportLabel("letterToReader", config.language) },
+    Italian: { titlePage: "Pagina del Titolo", copyright: exportLabel("copyright", config.language), dedication: "Dedica", aboutAuthor: "L'Autore", howToUse: "Come Usare Questo Libro", letterToReader: "Lettera al Lettore" },
     Spanish: { titlePage: "Portada", copyright: "Derechos de Autor", dedication: "Dedicatoria", aboutAuthor: "Sobre el Autor", howToUse: "Cómo Usar Este Libro", letterToReader: "Carta al Lector" },
     French: { titlePage: "Page de Titre", copyright: "Droits d'Auteur", dedication: "Dédicace", aboutAuthor: "À Propos de l'Auteur", howToUse: "Comment Utiliser Ce Livre", letterToReader: "Lettre au Lecteur" },
     German: { titlePage: "Titelseite", copyright: "Urheberrecht", dedication: "Widmung", aboutAuthor: "Über den Autor", howToUse: "Wie Sie Dieses Buch Nutzen", letterToReader: "Brief an den Leser" },
@@ -260,17 +261,18 @@ function getFrontMatterLabels(lang: string) {
 
 function getBackMatterLabels(lang: string) {
   const labels: Record<string, Record<string, string>> = {
-    English: { conclusion: "Conclusion", authorNote: "Author's Note", callToAction: "What's Next", reviewRequest: "A Small Request", otherBooks: "Other Books" },
+    English: { conclusion: exportLabel("conclusion", config.language), authorNote: exportLabel("authorNote", config.language), callToAction: exportLabel("whatsNext", config.language), reviewRequest: exportLabel("smallRequest", config.language), otherBooks: exportLabel("otherBooks", config.language) },
     Italian: { conclusion: "Conclusione", authorNote: "Nota dell'Autore", callToAction: "E Adesso?", reviewRequest: "Una Piccola Richiesta", otherBooks: "Altri Libri" },
     Spanish: { conclusion: "Conclusión", authorNote: "Nota del Autor", callToAction: "¿Y Ahora Qué?", reviewRequest: "Una Pequeña Petición", otherBooks: "Otros Libros" },
-    French: { conclusion: "Conclusion", authorNote: "Note de l'Auteur", callToAction: "Et Maintenant?", reviewRequest: "Une Petite Demande", otherBooks: "Autres Livres" },
+    French: { conclusion: exportLabel("conclusion", config.language), authorNote: "Note de l'Auteur", callToAction: "Et Maintenant?", reviewRequest: "Une Petite Demande", otherBooks: "Autres Livres" },
     German: { conclusion: "Fazit", authorNote: "Anmerkung des Autors", callToAction: "Was Kommt Als Nächstes?", reviewRequest: "Eine Kleine Bitte", otherBooks: "Weitere Bücher" },
   };
   return labels[lang] || labels.English;
 }
 
 export async function generateEpub(project: BookProject, coverDataUrl?: string): Promise<Blob> {
-  const { config, frontMatter, chapters, backMatter } = project;
+  const normalizedProject = normalizeExportProject(project);
+  const { config, frontMatter, chapters, backMatter } = normalizedProject;
   const lang = config.language;
   const fmLabels = getFrontMatterLabels(lang);
   const bmLabels = getBackMatterLabels(lang);
@@ -339,7 +341,7 @@ export async function generateEpub(project: BookProject, coverDataUrl?: string):
       : lang === "Spanish" ? `Capítulo ${i + 1}`
       : lang === "French" ? `Chapitre ${i + 1}`
       : lang === "German" ? `Kapitel ${i + 1}`
-      : `Chapter ${i + 1}`;
+      : `${exportLabel("chapter", config.language)} ${i + 1}`;
     let body = `<p class="chapter-num">${escapeXml(chapterNumLabel)}</p>
 <h1>${escapeXml(chTitle)}</h1>
 <p class="chapter-ornament">\u2726 \u2726 \u2726</p>

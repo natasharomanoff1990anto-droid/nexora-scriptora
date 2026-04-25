@@ -1,3 +1,4 @@
+import { normalizeExportProject, exportLabel, cleanExportText } from "@/lib/export-cleanup";
 import jsPDF from "jspdf";
 import { BookProject } from "@/types/book";
 
@@ -229,7 +230,8 @@ function writeParagraphsWithDropCap(state: PdfState, text: string, useDropCap: b
 }
 
 export async function generatePdf(project: BookProject): Promise<Blob> {
-  const { config, frontMatter, chapters, backMatter } = project;
+  const normalizedProject = normalizeExportProject(project);
+  const { config, frontMatter, chapters, backMatter } = normalizedProject;
   const doc = new jsPDF({ unit: "pt", format: [PAGE_W, PAGE_H], compress: true });
   const author = config.authorStyle || "The Author";
 
@@ -273,11 +275,11 @@ export async function generatePdf(project: BookProject): Promise<Blob> {
   // ===== FRONT MATTER (Roman numerals) =====
   if (frontMatter) {
     const fmSections: [string, string][] = [
-      ["Copyright", frontMatter.copyright],
-      ["Dedication", frontMatter.dedication],
-      ["About the Author", frontMatter.aboutAuthor],
-      ["How to Use This Book", frontMatter.howToUse],
-      ["Letter to the Reader", frontMatter.letterToReader],
+      [exportLabel("copyright", config.language), frontMatter.copyright],
+      [exportLabel("dedication", config.language), frontMatter.dedication],
+      [exportLabel("aboutAuthor", config.language), frontMatter.aboutAuthor],
+      [exportLabel("howToUse", config.language), frontMatter.howToUse],
+      [exportLabel("letterToReader", config.language), frontMatter.letterToReader],
     ];
     for (const [title, content] of fmSections) {
       const txt = safeText(content);
@@ -292,7 +294,7 @@ export async function generatePdf(project: BookProject): Promise<Blob> {
     // TOC
     ensureRectoPage(state);
     state.y += 50;
-    writeCenteredTitle(state, "Contents", 18);
+    writeCenteredTitle(state, exportLabel("contents", config.language), 18);
     state.y += 24;
     doc.setFontSize(BODY_SIZE);
     doc.setFont("times", "normal");
@@ -302,7 +304,7 @@ export async function generatePdf(project: BookProject): Promise<Blob> {
       if (!ch) continue;
       ensureSpace(state, LINE_HEIGHT);
       const num = String(i + 1).padStart(2, " ");
-      const title = cleanMarkdown(ch.title || `Chapter ${i + 1}`);
+      const title = cleanMarkdown(ch.title || `${exportLabel("chapter", config.language)} ${i + 1}`);
       doc.text(`${num}.   ${title}`, ml, state.y, { maxWidth: CONTENT_W });
       state.y += LINE_HEIGHT * 1.3;
     }
@@ -326,7 +328,7 @@ export async function generatePdf(project: BookProject): Promise<Blob> {
     doc.setFontSize(11);
     doc.setFont("times", "italic");
     doc.setTextColor(100, 100, 100);
-    doc.text(`Chapter ${i + 1}`, getMarginLeft(state.pageNum) + CONTENT_W / 2, state.y, { align: "center" });
+    doc.text(`${exportLabel("chapter", config.language)} ${i + 1}`, getMarginLeft(state.pageNum) + CONTENT_W / 2, state.y, { align: "center" });
     doc.setTextColor(0, 0, 0);
     state.y += 30;
     writeCenteredTitle(state, ch.title, HEADING_SIZE);
@@ -350,11 +352,11 @@ export async function generatePdf(project: BookProject): Promise<Blob> {
   // ===== BACK MATTER =====
   if (backMatter) {
     const bmSections: [string, string][] = [
-      ["Conclusion", backMatter.conclusion],
-      ["Author's Note", backMatter.authorNote],
-      ["What's Next", backMatter.callToAction],
-      ["A Small Request", backMatter.reviewRequest],
-      ["Other Books", backMatter.otherBooks],
+      [exportLabel("conclusion", config.language), backMatter.conclusion],
+      [exportLabel("authorNote", config.language), backMatter.authorNote],
+      [exportLabel("whatsNext", config.language), backMatter.callToAction],
+      [exportLabel("smallRequest", config.language), backMatter.reviewRequest],
+      [exportLabel("otherBooks", config.language), backMatter.otherBooks],
     ];
     for (const [title, content] of bmSections) {
       const txt = safeText(content);
