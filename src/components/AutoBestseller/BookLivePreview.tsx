@@ -82,6 +82,14 @@ export function BookLivePreview({ liveBook, isRunning, totalChaptersHint }: Prop
 
   const totalCh = outlines?.length ?? totalChaptersHint ?? chapters.length;
   const doneCh = chapters.filter((c) => c.phase === "done").length;
+  const activeChapter = [...chapters].reverse().find((c) => c.phase === "writing" || c.phase === "refining");
+  const activeLabel = activeChapter
+    ? activeChapter.phase === "refining"
+      ? `Capitolo ${activeChapter.index + 1}/${totalCh} in rifinitura`
+      : `Capitolo ${activeChapter.index + 1}/${totalCh} in scrittura`
+    : doneCh > 0
+      ? `${doneCh}/${totalCh} capitoli completati`
+      : "Preparazione manoscritto";
   const hasAnyContent = !!title || !!outlines?.length || chapters.length > 0;
   const bookProgress = getBookProgress(liveBook, totalChaptersHint);
 
@@ -153,7 +161,7 @@ export function BookLivePreview({ liveBook, isRunning, totalChaptersHint }: Prop
             className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left transition-colors hover:bg-muted/30"
           >
             <span className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Table of Contents · {outlines.length} chapters
+              Indice · {outlines.length} capitoli
             </span>
             {tocOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </button>

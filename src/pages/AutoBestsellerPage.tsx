@@ -271,11 +271,11 @@ export default function AutoBestsellerPage() {
             <div>
               <h1 className="flex items-center gap-2 text-lg font-semibold">
                 <Sparkles className="h-5 w-5 text-primary" />
-                {isAnyRunning ? "Writing your book…" : "Auto Bestseller Mode"}
+                {isAnyRunning ? "Scriptora sta scrivendo il tuo libro…" : "Auto Bestseller Mode"}
               </h1>
               {isAnyRunning && (
                 <p className="text-xs text-muted-foreground">
-                  Auto-saving · You can leave this page — generation continues
+                  Salvataggio automatico attivo · Puoi uscire: Scriptora continuerà in background
                 </p>
               )}
             </div>
@@ -288,7 +288,7 @@ export default function AutoBestsellerPage() {
               className="hidden sm:inline-flex"
             >
               {briefCollapsed ? <Pencil className="mr-1.5 h-3.5 w-3.5" /> : <X className="mr-1.5 h-3.5 w-3.5" />}
-              {briefCollapsed ? "View brief" : "Hide brief"}
+              {briefCollapsed ? "Vedi brief" : "Nascondi brief"}
             </Button>
           )}
         </div>
@@ -371,7 +371,7 @@ export default function AutoBestsellerPage() {
           {(engine.isRunning || engine.stages.some((s) => s.status !== "pending")) && !displayedResult && (
             <details className="group rounded-md border border-border/60 bg-card/40">
               <summary className="cursor-pointer list-none px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:bg-muted/30">
-                Pipeline details ({engine.stages.filter((s) => s.status === "done").length}/{engine.stages.length})
+                Dettagli pipeline ({engine.stages.filter((s) => s.status === "done").length}/{engine.stages.length})
               </summary>
               <div className="p-3 pt-0">
                 <ProgressTimeline
@@ -400,7 +400,7 @@ export default function AutoBestsellerPage() {
           {!engine.isRunning && !displayedResult && batchRuns.length === 0 && !engine.error && engine.liveBook.chapters.length === 0 && !showBriefPanel && (
             <div className="rounded-md border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
               <Button variant="outline" onClick={() => setBriefCollapsed(false)}>
-                <Pencil className="mr-2 h-4 w-4" /> Open brief
+                <Pencil className="mr-2 h-4 w-4" /> Apri brief
               </Button>
             </div>
           )}
