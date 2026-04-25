@@ -9,7 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import AutoBestsellerPage from "./pages/AutoBestsellerPage";
-import { PrivacyPolicy } from "./pages/legal/PrivacyPolicy";
+import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
 
 const queryClient = new QueryClient();
 
