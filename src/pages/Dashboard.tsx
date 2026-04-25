@@ -324,7 +324,7 @@ export default function Home() {
     { icon: Rocket, title: t("publish"), desc: t("publish_desc"), color: "text-purple-400", action: () => goApp({ section: "publish" }), feature: "export_epub" as const },
     { icon: Zap, title: t("title_intelligence"), desc: t("title_intelligence_desc"), color: "text-cyan-400", action: () => setShowTitleIntel(true), feature: "title_intelligence_base" as const },
     { icon: Library, title: "Biblioteca", desc: "Libri completati", color: "text-emerald-400", action: () => setShowLibrary(true) },
-    { icon: TrendingUp, title: "Bestseller Radar", desc: "Studia titoli, domanda e concorrenza", color: "text-emerald-400", action: () => navigate("/bestseller-radar"), feature: "market_research" as const },
+    { icon: TrendingUp, title: "Bestseller Radar", desc: "Studia titoli, domanda e concorrenza", color: "text-emerald-400", action: () => navigate("/bestseller-radar") },
     { icon: FileDown, title: t("export_label"), desc: t("export_desc"), color: "text-orange-400", action: () => setShowExport(true), feature: "export_epub" as const },
   ];
 
