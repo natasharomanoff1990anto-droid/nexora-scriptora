@@ -5,6 +5,7 @@ import { isProjectComplete } from "@/lib/project-status";
 import { NewBookDialog } from "@/components/NewBookDialog";
 import { HomeExportDialog } from "@/components/HomeExportDialog";
 import { TitleIntelligenceDialog } from "@/components/TitleIntelligenceDialog";
+import { CharacterStudioDialog, SCRIPTORA_CHARACTER_BIBLE_KEY } from "@/components/CharacterStudioDialog";
 import { InProgressSection } from "@/components/Home/InProgressSection";
 import { LibrarySection } from "@/components/Home/LibrarySection";
 import { PlansSection } from "@/components/PlansSection";
@@ -14,7 +15,7 @@ import { toast } from "sonner";
 import {
   BookOpen, Plus, FolderOpen, Trash2, Rocket, Zap,
   FileDown, ArrowRight, Clock, Globe, Flame, Loader2, Sparkles, Wand2,
-  Library, Home as HomeIcon, X, BarChart3, LogOut, CreditCard, Download as DownloadIcon
+  Library, Home as HomeIcon, X, BarChart3, LogOut, CreditCard, Download as DownloadIcon, Users
 } from "lucide-react";
 import { BookConfig, BookProject } from "@/types/book";
 import { t, getUILanguage, setUILanguage, UI_LANGUAGES, UILanguage } from "@/lib/i18n";
@@ -39,6 +40,48 @@ interface DetectedIntent {
   bestTitleIndex: number;
 }
 
+
+function isNarrativeGenreForCharacters(genre?: string): boolean {
+  const g = String(genre || "").toLowerCase();
+  return ["romance", "dark-romance", "thriller", "fantasy", "fiction", "memoir", "historical", "horror", "sci-fi"].some(x => g.includes(x));
+}
+
+function charactersFromBibleText(text?: string): any[] {
+  const raw = String(text || "").trim();
+  if (!raw) return [];
+
+  return raw
+    .split(/\n{2,}(?=Nome:|Name:)|^\s*[-•]\s*/gm)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((block) => {
+      const lines = block.split("\n").map(l => l.trim()).filter(Boolean);
+      const get = (label: string) => {
+        const found = lines.find(l => l.toLowerCase().startsWith(label.toLowerCase()));
+        return found ? found.replace(new RegExp("^" + label + "\\s*", "i"), "").trim() : "";
+      };
+
+      const nameLine = get("Nome:") || get("Name:") || lines[0] || "";
+      const surname = get("Cognome:") || get("Surname:");
+
+      return {
+        name: nameLine || "Personaggio",
+        surname,
+        age: get("Età:") || get("Age:"),
+        role: get("Ruolo nella storia:") || get("Role:"),
+        physicalDescription: get("Aspetto fisico:") || get("Physical description:"),
+        personality: get("Carattere:") || get("Personality:") || block,
+        wound: get("Ferita interiore:") || get("Core wound:"),
+        externalDesire: get("Desiderio esterno:") || get("External desire:"),
+        internalNeed: get("Bisogno interiore:") || get("Internal need:"),
+        secret: get("Segreto:") || get("Secret:"),
+        relationships: get("Rapporto con gli altri personaggi:") || get("Relationship to other characters:"),
+        strictRules: get("Regole di continuità:") || "Never rename this character. Preserve role, wound, desire, relationships and continuity."
+      };
+    })
+    .filter(c => String(c.name || "").trim());
+}
+
 export default function Home() {
   const navigate = useNavigate();
   const devOn = useDevMode();
@@ -46,6 +89,7 @@ export default function Home() {
   const [showProjects, setShowProjects] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showTitleIntel, setShowTitleIntel] = useState(false);
+  const [showCharacterStudio, setShowCharacterStudio] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
   const [showIdeaModal, setShowIdeaModal] = useState(false);
   const [projects, setProjects] = useState<BookProject[]>([]);
@@ -138,7 +182,23 @@ export default function Home() {
   };
 
   const handleNewBook = (config: BookConfig) => {
-    sessionStorage.setItem("nexora-new-book", JSON.stringify(config));
+    let finalConfig: BookConfig = config;
+
+    try {
+      const bible = sessionStorage.getItem(SCRIPTORA_CHARACTER_BIBLE_KEY) || localStorage.getItem(SCRIPTORA_CHARACTER_BIBLE_KEY) || "";
+      const shouldAttachCharacters = bible.trim() && isNarrativeGenreForCharacters(config.genre);
+      if (shouldAttachCharacters) {
+        finalConfig = {
+          ...config,
+          characters: charactersFromBibleText(bible),
+        } as BookConfig;
+        toast.success("Personaggi collegati al romanzo.");
+      }
+    } catch {
+      finalConfig = config;
+    }
+
+    sessionStorage.setItem("nexora-new-book", JSON.stringify(finalConfig));
     setShowNewBook(false);
     navigate("/app");
   };
@@ -216,6 +276,7 @@ export default function Home() {
 
   const cards = [
     { icon: Plus, title: t("new_book"), desc: t("new_book_desc"), color: "text-primary", action: () => setShowNewBook(true) },
+    { icon: Users, title: "Personaggi", desc: "Crea cast, ferite, segreti e continuità del romanzo", color: "text-pink-400", action: () => setShowCharacterStudio(true) },
     { icon: FolderOpen, title: t("projects"), desc: t("projects_desc"), color: "text-blue-400", action: () => setShowProjects(!showProjects) },
     { icon: Rocket, title: t("publish"), desc: t("publish_desc"), color: "text-purple-400", action: () => goApp({ section: "publish" }), feature: "export_epub" as const },
     { icon: Zap, title: t("title_intelligence"), desc: t("title_intelligence_desc"), color: "text-cyan-400", action: () => setShowTitleIntel(true), feature: "title_intelligence_base" as const },
@@ -538,6 +599,7 @@ export default function Home() {
       <NewBookDialog open={showNewBook} onClose={() => setShowNewBook(false)} onSubmit={handleNewBook} />
       <HomeExportDialog open={showExport} projects={projects} onClose={() => setShowExport(false)} />
       <TitleIntelligenceDialog open={showTitleIntel} onClose={() => setShowTitleIntel(false)} />
+      <CharacterStudioDialog open={showCharacterStudio} onClose={() => setShowCharacterStudio(false)} />
 
       {/* Idea modal — primary generation flow */}
       {showIdeaModal && (
