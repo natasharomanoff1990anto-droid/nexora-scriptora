@@ -74,6 +74,19 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
     setIdea(currentIdea);
   };
 
+
+  const improveTone = () => {
+    if (!tone || tone === "natural") {
+      setTone("warm, insightful, transformative");
+      return;
+    }
+
+    const current = tone.trim();
+    if (!current.toLowerCase().includes("bestseller")) {
+      setTone(`${current}, bestseller-level, clear, emotionally engaging`);
+    }
+  };
+
   const suggestAudienceTone = () => {
     if (isRunning) return;
 
