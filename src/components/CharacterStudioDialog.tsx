@@ -389,24 +389,48 @@ export function CharacterStudioDialog({ open, onClose }: Props) {
     }
 
     const payload = {
-      ...projectPayload,
+      idea: idea.trim(),
+      genre,
+      subcategory: subcategory.trim(),
+      tone: tone.trim(),
+      intensity,
+      centralDynamic,
+      protagonistType: protagonistType.trim(),
+      language,
+      category: "Fiction",
+      bookType: "novel",
       characterBible: bible,
       savedAt: new Date().toISOString(),
     };
 
+    const payloadJson = JSON.stringify(payload);
+
+    let savedSomewhere = false;
+
+    try {
+      sessionStorage.setItem(SCRIPTORA_CHARACTER_BIBLE_KEY, bible);
+      sessionStorage.setItem(SCRIPTORA_CHARACTER_PROJECT_KEY, payloadJson);
+      savedSomewhere = true;
+    } catch (e) {
+      console.warn("[CharacterStudio] sessionStorage save failed", e);
+    }
+
     try {
       localStorage.setItem(SCRIPTORA_CHARACTER_BIBLE_KEY, bible);
-      sessionStorage.setItem(SCRIPTORA_CHARACTER_BIBLE_KEY, bible);
-      localStorage.setItem(SCRIPTORA_CHARACTER_PROJECT_KEY, JSON.stringify(payload));
-      sessionStorage.setItem(SCRIPTORA_CHARACTER_PROJECT_KEY, JSON.stringify(payload));
-
-      window.dispatchEvent(new Event("scriptora-character-bible-change"));
-      setSaved(true);
-      toast.success("Personaggi collegati a Nuovo Libro. Ora apri Nuovo Libro: Scriptora userà cast, genere, filone e tono.");
+      localStorage.setItem(SCRIPTORA_CHARACTER_PROJECT_KEY, payloadJson);
+      savedSomewhere = true;
     } catch (e) {
-      toast.error("Non sono riuscito a salvare il collegamento personaggi.");
-      console.error("[CharacterStudio] saveAndLink failed", e);
+      console.warn("[CharacterStudio] localStorage save failed", e);
     }
+
+    if (!savedSomewhere) {
+      toast.error("Non sono riuscito a salvare il collegamento personaggi. Prova a svuotare cache/spazio browser.");
+      return;
+    }
+
+    window.dispatchEvent(new Event("scriptora-character-bible-change"));
+    setSaved(true);
+    toast.success("Personaggi collegati a Nuovo Libro. Ora apri Nuovo Libro: Scriptora userà cast, genere, filone e tono.");
   };
 
   const clear = () => {
