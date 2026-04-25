@@ -62,9 +62,13 @@ export function AdvancedAppearanceDialog({ open, onClose, onLanguageChanged }: P
 
   const saveSettings = () => {
     try {
+      localStorage.setItem("scriptora-appearance-settings", JSON.stringify(settings));
       applyScriptoraAppearance();
+      onLanguageChanged?.();
+      window.dispatchEvent(new Event("scriptora-language-change"));
+      window.dispatchEvent(new Event("scriptora-appearance-change"));
     } catch (e) {
-      console.warn("[Scriptora settings] apply appearance failed, but settings were already stored.", e);
+      console.warn("[Scriptora settings] save/apply failed", e);
     }
 
     toast.success("Impostazioni salvate.");
@@ -74,20 +78,49 @@ export function AdvancedAppearanceDialog({ open, onClose, onLanguageChanged }: P
   if (!open) return null;
 
   const changeBackground = (id: ScriptoraBackgroundId) => {
-    setBackgroundId(id);
-    saveScriptoraAppearance({ backgroundId: id, writingFont });
+    try {
+      setSettings((prev) => {
+        const next = { ...prev, backgroundId: id };
+        localStorage.setItem("scriptora-appearance-settings", JSON.stringify(next));
+        return next;
+      });
+      document.documentElement.setAttribute("data-scriptora-bg", id);
+      applyScriptoraAppearance();
+      toast.success("Sfondo aggiornato.");
+    } catch (e) {
+      console.warn("[Scriptora settings] background change failed", e);
+      toast.error("Non sono riuscito a cambiare sfondo.");
+    }
   };
 
-  const changeFont = (id: ScriptoraWritingFont) => {
-    setWritingFont(id);
-    saveScriptoraAppearance({ backgroundId, writingFont: id });
+  const changeFont = (id: ScriptoraWritingFontId) => {
+    try {
+      setSettings((prev) => {
+        const next = { ...prev, writingFontId: id };
+        localStorage.setItem("scriptora-appearance-settings", JSON.stringify(next));
+        return next;
+      });
+      document.documentElement.setAttribute("data-scriptora-font", id);
+      applyScriptoraAppearance();
+      toast.success("Carattere aggiornato.");
+    } catch (e) {
+      console.warn("[Scriptora settings] font change failed", e);
+      toast.error("Non sono riuscito a cambiare carattere.");
+    }
   };
 
-  const changeLanguage = (lang: UILanguage) => {
-    setUiLanguage(lang);
-    setUILanguage(lang);
-    onLanguageChanged?.();
-    toast.success("Lingua dell’app aggiornata.");
+  const changeLanguage = (value: any) => {
+    const next = normalizeLanguageOption(value).value as any;
+    try {
+      setUILanguage(next);
+      setUiLanguage(next);
+      onLanguageChanged?.();
+      window.dispatchEvent(new Event("scriptora-language-change"));
+      toast.success("Lingua app aggiornata.");
+    } catch (e) {
+      console.warn("[Scriptora settings] language change failed", e);
+      toast.error("Non sono riuscito a cambiare lingua.");
+    }
   };
 
   return (
