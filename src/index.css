@@ -101,3 +101,31 @@
     .nexora-aurora, .nexora-title { animation: none !important; }
   }
 }
+
+
+/* Scriptora Advanced Appearance */
+:root {
+  --scriptora-app-bg: linear-gradient(135deg, #050510 0%, #0b1020 45%, #020617 100%);
+  --scriptora-writing-font: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  background: var(--scriptora-app-bg) !important;
+  background-attachment: fixed !important;
+}
+
+.min-h-screen.bg-background,
+.bg-background {
+  background-image: var(--scriptora-app-bg);
+  background-attachment: fixed;
+}
+
+textarea,
+[contenteditable="true"],
+.scriptora-writing-surface,
+.scriptora-manuscript,
+.scriptora-editor,
+.prose,
+.editor-content {
+  font-family: var(--scriptora-writing-font);
+}

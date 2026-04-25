@@ -5,6 +5,7 @@ import { isProjectComplete } from "@/lib/project-status";
 import { NewBookDialog } from "@/components/NewBookDialog";
 import { HomeExportDialog } from "@/components/HomeExportDialog";
 import { TitleIntelligenceDialog } from "@/components/TitleIntelligenceDialog";
+import { AdvancedAppearanceDialog } from "@/components/AdvancedAppearanceDialog";
 import { CharacterStudioDialog, SCRIPTORA_CHARACTER_BIBLE_KEY, SCRIPTORA_CHARACTER_PROJECT_KEY } from "@/components/CharacterStudioDialog";
 import { InProgressSection } from "@/components/Home/InProgressSection";
 import { LibrarySection } from "@/components/Home/LibrarySection";
@@ -15,7 +16,7 @@ import { toast } from "sonner";
 import {
   BookOpen, Plus, FolderOpen, Trash2, Rocket, Zap,
   FileDown, ArrowRight, Clock, Globe, Flame, Loader2, Sparkles, Wand2,
-  Library, Home as HomeIcon, X, BarChart3, LogOut, CreditCard, Download as DownloadIcon, Users
+  Library, Home as HomeIcon, X, BarChart3, LogOut, CreditCard, Download as DownloadIcon, Settings, Users
 } from "lucide-react";
 import { BookConfig, BookProject } from "@/types/book";
 import { t, getUILanguage, setUILanguage, UI_LANGUAGES, UILanguage } from "@/lib/i18n";
@@ -105,6 +106,7 @@ export default function Home() {
   const [showProjects, setShowProjects] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showTitleIntel, setShowTitleIntel] = useState(false);
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
   const [showCharacterStudio, setShowCharacterStudio] = useState(false);
   const [showLibrary, setShowLibrary] = useState(false);
   const [showIdeaModal, setShowIdeaModal] = useState(false);
@@ -315,6 +317,7 @@ export default function Home() {
 
   const cards = [
     { icon: Plus, title: t("new_book"), desc: t("new_book_desc"), color: "text-primary", action: () => setShowNewBook(true) },
+    { icon: Settings, title: "Impostazioni avanzate", desc: "Lingua app, sfondo Scriptora e font di scrittura", color: "text-amber-300", action: () => setShowAdvancedSettings(true) },
     { icon: Users, title: "Personaggi", desc: "Crea cast, ferite, segreti e continuità del romanzo", color: "text-pink-400", action: () => setShowCharacterStudio(true) },
     { icon: FolderOpen, title: t("projects"), desc: t("projects_desc"), color: "text-blue-400", action: () => setShowProjects(!showProjects) },
     { icon: Rocket, title: t("publish"), desc: t("publish_desc"), color: "text-purple-400", action: () => goApp({ section: "publish" }), feature: "export_epub" as const },
@@ -638,6 +641,7 @@ export default function Home() {
       <NewBookDialog open={showNewBook} onClose={() => setShowNewBook(false)} onSubmit={handleNewBook} />
       <HomeExportDialog open={showExport} projects={projects} onClose={() => setShowExport(false)} />
       <TitleIntelligenceDialog open={showTitleIntel} onClose={() => setShowTitleIntel(false)} />
+      <AdvancedAppearanceDialog open={showAdvancedSettings} onClose={() => setShowAdvancedSettings(false)} onLanguageChanged={() => setLangTick(p => p + 1)} />
       <CharacterStudioDialog open={showCharacterStudio} onClose={() => setShowCharacterStudio(false)} />
 
       {/* Idea modal — primary generation flow */}
