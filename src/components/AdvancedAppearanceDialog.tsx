@@ -63,11 +63,12 @@ export function AdvancedAppearanceDialog({ open, onClose, onLanguageChanged }: P
   const saveSettings = () => {
     try {
       applyScriptoraAppearance();
-      toast.success("Impostazioni salvate.");
-      onClose();
-    } catch {
-      toast.error("Non sono riuscito a salvare le impostazioni.");
+    } catch (e) {
+      console.warn("[Scriptora settings] apply appearance failed, but settings were already stored.", e);
     }
+
+    toast.success("Impostazioni salvate.");
+    onClose();
   };
 
   if (!open) return null;
