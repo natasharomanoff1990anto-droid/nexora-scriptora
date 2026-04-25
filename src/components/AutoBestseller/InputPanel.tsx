@@ -52,6 +52,43 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
 
   const valid = idea.trim().length > 10 && targetAudience.trim().length > 2;
 
+  const improveIdea = () => {
+    if (isRunning) return;
+
+    const currentIdea = idea.trim();
+
+    if (!currentIdea) {
+      setIdea(
+        "Un libro pratico e trasformativo che aiuta il lettore a superare un blocco reale, con esempi concreti, una promessa chiara e un percorso capitolo dopo capitolo."
+      );
+      return;
+    }
+
+    if (currentIdea.length < 80) {
+      setIdea(
+        `${currentIdea}. Trasforma questa idea in un libro concreto, utile e vendibile: definisci il problema principale del lettore, la promessa di trasformazione, gli ostacoli emotivi e pratici, e un percorso progressivo che porti da confusione a chiarezza.`
+      );
+      return;
+    }
+
+    setIdea(currentIdea);
+  };
+
+  const suggestAudienceTone = () => {
+    if (isRunning) return;
+
+    if (!targetAudience.trim()) {
+      setTargetAudience(
+        "lettori adulti che vogliono migliorare la propria vita con un approccio chiaro, umano, pratico e profondo"
+      );
+    }
+
+    if (!tone || tone === "natural") {
+      setTone("warm, insightful, transformative");
+    }
+  };
+
+
   const buildInput = (): AutoBestsellerInput => ({
     idea: idea.trim(),
     genre,
