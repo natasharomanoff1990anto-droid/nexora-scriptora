@@ -821,7 +821,32 @@ async function runPipeline(
   // STAGE 5: chapters with progressive context engine + length distribution
   const chapters: OrchestratorOutput["chapters"] = [];
   const total = blueprint.chapterOutlines.length;
-  const totalTarget = Math.max(15000, Math.min(60000, input.totalWordTarget || 30000));
+  const genreKeyForLength = String(input.genre || "").toLowerCase();
+  const subKeyForLength = String(input.subcategory || "").toLowerCase();
+  const ideaKeyForLength = String(input.idea || "").toLowerCase();
+
+  const isPracticalBook =
+    genreKeyForLength.includes("garden") ||
+    genreKeyForLength.includes("gardening") ||
+    genreKeyForLength.includes("manual") ||
+    genreKeyForLength.includes("how-to") ||
+    genreKeyForLength.includes("business") ||
+    genreKeyForLength.includes("self-help") ||
+    genreKeyForLength.includes("health") ||
+    genreKeyForLength.includes("fitness") ||
+    genreKeyForLength.includes("cooking") ||
+    subKeyForLength.includes("manual") ||
+    subKeyForLength.includes("how-to") ||
+    ideaKeyForLength.includes("orto") ||
+    ideaKeyForLength.includes("coltivazione") ||
+    ideaKeyForLength.includes("giardin") ||
+    ideaKeyForLength.includes("fragole") ||
+    ideaKeyForLength.includes("manuale") ||
+    ideaKeyForLength.includes("guida pratica");
+
+  const defaultTotalTarget = isPracticalBook ? 42000 : 30000;
+  const minTotalTarget = isPracticalBook ? 26000 : 15000;
+  const totalTarget = Math.max(minTotalTarget, Math.min(70000, input.totalWordTarget || defaultTotalTarget));
   const wordTargets = distributeChapterWords(total, totalTarget);
   const practicalDirective = getPracticalDirective(input.genre);
 
