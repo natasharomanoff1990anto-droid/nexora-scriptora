@@ -246,7 +246,7 @@ export function ChapterIntelligencePanel({ project, chapterIndex, onClose, onApp
           if (patch) {
             // GitHub-style diff: red removed line + green added line
             return (
-              <div key={i} className={`rounded-lg border border-border/40 overflow-hidden ${style.border} border-l-4`}>
+              <div key={`stable-${i}`} className={`rounded-lg border border-border/40 overflow-hidden ${style.border} border-l-4`}>
                 <div className="px-3 py-1.5 bg-muted/30 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className={`h-2 w-2 rounded-full ${style.dot}`} />
@@ -274,7 +274,7 @@ export function ChapterIntelligencePanel({ project, chapterIndex, onClose, onApp
           }
 
           return (
-            <div key={i} className={`rounded-lg border border-border/30 ${style.border} border-l-4 px-3 py-2`}>
+            <div key={`stable-${i}`} className={`rounded-lg border border-border/30 ${style.border} border-l-4 px-3 py-2`}>
               <div className="flex items-center gap-2 mb-1">
                 <span className={`h-2 w-2 rounded-full ${style.dot}`} />
                 <span className="text-[10px] font-mono text-muted-foreground">¶{i + 1}</span>
@@ -403,7 +403,7 @@ export function ChapterIntelligencePanel({ project, chapterIndex, onClose, onApp
                         <p className="text-[10px] uppercase font-bold text-emerald-500 tracking-wider mb-1">Punti di forza</p>
                         <ul className="space-y-0.5">
                           {patchResult.evaluation.strengths.map((s, i) => (
-                            <li key={i} className="text-[11px] text-foreground/70">• {s}</li>
+                            <li key={`stable-${i}`} className="text-[11px] text-foreground/70">• {s}</li>
                           ))}
                         </ul>
                       </div>
@@ -411,7 +411,7 @@ export function ChapterIntelligencePanel({ project, chapterIndex, onClose, onApp
                         <p className="text-[10px] uppercase font-bold text-primary tracking-wider mb-1">Migliorato</p>
                         <ul className="space-y-0.5">
                           {patchResult.evaluation.improvements.map((s, i) => (
-                            <li key={i} className="text-[11px] text-foreground/70">• {s}</li>
+                            <li key={`stable-${i}`} className="text-[11px] text-foreground/70">• {s}</li>
                           ))}
                         </ul>
                       </div>
@@ -590,7 +590,7 @@ export function ChapterIntelligencePanel({ project, chapterIndex, onClose, onApp
                         <span className="text-[10px] font-bold uppercase tracking-wider text-foreground">AI patterns rilevati ({result.editorialMastery.aiPatterns!.length})</span>
                       </div>
                       {result.editorialMastery.aiPatterns!.slice(0, 5).map((p, i) => (
-                        <div key={i} className="px-2.5 py-1.5 rounded-md bg-rose-500/5 border border-rose-500/20 text-[11px]">
+                        <div key={`stable-${i}`} className="px-2.5 py-1.5 rounded-md bg-rose-500/5 border border-rose-500/20 text-[11px]">
                           <span className="font-mono text-muted-foreground">¶{p.idx + 1}</span>
                           <span className="text-rose-500/90 italic mx-1.5">"{p.phrase}"</span>
                           <span className="text-foreground/70">→ {p.fix}</span>
@@ -606,7 +606,7 @@ export function ChapterIntelligencePanel({ project, chapterIndex, onClose, onApp
                         <span className="text-[10px] font-bold uppercase tracking-wider text-foreground">Show vs Tell ({result.editorialMastery.showVsTell!.length})</span>
                       </div>
                       {result.editorialMastery.showVsTell!.slice(0, 5).map((s, i) => (
-                        <div key={i} className="px-2.5 py-1.5 rounded-md bg-card/60 border border-border/40 text-[11px]">
+                        <div key={`stable-${i}`} className="px-2.5 py-1.5 rounded-md bg-card/60 border border-border/40 text-[11px]">
                           <span className="font-mono text-muted-foreground">¶{s.idx + 1}</span>
                           <span className="text-foreground/60 italic mx-1.5 line-through">"{s.told}"</span>
                           <span className="text-foreground/85">→ {s.showSuggestion}</span>
@@ -622,7 +622,7 @@ export function ChapterIntelligencePanel({ project, chapterIndex, onClose, onApp
                         <span className="text-[10px] font-bold uppercase tracking-wider text-foreground">Frasi deboli ({result.editorialMastery.weakSentences!.length})</span>
                       </div>
                       {result.editorialMastery.weakSentences!.slice(0, 5).map((w, i) => (
-                        <div key={i} className="px-2.5 py-1.5 rounded-md bg-card/60 border border-border/40 text-[11px]">
+                        <div key={`stable-${i}`} className="px-2.5 py-1.5 rounded-md bg-card/60 border border-border/40 text-[11px]">
                           <span className="font-mono text-muted-foreground">¶{w.idx + 1}</span>
                           <span className="text-foreground/80 italic mx-1.5">"{w.sentence}"</span>
                           <span className="text-[hsl(var(--warning))] font-semibold">{w.why}</span>
@@ -641,7 +641,7 @@ export function ChapterIntelligencePanel({ project, chapterIndex, onClose, onApp
                   </div>
                   <ul className="space-y-1">
                     {result.keyIssues.map((issue, i) => (
-                      <li key={i} className="text-xs text-foreground/70 pl-4 relative">
+                      <li key={`stable-${i}`} className="text-xs text-foreground/70 pl-4 relative">
                         <span className="absolute left-0 text-[hsl(var(--warning))]/60">•</span>{issue}
                       </li>
                     ))}

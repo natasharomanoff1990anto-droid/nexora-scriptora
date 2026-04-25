@@ -270,7 +270,7 @@ export function KdpTitleDomination({ onUseTitle, defaults }: Props) {
                   Query di mercato usate ({result.groundingQueries.length}) · {result.groundingResultsCount} risultati analizzati
                 </summary>
                 <ul className="mt-2 space-y-1 text-muted-foreground">
-                  {result.groundingQueries.map((q, i) => <li key={i} className="font-mono">› {q}</li>)}
+                  {result.groundingQueries.map((q, i) => <li key={`stable-${i}`} className="font-mono">› {q}</li>)}
                 </ul>
               </details>
             )}
@@ -323,7 +323,7 @@ export function KdpTitleDomination({ onUseTitle, defaults }: Props) {
                 <div className="text-xs font-semibold mb-2 text-muted-foreground">Segnali competitor</div>
                 <div className="space-y-2">
                   {result.competitorInsights.slice(0, 8).map((c, i) => (
-                    <div key={i} className="text-xs border border-border rounded-md p-2">
+                    <div key={`stable-${i}`} className="text-xs border border-border rounded-md p-2">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-medium">{c.titleSignal}</span>
                         <Badge variant={riskTone(c.riskLevel) as any} className="text-[10px]">{c.riskLevel}</Badge>
@@ -342,7 +342,7 @@ export function KdpTitleDomination({ onUseTitle, defaults }: Props) {
               </div>
               <div className="grid grid-cols-1 gap-2">
                 {sortedCandidates.map((c, i) => (
-                  <div key={i} className="border border-border rounded-lg p-3 hover:bg-muted/40 transition">
+                  <div key={`stable-${i}`} className="border border-border rounded-lg p-3 hover:bg-muted/40 transition">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-sm">{c.title}</div>
@@ -388,7 +388,7 @@ export function KdpTitleDomination({ onUseTitle, defaults }: Props) {
               <div className="text-xs">
                 <div className="font-semibold mb-1 text-muted-foreground">Prossime mosse</div>
                 <ul className="space-y-1">
-                  {result.nextActions.map((a, i) => <li key={i}>→ {a}</li>)}
+                  {result.nextActions.map((a, i) => <li key={`stable-${i}`}>→ {a}</li>)}
                 </ul>
               </div>
             )}
@@ -407,7 +407,7 @@ function SignalBlock({ title, items, tone }: { title: string; items: string[]; t
     <div>
       <div className={`font-semibold mb-1 ${color}`}>{title}</div>
       <ul className="space-y-0.5 text-muted-foreground">
-        {items.slice(0, 8).map((it, i) => <li key={i}>• {it}</li>)}
+        {items.slice(0, 8).map((it, i) => <li key={`stable-${i}`}>• {it}</li>)}
       </ul>
     </div>
   );

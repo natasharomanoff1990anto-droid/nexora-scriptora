@@ -131,7 +131,7 @@ export function GenreCoachPanel({
               </div>
               <ul className="space-y-2">
                 {report.fixes.map((f, i) => (
-                  <li key={i} className="rounded border border-border/60 bg-muted/30 p-2.5">
+                  <li key={`stable-${i}`} className="rounded border border-border/60 bg-muted/30 p-2.5">
                     <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground mb-1">
                       <span className="font-semibold text-foreground/80">{f.where}</span>
                       <span>·</span>
@@ -155,7 +155,7 @@ export function GenreCoachPanel({
               </div>
               <ul className="space-y-1.5">
                 {report.autoFixRules.map((r, i) => (
-                  <li key={i} className="text-xs text-foreground/85">
+                  <li key={`stable-${i}`} className="text-xs text-foreground/85">
                     <span className="font-semibold text-primary">[{r.label}]</span>{" "}
                     <span className="text-foreground/70">{r.directive}</span>
                   </li>
@@ -185,7 +185,7 @@ function Section({ icon, title, items }: { icon: React.ReactNode; title: string;
     <div>
       <div className="flex items-center gap-2 font-medium text-foreground mb-1.5">{icon}{title}</div>
       <ul className="space-y-1 ml-6 list-disc text-foreground/85">
-        {items.map((it, i) => <li key={i}>{it}</li>)}
+        {items.map((it, i) => <li key={`stable-${i}`}>{it}</li>)}
       </ul>
     </div>
   );

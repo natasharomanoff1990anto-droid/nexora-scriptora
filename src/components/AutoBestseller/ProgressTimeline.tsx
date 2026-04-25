@@ -82,7 +82,7 @@ export function ProgressTimeline({ stages, retries, chapters, isRunning }: Props
             </p>
             <ul className="space-y-1 text-xs text-muted-foreground">
               {retries.map((r, i) => (
-                <li key={i}>Attempt #{r.attempt}: {r.reason}</li>
+                <li key={`stable-${i}`}>Attempt #{r.attempt}: {r.reason}</li>
               ))}
             </ul>
           </div>

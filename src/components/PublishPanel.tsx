@@ -511,7 +511,7 @@ function BookPreviewModal({
             <p className="text-center text-sm text-muted-foreground py-8">Nessun capitolo ancora generato.</p>
           )}
           {chapters.map((ch, i) => (
-            <div key={i} className="border border-border/50 rounded-lg overflow-hidden">
+            <div key={`stable-${i}`} className="border border-border/50 rounded-lg overflow-hidden">
               <div className="px-4 py-2.5 bg-muted/30 flex items-center justify-between border-b border-border/50">
                 <div className="min-w-0 flex-1">
                   <h4 className="text-sm font-bold text-foreground truncate">Capitolo {i + 1}: {ch.title || "Senza titolo"}</h4>

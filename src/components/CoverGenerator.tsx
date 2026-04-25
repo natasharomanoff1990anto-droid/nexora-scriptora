@@ -146,7 +146,7 @@ export function CoverGenerator({ title, subtitle, onGenerate, onClose }: CoverGe
               <div className="space-y-1">
                 {TEMPLATES.map((t, i) => (
                   <button
-                    key={i}
+                    key={`stable-${i}`}
                     onClick={() => setSelectedTemplate(i)}
                     className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors ${
                       i === selectedTemplate ? "bg-primary/20 text-primary" : "text-muted-foreground hover:text-foreground"

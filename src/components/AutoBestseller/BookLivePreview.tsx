@@ -173,7 +173,7 @@ export function BookLivePreview({ liveBook, isRunning, totalChaptersHint }: Prop
                   const status = ch?.phase ?? "pending";
                   return (
                     <li
-                      key={i}
+                      key={`stable-${i}`}
                       className={cn(
                         "flex items-center gap-2 rounded px-2 py-1",
                         status === "done" && "text-foreground",

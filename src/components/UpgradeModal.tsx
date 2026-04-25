@@ -151,7 +151,7 @@ function PlanCard({ name, price, period, features, cta, badge, highlight, icon, 
       </div>
       <ul className="space-y-2 mb-5 flex-1">
         {features.map((f, i) => (
-          <li key={i} className="flex items-start gap-1.5 text-xs text-foreground/85">
+          <li key={`stable-${i}`} className="flex items-start gap-1.5 text-xs text-foreground/85">
             <Check className="h-3.5 w-3.5 text-primary flex-shrink-0 mt-0.5" />
             <span>{f}</span>
           </li>

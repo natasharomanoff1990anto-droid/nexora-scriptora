@@ -230,7 +230,7 @@ export default function KdpLaunchPage() {
                 const selected = chosenTitle === p.title;
                 return (
                   <button
-                    key={i}
+                    key={`stable-${i}`}
                     onClick={() => { setChosenTitle(p.title); setChosenSubtitle(p.subtitle); }}
                     className={`w-full text-left p-3 rounded-lg border transition ${selected ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}
                   >
@@ -244,8 +244,8 @@ export default function KdpLaunchPage() {
               <details className="text-xs">
                 <summary className="cursor-pointer text-muted-foreground">Tutti i {titles.titles.length} titoli + {titles.subtitles.length} sottotitoli</summary>
                 <div className="grid grid-cols-2 gap-3 mt-2">
-                  <ul className="space-y-1">{titles.titles.map((t, i) => <li key={i}>• {t}</li>)}</ul>
-                  <ul className="space-y-1">{titles.subtitles.map((s, i) => <li key={i}>• {s}</li>)}</ul>
+                  <ul className="space-y-1">{titles.titles.map((t, i) => <li key={`stable-${i}`}>• {t}</li>)}</ul>
+                  <ul className="space-y-1">{titles.subtitles.map((s, i) => <li key={`stable-${i}`}>• {s}</li>)}</ul>
                 </div>
               </details>
               <div className="flex justify-end">
@@ -275,16 +275,16 @@ export default function KdpLaunchPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>Keyword backend</Label>
-                  <ul className="text-xs space-y-1 mt-1">{packaging.backendKeywords.map((k, i) => <li key={i}>• {k}</li>)}</ul>
+                  <ul className="text-xs space-y-1 mt-1">{packaging.backendKeywords.map((k, i) => <li key={`stable-${i}`}>• {k}</li>)}</ul>
                 </div>
                 <div>
                   <Label>Categorie KDP</Label>
-                  <ul className="text-xs space-y-1 mt-1">{packaging.categories.map((c, i) => <li key={i}>• {c}</li>)}</ul>
+                  <ul className="text-xs space-y-1 mt-1">{packaging.categories.map((c, i) => <li key={`stable-${i}`}>• {c}</li>)}</ul>
                 </div>
               </div>
               <div>
                 <Label>Bullet di vendita</Label>
-                <ul className="text-xs space-y-1 mt-1">{packaging.bulletPoints.map((b, i) => <li key={i}>• {b}</li>)}</ul>
+                <ul className="text-xs space-y-1 mt-1">{packaging.bulletPoints.map((b, i) => <li key={`stable-${i}`}>• {b}</li>)}</ul>
               </div>
               <div className="flex justify-end">
                 <Button onClick={runPredict} disabled={loading}>
@@ -309,15 +309,15 @@ export default function KdpLaunchPage() {
               <div className="grid grid-cols-3 gap-3">
                 <div>
                   <div className="text-xs font-semibold text-primary mb-1">Forze</div>
-                  <ul className="space-y-1">{prediction.strengths.map((x, i) => <li key={i}>✓ {x}</li>)}</ul>
+                  <ul className="space-y-1">{prediction.strengths.map((x, i) => <li key={`stable-${i}`}>✓ {x}</li>)}</ul>
                 </div>
                 <div>
                   <div className="text-xs font-semibold text-destructive mb-1">Debolezze</div>
-                  <ul className="space-y-1">{prediction.weaknesses.map((x, i) => <li key={i}>✗ {x}</li>)}</ul>
+                  <ul className="space-y-1">{prediction.weaknesses.map((x, i) => <li key={`stable-${i}`}>✗ {x}</li>)}</ul>
                 </div>
                 <div>
                   <div className="text-xs font-semibold mb-1">Migliorie</div>
-                  <ul className="space-y-1">{prediction.improvements.map((x, i) => <li key={i}>→ {x}</li>)}</ul>
+                  <ul className="space-y-1">{prediction.improvements.map((x, i) => <li key={`stable-${i}`}>→ {x}</li>)}</ul>
                 </div>
               </div>
               <Separator />

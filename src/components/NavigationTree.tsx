@@ -127,7 +127,7 @@ export function NavigationTree({ project, activeSection, onSelectSection, genera
             const isSelected = selected.has(i);
 
             return (
-              <div key={i}>
+              <div key={`stable-${i}`}>
                 <div className={cn("flex items-center", isSelected && "bg-primary/10")}>
                   {selectMode ? (
                     <button

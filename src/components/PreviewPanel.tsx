@@ -60,7 +60,7 @@ export function PreviewPanel({ project, activeSection }: PreviewPanelProps) {
                       <p className="text-xs uppercase tracking-widest text-muted-foreground/50 mb-3">Table of Contents</p>
                       <ol className="space-y-1.5">
                         {blueprint.chapterOutlines.map((o, i) => (
-                          <li key={i} className="text-sm text-foreground/70">
+                          <li key={`stable-${i}`} className="text-sm text-foreground/70">
                             <span className="text-muted-foreground mr-2">{i + 1}.</span>
                             {chapters[i]?.title || o.title}
                           </li>

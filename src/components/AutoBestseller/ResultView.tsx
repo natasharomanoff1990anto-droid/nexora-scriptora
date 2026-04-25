@@ -51,7 +51,7 @@ export function ResultView({ result, onSaveAsProject }: Props) {
           <ScrollArea className="h-[420px] rounded-md border border-border/60">
             <ul className="divide-y divide-border/60">
               {result.chapters.map((ch, i) => (
-                <li key={i} className="p-3">
+                <li key={`stable-${i}`} className="p-3">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-medium truncate">Ch {i + 1}. {ch.title}</p>

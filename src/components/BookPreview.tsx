@@ -108,7 +108,7 @@ export function BookPreview({
           {blueprint.themes.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {blueprint.themes.map((t, i) => (
-                <span key={i} className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary">{t}</span>
+                <span key={`stable-${i}`} className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary">{t}</span>
               ))}
             </div>
           )}
@@ -133,7 +133,7 @@ export function BookPreview({
         <section className="space-y-3">
           <h2 className="text-sm font-semibold text-primary uppercase tracking-wider">Chapters</h2>
           {blueprint.chapterOutlines.map((outline, i) => (
-            <div key={i} className="border border-border rounded-lg p-4 space-y-2">
+            <div key={`stable-${i}`} className="border border-border rounded-lg p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-semibold text-foreground">Ch {i + 1}: {outline.title}</h3>
@@ -202,7 +202,7 @@ export function BookPreview({
         <section className="space-y-4">
           <h2 className="text-sm font-semibold text-primary uppercase tracking-wider">Chapters</h2>
           {chapters.map((ch, i) => (
-            <div key={i} className="border border-border rounded-lg p-4 space-y-2">
+            <div key={`stable-${i}`} className="border border-border rounded-lg p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-foreground">Chapter {i + 1}: {ch.title}</h3>
                 <div className="flex gap-1">

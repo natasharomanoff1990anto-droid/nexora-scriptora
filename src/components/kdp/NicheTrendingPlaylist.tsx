@@ -424,7 +424,7 @@ function NicheCard({
       {niche.dominantKeywords?.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-2">
           {niche.dominantKeywords.slice(0, 5).map((k, i) => (
-            <span key={i} className="px-1.5 py-0.5 rounded text-[9px] bg-muted text-muted-foreground border border-border/60">
+            <span key={`stable-${i}`} className="px-1.5 py-0.5 rounded text-[9px] bg-muted text-muted-foreground border border-border/60">
               {k}
             </span>
           ))}

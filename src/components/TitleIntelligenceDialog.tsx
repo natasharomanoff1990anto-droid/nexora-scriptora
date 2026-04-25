@@ -46,7 +46,6 @@ export function TitleIntelligenceDialog({ open, onClose, initialTitle, initialGe
     try {
       // Invisible routing: pass plan so the edge function picks the cheapest viable mode.
       const { fetchPlan } = await import("@/lib/plan");
-      const plan = await fetchPlan().catch(() => "free");
       const { data: res, error: err } = await supabase.functions.invoke("title-autofill", {
         body: {
           bookGenre: bookGenre || "Self-help",
@@ -309,7 +308,7 @@ export function TitleIntelligenceDialog({ open, onClose, initialTitle, initialGe
                       <SectionLabel icon={<Flame className="h-3.5 w-3.5" />} label="🎯 Sotto-nicchie ad alta opportunità" color="text-amber-400" />
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         {data.marketSnapshot.topSubNiches.map((n, i) => (
-                          <div key={i} className="p-2.5 rounded-lg bg-card border border-border">
+                          <div key={`stable-${i}`} className="p-2.5 rounded-lg bg-card border border-border">
                             <div className="flex items-start justify-between gap-2 mb-1">
                               <p className="text-xs font-semibold text-foreground leading-tight">{n.name}</p>
                               <OpportunityBadge score={n.opportunityScore} />
@@ -332,7 +331,7 @@ export function TitleIntelligenceDialog({ open, onClose, initialTitle, initialGe
                 <SectionLabel icon={<TrendingUp className="h-3.5 w-3.5" />} label="🔥 Top Titoli (ordinati per opportunità)" color="text-orange-400" />
                 <div className="grid grid-cols-1 gap-2.5">
                   {data.topTitles.map((c, i) => (
-                    <TitleCardView key={i} card={c} accent="primary" onSelect={() => handleSelect(c)} onCopy={() => copyTitle(c)} />
+                    <TitleCardView key={`stable-${i}`} card={c} accent="primary" onSelect={() => handleSelect(c)} onCopy={() => copyTitle(c)} />
                   ))}
                 </div>
               </div>
@@ -343,7 +342,7 @@ export function TitleIntelligenceDialog({ open, onClose, initialTitle, initialGe
                   <SectionLabel icon={<Zap className="h-3.5 w-3.5" />} label="⚡ Shadow Titles (commerciali)" color="text-purple-400" />
                   <div className="grid grid-cols-1 gap-2.5">
                     {data.shadowTitles.map((c, i) => (
-                      <TitleCardView key={i} card={c} accent="purple" onSelect={() => handleSelect(c)} onCopy={() => copyTitle(c)} />
+                      <TitleCardView key={`stable-${i}`} card={c} accent="purple" onSelect={() => handleSelect(c)} onCopy={() => copyTitle(c)} />
                     ))}
                   </div>
                 </div>
@@ -355,7 +354,7 @@ export function TitleIntelligenceDialog({ open, onClose, initialTitle, initialGe
                   <SectionLabel icon={<Target className="h-3.5 w-3.5" />} label="🎯 Core Keywords (domanda vs concorrenza)" color="text-emerald-400" />
                   <div className="flex flex-wrap gap-1.5">
                     {data.coreKeywords.map((k, i) => (
-                      <KeywordChip key={i} kw={k} />
+                      <KeywordChip key={`stable-${i}`} kw={k} />
                     ))}
                   </div>
                 </div>

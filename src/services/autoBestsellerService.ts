@@ -199,7 +199,6 @@ export async function createRunRow(input: AutoBestsellerInput, batchId?: string)
   const { getCurrentUserId } = await import("@/services/storageService");
   const { data, error } = await supabase
     .from("auto_bestseller_runs")
-    .insert({ input: input as any, status: "running", batch_id: batchId ?? null, user_id: getCurrentUserId() })
     .select("id")
     .single();
   if (error) {
@@ -218,11 +217,9 @@ export async function updateRunRow(
 }
 
 export async function fetchRecentRuns(limit = 20) {
-  const { getCurrentUserId } = await import("@/services/storageService");
   const { data, error } = await supabase
     .from("auto_bestseller_runs")
     .select("*")
-    .eq("user_id", getCurrentUserId())
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) {

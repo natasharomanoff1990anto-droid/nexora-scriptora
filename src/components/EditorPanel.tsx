@@ -189,7 +189,7 @@ function PreviewMode({ project, view, ws }: { project: BookProject; view: any; w
               <p className="text-xs uppercase tracking-widest text-muted-foreground/50 mb-3">{t("table_of_contents")}</p>
               <ol className="space-y-1.5">
                 {blueprint.chapterOutlines.map((o, i) => (
-                  <li key={i} className="text-foreground/70" style={{ fontSize: `${ws.fontSize}px` }}>
+                  <li key={`row-${i}`} className="text-foreground/70" style={{ fontSize: `${ws.fontSize}px` }}>
                     <span className="text-muted-foreground mr-2">{i + 1}.</span>
                     {chapters[i]?.title || o.title}
                   </li>
@@ -286,7 +286,7 @@ function BlueprintView({ blueprint, isGenerating, onUpdateField, onUpdateOutline
               <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-3">{t("themes")}</p>
               <div className="flex flex-wrap gap-2">
                 {blueprint.themes.map((th, i) => (
-                  <span key={i} className="text-xs px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium">{th}</span>
+                  <span key={`row-${i}`} className="text-xs px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium">{th}</span>
                 ))}
               </div>
             </div>
@@ -307,7 +307,7 @@ function BlueprintView({ blueprint, isGenerating, onUpdateField, onUpdateOutline
             <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-4">{t("chapter_outlines")}</p>
             <div className="space-y-3">
               {blueprint.chapterOutlines.map((o, i) => (
-                <div key={i} className="flex gap-4 p-4 rounded-xl bg-muted/15 border border-border/30 hover:bg-muted/25 transition-colors">
+                <div key={`row-${i}`} className="flex gap-4 p-4 rounded-xl bg-muted/15 border border-border/30 hover:bg-muted/25 transition-colors">
                   <span className="text-sm font-bold text-primary/50 shrink-0 pt-0.5 w-6 text-right">{i + 1}</span>
                   <div className="flex-1 min-w-0">
                     <input

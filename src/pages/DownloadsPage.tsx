@@ -77,7 +77,7 @@ export default function DownloadsPage() {
                 </div>
                 <ul className="space-y-1">
                   {entry.notes.map((n, i) => (
-                    <li key={i} className="text-xs text-muted-foreground flex gap-2">
+                    <li key={`stable-${i}`} className="text-xs text-muted-foreground flex gap-2">
                       <span className="text-primary">•</span>
                       <span>{n}</span>
                     </li>

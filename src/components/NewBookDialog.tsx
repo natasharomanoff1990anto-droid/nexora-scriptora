@@ -347,7 +347,7 @@ function GenreStructurePreview({ genre, subcategory }: { genre: string; subcateg
       </div>
       <div className="flex flex-wrap gap-1">
         {bp.structure.slice(0, 8).map((s, i) => (
-          <span key={i} className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted/60 border border-border/40 text-foreground/80">
+          <span key={`stable-${i}`} className="text-[10px] px-1.5 py-0.5 rounded-md bg-muted/60 border border-border/40 text-foreground/80">
             {i + 1}. {s}
           </span>
         ))}
@@ -355,7 +355,7 @@ function GenreStructurePreview({ genre, subcategory }: { genre: string; subcateg
       {bp.contentRules.length > 0 && (
         <ul className="text-[10px] text-muted-foreground space-y-0.5 pt-1 border-t border-border/30">
           {bp.contentRules.slice(0, 3).map((r, i) => (
-            <li key={i} className="leading-snug">• {r}</li>
+            <li key={`stable-${i}`} className="leading-snug">• {r}</li>
           ))}
         </ul>
       )}

@@ -330,7 +330,7 @@ Respond in ${bookLang}. Return ONLY valid JSON.`,
                     </div>
                     <div className="flex items-center gap-1">
                       {Array.from({ length: 5 }, (_, i) => (
-                        <Heart key={i} className={`h-3.5 w-3.5 ${i < Math.round(result.finalHeartScore) ? "text-destructive fill-destructive" : "text-muted-foreground/20"}`} />
+                        <Heart key={`stable-${i}`} className={`h-3.5 w-3.5 ${i < Math.round(result.finalHeartScore) ? "text-destructive fill-destructive" : "text-muted-foreground/20"}`} />
                       ))}
                       <span className="text-[10px] font-bold text-muted-foreground ml-1">{result.finalHeartScore}/5</span>
                     </div>
@@ -366,7 +366,7 @@ Respond in ${bookLang}. Return ONLY valid JSON.`,
                   />
 
                   {result.passes.map((pass, i) => (
-                    <div key={i}>
+                    <div key={`stable-${i}`}>
                       <VersionRow
                         label={`${t("pass")} ${i + 1}`}
                         score={pass.scoreAfter}

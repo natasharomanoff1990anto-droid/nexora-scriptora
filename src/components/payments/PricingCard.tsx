@@ -70,7 +70,7 @@ export function PricingCard({ plan, comingSoon, isCurrent, onAction }: PricingCa
 
       <ul className="space-y-2 mb-6 flex-1">
         {plan.features.map((f, i) => (
-          <li key={i} className="flex items-start gap-2 text-xs">
+          <li key={`stable-${i}`} className="flex items-start gap-2 text-xs">
             {f.included ? (
               <Check className="h-3.5 w-3.5 text-primary flex-shrink-0 mt-0.5" />
             ) : (
