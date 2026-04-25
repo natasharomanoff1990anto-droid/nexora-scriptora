@@ -17,6 +17,7 @@ import UsagePage from "./pages/UsagePage.tsx";
 import PricingPage from "./pages/PricingPage.tsx";
 import KdpLaunchPage from "./pages/KdpLaunchPage.tsx";
 import DownloadsPage from "./pages/DownloadsPage.tsx";
+import BestsellerRadarPage from "./pages/BestsellerRadarPage.tsx";
 import InstallPage from "./pages/InstallPage.tsx";
 import { DevModeBadge } from "@/components/DevModeBadge";
 import { AppErrorBoundary } from "@/components/AppErrorBoundary";
@@ -44,6 +45,7 @@ const App = () => (
                 <Route path="/usage" element={<ProtectedRoute><UsagePage /></ProtectedRoute>} />
                 <Route path="/kdp-launch" element={<ProtectedRoute><KdpLaunchPage /></ProtectedRoute>} />
                 <Route path="/downloads" element={<ProtectedRoute><DownloadsPage /></ProtectedRoute>} />
+                <Route path="/bestseller-radar" element={<ProtectedRoute><BestsellerRadarPage /></ProtectedRoute>} />
                 <Route path="/install" element={<InstallPage />} />
 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
