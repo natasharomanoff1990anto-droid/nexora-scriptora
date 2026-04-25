@@ -60,6 +60,16 @@ export function AdvancedAppearanceDialog({ open, onClose, onLanguageChanged }: P
     setUiLanguage(getUILanguage());
   }, [open]);
 
+  const saveSettings = () => {
+    try {
+      applyScriptoraAppearance();
+      toast.success("Impostazioni salvate.");
+      onClose();
+    } catch {
+      toast.error("Non sono riuscito a salvare le impostazioni.");
+    }
+  };
+
   if (!open) return null;
 
   const changeBackground = (id: ScriptoraBackgroundId) => {
@@ -163,6 +173,25 @@ export function AdvancedAppearanceDialog({ open, onClose, onLanguageChanged }: P
               })}
             </div>
           </section>
+        </div>
+
+        <div className="sticky bottom-0 border-t border-border bg-card/95 p-4 backdrop-blur">
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-xl border border-border px-4 py-2 text-sm text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+            >
+              Chiudi
+            </button>
+            <button
+              type="button"
+              onClick={saveSettings}
+              className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
+            >
+              Salva impostazioni
+            </button>
+          </div>
         </div>
       </div>
     </div>
