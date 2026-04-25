@@ -11,46 +11,126 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 export const SCRIPTORA_CHARACTER_BIBLE_KEY = "scriptora-character-bible-v1";
 export const SCRIPTORA_CHARACTER_PROJECT_KEY = "scriptora-character-project-v1";
 
-const ROMAN_GENRES_PRO = [
-  "romance", "dark-romance", "romantasy", "thriller", "psychological thriller",
-  "crime", "mystery", "fantasy", "urban fantasy", "dark fantasy", "epic fantasy",
-  "horror", "gothic horror", "folk horror", "sci-fi", "dystopian", "cyberpunk",
-  "historical fiction", "literary fiction", "young adult", "paranormal",
-  "adventure", "suspense", "family saga", "memoir narrativo"
+type ChoiceOption = string | { value: string; label: string };
+
+function optionValue(option: ChoiceOption): string {
+  return typeof option === "string" ? option : option.value;
+}
+
+function optionLabel(option: ChoiceOption): string {
+  return typeof option === "string" ? option : option.label;
+}
+
+const ROMAN_GENRES_PRO: ChoiceOption[] = [
+  { value: "romance", label: "Romance" },
+  { value: "dark-romance", label: "Dark romance" },
+  { value: "romantasy", label: "Romantasy" },
+  { value: "thriller", label: "Thriller" },
+  { value: "psychological thriller", label: "Thriller psicologico" },
+  { value: "crime", label: "Crime / noir" },
+  { value: "mystery", label: "Mistero" },
+  { value: "fantasy", label: "Fantasy" },
+  { value: "urban fantasy", label: "Urban fantasy" },
+  { value: "dark fantasy", label: "Dark fantasy" },
+  { value: "epic fantasy", label: "Fantasy epico" },
+  { value: "horror", label: "Horror" },
+  { value: "gothic horror", label: "Horror gotico" },
+  { value: "folk horror", label: "Folk horror" },
+  { value: "sci-fi", label: "Fantascienza" },
+  { value: "dystopian", label: "Distopico" },
+  { value: "cyberpunk", label: "Cyberpunk" },
+  { value: "historical fiction", label: "Romanzo storico" },
+  { value: "literary fiction", label: "Narrativa letteraria" },
+  { value: "young adult", label: "Young adult" },
+  { value: "paranormal", label: "Paranormale" },
+  { value: "adventure", label: "Avventura" },
+  { value: "suspense", label: "Suspense" },
+  { value: "family saga", label: "Saga familiare" },
+  { value: "memoir narrativo", label: "Memoir narrativo" }
 ];
 
-const SUBGENRES_PRO = [
-  "enemies to lovers", "second chance", "forbidden love", "slow burn",
-  "small town", "billionaire", "workplace romance", "fake dating",
-  "forced proximity", "age gap", "friends to lovers", "mafia romance",
-  "psychological suspense", "domestic thriller", "serial killer",
-  "missing person", "legal thriller", "conspiracy", "revenge story",
-  "chosen one", "portal fantasy", "academy", "royal court intrigue",
-  "monster romance", "haunted house", "survival horror", "coming of age",
-  "found family", "redemption arc", "morally grey characters"
+const SUBGENRES_PRO: ChoiceOption[] = [
+  { value: "enemies to lovers", label: "Nemici che si innamorano" },
+  { value: "second chance", label: "Seconda occasione" },
+  { value: "forbidden love", label: "Amore proibito" },
+  { value: "slow burn", label: "Slow burn" },
+  { value: "small town", label: "Piccola città" },
+  { value: "billionaire", label: "Billionaire romance" },
+  { value: "workplace romance", label: "Romance sul lavoro" },
+  { value: "fake dating", label: "Finta relazione" },
+  { value: "forced proximity", label: "Costretti vicini" },
+  { value: "age gap", label: "Differenza d’età" },
+  { value: "friends to lovers", label: "Da amici ad amanti" },
+  { value: "mafia romance", label: "Mafia romance" },
+  { value: "psychological suspense", label: "Suspense psicologica" },
+  { value: "domestic thriller", label: "Thriller domestico" },
+  { value: "serial killer", label: "Serial killer" },
+  { value: "missing person", label: "Persona scomparsa" },
+  { value: "legal thriller", label: "Thriller legale" },
+  { value: "conspiracy", label: "Cospirazione" },
+  { value: "revenge story", label: "Storia di vendetta" },
+  { value: "chosen one", label: "Prescelto" },
+  { value: "portal fantasy", label: "Portal fantasy" },
+  { value: "academy", label: "Academy" },
+  { value: "royal court intrigue", label: "Intrighi di corte" },
+  { value: "monster romance", label: "Monster romance" },
+  { value: "haunted house", label: "Casa infestata" },
+  { value: "survival horror", label: "Survival horror" },
+  { value: "coming of age", label: "Formazione / crescita" },
+  { value: "found family", label: "Famiglia trovata" },
+  { value: "redemption arc", label: "Arco di redenzione" },
+  { value: "morally grey characters", label: "Personaggi moralmente ambigui" }
 ];
 
-const TONES_PRO = [
-  "poetico e cinematografico", "dark e sensuale", "elegante e letterario",
-  "veloce e commerciale", "BookTok emotional", "crudo e realistico",
-  "ironico e brillante", "gotico e atmosferico", "epico e mitico",
-  "intimo e confessionale", "sospeso e misterioso", "brutale e ad alta tensione",
-  "romantico slow burn", "spicy ma elegante", "clean e profondo",
+const TONES_PRO: ChoiceOption[] = [
+  "poetico e cinematografico",
+  "dark e sensuale",
+  "elegante e letterario",
+  "veloce e commerciale",
+  "emotivo da BookTok",
+  "crudo e realistico",
+  "ironico e brillante",
+  "gotico e atmosferico",
+  "epico e mitico",
+  "intimo e confessionale",
+  "sospeso e misterioso",
+  "brutale e ad alta tensione",
+  "romantico slow burn",
+  "spicy ma elegante",
+  "pulito e profondo",
   "melanconico e struggente"
 ];
 
-const INTENSITIES_PRO = [
-  "soft", "medium", "intense", "slow burn", "high drama",
-  "high suspense", "emotional devastation", "dark but elegant",
-  "commercial page-turner", "literary deep focus"
+const INTENSITIES_PRO: ChoiceOption[] = [
+  { value: "soft", label: "Morbida" },
+  { value: "medium", label: "Media" },
+  { value: "intense", label: "Intensa" },
+  { value: "slow burn", label: "Lenta e bruciante" },
+  { value: "high drama", label: "Alto dramma" },
+  { value: "high suspense", label: "Alta suspense" },
+  { value: "emotional devastation", label: "Devastazione emotiva" },
+  { value: "dark but elegant", label: "Dark ma elegante" },
+  { value: "commercial page-turner", label: "Page-turner commerciale" },
+  { value: "literary deep focus", label: "Profondità letteraria" }
 ];
 
-const CHARACTER_DYNAMICS_PRO = [
-  "amore proibito", "attrazione e colpa", "vendetta", "segreto familiare",
-  "tradimento", "redenzione", "indagine", "sopravvivenza",
-  "potere e corruzione", "destino contro libero arbitrio",
-  "rivalità", "ossessione", "perdita e rinascita",
-  "fuga dal passato", "identità nascosta", "nemici costretti a collaborare"
+const CHARACTER_DYNAMICS_PRO: ChoiceOption[] = [
+  "amore proibito",
+  "attrazione e colpa",
+  "vendetta",
+  "segreto familiare",
+  "tradimento",
+  "redenzione",
+  "indagine",
+  "sopravvivenza",
+  "potere e corruzione",
+  "destino contro libero arbitrio",
+  "rivalità",
+  "ossessione",
+  "perdita e rinascita",
+  "fuga dal passato",
+  "identità nascosta",
+  "nemici costretti a collaborare"
 ];
 
 
@@ -63,7 +143,7 @@ function ChoiceGrid({
 }: {
   label: string;
   value: string;
-  options: string[];
+  options: ChoiceOption[];
   onChange: (value: string) => void;
 }) {
   return (
@@ -71,19 +151,21 @@ function ChoiceGrid({
       <Label>{label}</Label>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {options.map((option) => {
-          const active = value === option;
+          const v = optionValue(option);
+          const labelText = optionLabel(option);
+          const active = value === v;
           return (
             <button
-              key={option}
+              key={v}
               type="button"
-              onClick={() => onChange(option)}
+              onClick={() => onChange(v)}
               className={`rounded-xl border px-3 py-2 text-left text-xs transition-all ${
                 active
                   ? "border-primary bg-primary/15 text-foreground shadow-sm"
                   : "border-border/70 bg-background/50 text-muted-foreground hover:border-primary/50 hover:bg-muted/40 hover:text-foreground"
               }`}
             >
-              {option}
+              {labelText}
             </button>
           );
         })}
@@ -162,6 +244,7 @@ export function CharacterStudioDialog({ open, onClose }: Props) {
   const [language, setLanguage] = useState("Italian");
   const [characterBible, setCharacterBible] = useState("");
   const [loading, setLoading] = useState(false);
+  const [ideaLoading, setIdeaLoading] = useState(false);
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
@@ -187,6 +270,45 @@ export function CharacterStudioDialog({ open, onClose }: Props) {
       /* noop */
     }
   }, [open]);
+
+  const generateNovelIdea = async () => {
+    if (ideaLoading || loading) return;
+    setIdeaLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("scriptora-novel-idea", {
+        body: {
+          genre,
+          subcategory: subcategory.trim(),
+          tone: tone.trim(),
+          intensity,
+          centralDynamic,
+          protagonistType: protagonistType.trim(),
+          language,
+        },
+      });
+
+      if (error) throw error;
+
+      const generated = String(data?.idea || data?.text || "").trim();
+      if (!generated) throw new Error("Idea vuota");
+
+      setIdea(generated);
+      toast.success("Idea romanzo generata da Scriptora.");
+    } catch {
+      const fallbackIdeas = [
+        `Una donna torna nella città che aveva giurato di dimenticare e scopre che l’uomo che l’ha salvata anni prima custodisce il segreto che può distruggerla.`,
+        `Dopo una perdita mai superata, una protagonista ferita accetta un incarico in un luogo isolato e incontra qualcuno che conosce troppo bene il prezzo del silenzio.`,
+        `Una relazione nata come fuga diventa una trappola emotiva quando il passato della protagonista riemerge attraverso un segreto familiare.`,
+        `In una comunità apparentemente tranquilla, una donna cerca di ricominciare, ma ogni gesto dell’uomo che la attrae sembra nascondere una verità pericolosa.`,
+      ];
+      const picked = fallbackIdeas[Math.floor(Math.random() * fallbackIdeas.length)];
+      setIdea(`${picked}\n\nGenere: ${optionLabel(ROMAN_GENRES_PRO.find(o => optionValue(o) === genre) || genre)}. Filone: ${optionLabel(SUBGENRES_PRO.find(o => optionValue(o) === subcategory) || subcategory)}. Tono: ${tone}. Dinamica centrale: ${centralDynamic}.`);
+      toast.warning("AI non disponibile: Scriptora ha creato un’idea locale di sicurezza.");
+    } finally {
+      setIdeaLoading(false);
+    }
+  };
 
   const canGenerate = idea.trim().length >= 8;
 
@@ -316,12 +438,25 @@ export function CharacterStudioDialog({ open, onClose }: Props) {
         <div className="p-5 space-y-5">
           <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-4">
             <div>
+              <div className="flex items-center justify-between gap-2">
               <Label>Idea del romanzo</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={generateNovelIdea}
+                disabled={ideaLoading || loading}
+                className="h-8 px-2 text-xs"
+              >
+                {ideaLoading ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <Wand2 className="mr-1 h-3 w-3" />}
+                Genera idea con Scriptora
+              </Button>
+            </div>
               <Textarea
                 value={idea}
                 onChange={(e) => setIdea(e.target.value)}
                 rows={3}
-                placeholder="Es. Una scrittrice americana arriva nel deserto per fuggire dal passato e incontra un uomo segnato da una perdita..."
+                placeholder="Descrivi il seme del romanzo oppure lascia che Scriptora generi un’idea diversa ogni volta..."
               />
             </div>
 
