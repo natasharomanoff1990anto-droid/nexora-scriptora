@@ -6,12 +6,12 @@ export const LEGAL_VERSION = "1.1.0";
 export const LEGAL_UPDATED = "19 Aprile 2026";
 
 export const PRIVACY_POLICY = `
-NEXORA — Informativa sulla Privacy
+SCRIPTORA — Informativa sulla Privacy
 
 Ultimo aggiornamento: ${LEGAL_UPDATED}
 
 1. Titolare del trattamento
-NEXORA ("noi", "nostro") è il titolare del trattamento dei dati raccolti tramite questa applicazione.
+SCRIPTORA ("noi", "nostro") è il titolare del trattamento dei dati raccolti tramite questa applicazione.
 
 2. Dati raccolti
 - Dati di account: email, identificativo utente.
@@ -46,7 +46,7 @@ Alcuni provider AI (OpenAI, Google, DeepSeek) operano fuori dall'UE. I trasferim
 - Reclamo all'Autorità Garante (Garante Privacy in Italia).
 
 8. Diritti CCPA (utenti California)
-Hai diritto a sapere quali dati raccogliamo, richiederne la cancellazione e opporti alla "vendita" dei tuoi dati. NEXORA non vende dati personali.
+Hai diritto a sapere quali dati raccogliamo, richiederne la cancellazione e opporti alla "vendita" dei tuoi dati. SCRIPTORA non vende dati personali.
 
 9. Sicurezza
 Utilizziamo crittografia in transito (TLS 1.3) e a riposo (AES-256). L'accesso ai dati è ristretto e tracciato.
@@ -64,19 +64,19 @@ Usiamo solo cookie tecnici essenziali al funzionamento. Nessun cookie di profila
 Eventuali modifiche saranno notificate in app con almeno 15 giorni di preavviso.
 
 14. Contatti
-Per esercitare i tuoi diritti: privacy@nexora.app
+Per esercitare i tuoi diritti: privacy@scriptora.app
 `.trim();
 
 export const TERMS_OF_SERVICE = `
-NEXORA — Termini di Servizio
+SCRIPTORA — Termini di Servizio
 
 Ultimo aggiornamento: ${LEGAL_UPDATED}
 
 1. Accettazione
-Utilizzando NEXORA accetti integralmente questi Termini. Se non li accetti, non usare il servizio.
+Utilizzando SCRIPTORA accetti integralmente questi Termini. Se non li accetti, non usare il servizio.
 
 2. Descrizione del servizio
-NEXORA è una piattaforma SaaS che permette di generare, modificare ed esportare libri tramite modelli di intelligenza artificiale.
+SCRIPTORA è una piattaforma SaaS che permette di generare, modificare ed esportare libri tramite modelli di intelligenza artificiale.
 
 3. Account ed età minima
 Devi avere almeno 16 anni per usare NEXORA. Sei responsabile della riservatezza delle tue credenziali e di ogni attività svolta dal tuo account.

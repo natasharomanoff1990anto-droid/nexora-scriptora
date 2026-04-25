@@ -27,7 +27,7 @@ export function ChatPanel({ messages, onSend, isGenerating }: ChatPanelProps) {
       <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-3">
         {messages.length === 0 && (
           <div className="text-center text-muted-foreground text-sm py-8">
-            <p className="mb-1">Welcome to Nexora ✍️</p>
+            <p className="mb-1">Welcome to Scriptora ✍️</p>
             <p className="text-xs">Configure your book and start generating, or type a message.</p>
           </div>
         )}
