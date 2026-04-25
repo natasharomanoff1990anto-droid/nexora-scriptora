@@ -83,7 +83,7 @@ function addRunningHeadAndPageNum(state: PdfState) {
   doc.setFont("times", "italic");
   doc.setTextColor(80, 80, 80);
   const headText = isOdd
-    ? (state.currentChapterTitle || state.bookTitle).toUpperCase()
+    ? (cleanExportText(state.currentChapterTitle || state.bookTitle)).toUpperCase()
     : state.authorName.toUpperCase();
   doc.text(headText, isOdd ? ml + CONTENT_W : ml, MARGIN_TOP - 28, {
     align: isOdd ? "right" : "left",

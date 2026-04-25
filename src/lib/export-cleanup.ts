@@ -1,5 +1,7 @@
 type AnyBookProject = any;
 
+const DEFAULT_AUTHOR = "Antonino Campanella";
+
 function stripCodeFence(value: string): string {
   return value
     .replace(/^```(?:json)?\s*/i, "")
@@ -7,9 +9,19 @@ function stripCodeFence(value: string): string {
     .trim();
 }
 
+function normalizeSmartJson(value: string): string {
+  return value
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/\u0000/g, "")
+    .trim();
+}
+
 function tryParseObject(value: unknown): Record<string, any> | null {
   if (typeof value !== "string") return null;
-  const cleaned = stripCodeFence(value);
+
+  const cleaned = normalizeSmartJson(stripCodeFence(value));
+
   if (!cleaned.startsWith("{") || !cleaned.endsWith("}")) return null;
 
   try {
@@ -20,21 +32,47 @@ function tryParseObject(value: unknown): Record<string, any> | null {
   }
 }
 
+function looksLikeRawMatterJson(value: string): boolean {
+  const text = normalizeSmartJson(value);
+  return (
+    text.includes('"titlePage"') ||
+    text.includes('"letterToReader"') ||
+    text.includes('"aboutAuthor"') ||
+    text.includes('"howToUse"') ||
+    text.includes('"dedication"')
+  );
+}
+
 export function cleanExportText(value: unknown): string {
   if (value === null || value === undefined) return "";
   let text = String(value);
 
   const parsed = tryParseObject(text);
   if (parsed) {
-    // If raw JSON reached the exporter, turn it into readable prose instead of printing JSON.
     return Object.values(parsed)
       .filter((v) => typeof v === "string" && v.trim().length > 0)
       .map((v) => cleanExportText(v))
       .join("\n\n");
   }
 
+  if (looksLikeRawMatterJson(text)) {
+    // Fallback for malformed JSON-like blocks: remove braces/keys instead of printing code.
+    text = normalizeSmartJson(text)
+      .replace(/^\s*\{/, "")
+      .replace(/\}\s*$/, "")
+      .replace(/"titlePage"\s*:\s*"/g, "")
+      .replace(/"copyright"\s*:\s*"/g, "")
+      .replace(/"dedication"\s*:\s*"/g, "")
+      .replace(/"aboutAuthor"\s*:\s*"/g, "")
+      .replace(/"howToUse"\s*:\s*"/g, "")
+      .replace(/"letterToReader"\s*:\s*"/g, "")
+      .replace(/",\s*"/g, "\n\n")
+      .replace(/"\s*,?\s*$/g, "");
+  }
+
   return text
     .replace(/\r\n/g, "\n")
+    .replace(/\\n/g, "\n")
     .replace(/\t/g, " ")
     .replace(/\n{3,}/g, "\n\n")
     .replace(/\bAUTH-[A-Z0-9-]+\b/g, "")
@@ -43,7 +81,11 @@ export function cleanExportText(value: unknown): string {
     .replace(/\[Nome dell.?Autore o Editore\]/gi, "")
     .replace(/\[Nome dell.?Autore\]/gi, "")
     .replace(/\[da assegnare\]/gi, "")
+    .replace(/Autore:\s*$/gim, `Autore: ${DEFAULT_AUTHOR}`)
+    .replace(/©\s*2025\s*\.\s*/g, `© ${new Date().getFullYear()} ${DEFAULT_AUTHOR}. `)
+    .replace(/©\s*2026\s*\.\s*/g, `© ${new Date().getFullYear()} ${DEFAULT_AUTHOR}. `)
     .replace(/Czes.?aw Mi.?osz/g, "Czesław Miłosz")
+    .replace(/Czes[\u0000-\u001F]?Baw Mi[\u0000-\u001F]?Bosz/g, "Czesław Miłosz")
     .trim();
 }
 
@@ -63,6 +105,12 @@ function mergeMatterFromEmbeddedJson(matter: any): any {
     merged[key] = cleanExportText(merged[key]);
   }
 
+  // If letterToReader accidentally contains the whole front matter JSON, extract the real field.
+  const parsedLetter = tryParseObject(matter.letterToReader);
+  if (parsedLetter?.letterToReader) {
+    merged.letterToReader = cleanExportText(parsedLetter.letterToReader);
+  }
+
   return merged;
 }
 
@@ -70,6 +118,7 @@ function cleanAuthorSlug(value: unknown): string {
   const text = cleanExportText(value);
   if (!text) return "";
   if (/^auth-[a-z0-9-]+$/i.test(text)) return "";
+  if (/^AUTH-[A-Z0-9-]+$/i.test(text)) return "";
   return text;
 }
 
@@ -81,10 +130,12 @@ export function normalizeExportProject(project: AnyBookProject): AnyBookProject 
   const author =
     cleanAuthorSlug(config.author) ||
     cleanAuthorSlug(config.authorName) ||
-    "Autore";
+    cleanAuthorSlug(config.writerName) ||
+    DEFAULT_AUTHOR;
 
   config.author = author;
   config.authorName = author;
+  config.writerName = author;
   config.title = cleanExportText(config.title || project?.title || "Senza titolo");
 
   frontMatter.titlePage = cleanExportText(frontMatter.titlePage || `${config.title}\n\nAutore: ${author}`);
