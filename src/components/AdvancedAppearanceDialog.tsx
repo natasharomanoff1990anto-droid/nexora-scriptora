@@ -115,6 +115,8 @@ export function AdvancedAppearanceDialog({ open, onClose, onLanguageChanged }: P
                   <button
                     key={lang.value}
                     type="button"
+                    onPointerDown={(e) => { e.preventDefault(); applyLanguage(lang.value); }}
+                    onTouchStart={(e) => { e.preventDefault(); applyLanguage(lang.value); }}
                     onClick={() => applyLanguage(lang.value)}
                     className={`rounded-xl border px-3 py-2 text-sm transition-all ${
                       active
@@ -144,6 +146,8 @@ export function AdvancedAppearanceDialog({ open, onClose, onLanguageChanged }: P
                   <button
                     key={bg.id}
                     type="button"
+                    onPointerDown={(e) => { e.preventDefault(); applyBackground(bg.id); }}
+                    onTouchStart={(e) => { e.preventDefault(); applyBackground(bg.id); }}
                     onClick={() => applyBackground(bg.id)}
                     className={`overflow-hidden rounded-2xl border text-left transition-all ${
                       active ? "border-primary ring-2 ring-primary/30" : "border-border/70 hover:border-primary/50"
@@ -177,6 +181,8 @@ export function AdvancedAppearanceDialog({ open, onClose, onLanguageChanged }: P
                   <button
                     key={font.id}
                     type="button"
+                    onPointerDown={(e) => { e.preventDefault(); applyFont(font.id); }}
+                    onTouchStart={(e) => { e.preventDefault(); applyFont(font.id); }}
                     onClick={() => applyFont(font.id)}
                     className={`rounded-xl border p-3 text-left transition-all ${
                       active ? "border-primary bg-primary/15 ring-1 ring-primary/30" : "border-border bg-muted/20 hover:border-primary/50"
@@ -209,6 +215,8 @@ export function AdvancedAppearanceDialog({ open, onClose, onLanguageChanged }: P
 
             <button
               type="button"
+              onPointerDown={(e) => { e.preventDefault(); finish(); }}
+              onTouchStart={(e) => { e.preventDefault(); finish(); }}
               onClick={finish}
               className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
             >
