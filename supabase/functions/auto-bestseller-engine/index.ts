@@ -732,6 +732,22 @@ async function withTimeout<T>(
   }
 }
 
+
+function countWordsLoose(text: string): number {
+  return String(text || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .length;
+}
+
+function minUsableChapterWords(targetWords: number): number {
+  // Soglia severa ma non suicida:
+  // un capitolo deve avere almeno il 45% del target,
+  // mai meno di 450 parole, mai più di 900 come soglia minima.
+  return Math.min(900, Math.max(450, Math.floor(targetWords * 0.45)));
+}
+
 // ---- Core pipeline (callable from both modes) ----------------------
 
 async function runPipeline(
@@ -844,6 +860,14 @@ async function runPipeline(
           lastEmitLen = accumulated.length;
           await send("chapter", { index: i, total, phase: "writing", title: outline.title, content: accumulated });
         });
+
+        const producedWords = countWordsLoose(draft);
+        const minWords = minUsableChapterWords(adjustedTarget);
+        if (producedWords < minWords) {
+          const tinyPreview = draft.slice(0, 220).replace(/\s+/g, " ");
+          draft = "";
+          throw new Error(`Chapter too short: ${producedWords}/${minWords} words. Restarting from scratch. Preview: ${tinyPreview}`);
+        }
       } catch (e) {
         console.error(`[runPipeline] writeChapter ch${i + 1} attempt ${writeAttempts} failed:`, e);
         await send("retry", { attempt: writeAttempts, reason: `Chapter ${i + 1}: ${e instanceof Error ? e.message : "error"}` });
@@ -853,8 +877,8 @@ async function runPipeline(
     }
 
     // ====== Phase B: EMERGENCY FALLBACK — guarantee non-empty content ======
-    if (!draft || draft.trim().length < 200) {
-      console.warn(`[runPipeline] ch${i + 1} write failed all attempts — using emergency fallback`);
+    if (!draft || countWordsLoose(draft) < 250) {
+      console.warn(`[runPipeline] ch${i + 1} write failed or too short after all attempts — using emergency fallback`);
       try {
         const fallbackSystem = `You are a professional ${input.genre} author. Write in ${input.language || "English"}. Be concise but complete.`;
         const fallbackUser = `Write a complete chapter for the book "${title}".
