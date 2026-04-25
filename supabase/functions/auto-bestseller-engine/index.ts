@@ -198,7 +198,7 @@ async function callDeepSeek(
     if (!transient && attempt.ok) {
       const promptTokens = attempt.usage?.prompt_tokens ?? estimateTokens(system + user);
       const completionTokens = attempt.usage?.completion_tokens ?? estimateTokens(attempt.content);
-      logAIUsage({
+      await logAIUsage({
         provider: "deepseek",
         model: chosenModel,
         taskType,
@@ -328,7 +328,7 @@ async function callDeepSeekStream(
     try {
       const text = await doStream();
       if (text && text.trim().length >= 2) {
-        logAIUsage({
+        await logAIUsage({
           provider: "deepseek",
           model,
           taskType,
