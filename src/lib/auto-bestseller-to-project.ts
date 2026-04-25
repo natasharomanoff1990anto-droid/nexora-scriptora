@@ -48,7 +48,7 @@ export function autoBestsellerToProject(
   const genre = normalizeGenre(input?.genre);
   const language = normalizeLanguage(input?.language);
   const authorName = (input?.authorName || "").trim();
-  const characters = charactersFromText(input?.charactersText);
+  const characters = charactersFromText(input?.charactersText || (result as any)?.characterBible);
 
 const config: BookConfig = {
     title: result.title || "Untitled Bestseller",
@@ -118,7 +118,7 @@ export function liveBookToPartialProject(
   const genre = normalizeGenre(input?.genre);
   const language = normalizeLanguage(input?.language);
   const authorName = (input?.authorName || "").trim();
-  const characters = charactersFromText(input?.charactersText);
+  const characters = charactersFromText(input?.charactersText || (liveBook as any)?.characterBible);
 
 const config: BookConfig = {
     title: liveBook.title || input?.prefilledTitle || "Generating…",

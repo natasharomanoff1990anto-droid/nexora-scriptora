@@ -54,6 +54,7 @@ export interface AutoBestsellerResult {
   title: string;
   subtitle: string;
   blueprint: any;
+  characterBible?: string;
   chapters: Array<{
     title: string;
     content: string;

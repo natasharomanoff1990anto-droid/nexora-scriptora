@@ -578,6 +578,105 @@ async function runGoNoGoOnConcept(input: OrchestratorInput, title: string, subti
 
 
 
+
+function isNarrativeGenre(input: OrchestratorInput): boolean {
+  const g = String(input.genre || "").toLowerCase();
+  const bt = String(input.bookType || "").toLowerCase();
+  return [
+    "romance",
+    "dark-romance",
+    "thriller",
+    "fantasy",
+    "fiction",
+    "memoir",
+    "novel",
+    "suspense",
+    "mystery",
+    "young adult",
+    "historical",
+  ].some((x) => g.includes(x) || bt.includes(x));
+}
+
+async function generateAutomaticCharacterBible(
+  input: OrchestratorInput,
+  title: string,
+  subtitle: string,
+  blueprint: any,
+): Promise<string> {
+  const manual = String(input.charactersText || "").trim();
+  if (manual) return manual;
+
+  if (!isNarrativeGenre(input)) return "";
+
+  const system = `You are Scriptora's Story Continuity Architect.
+You create a strict Character Bible before chapter writing starts.
+Output plain text only. No markdown table. No JSON.
+Write in ${input.language || "English"}.
+
+Your job:
+- infer the minimum necessary main cast from the book idea, title, subtitle and chapter blueprint;
+- create stable names, roles, wounds, desires, secrets and relationship rules;
+- prevent future chapters from renaming, replacing, or confusing characters.`;
+
+  const user = `BOOK IDEA:
+${input.idea || ""}
+
+TITLE:
+${title}
+
+SUBTITLE:
+${subtitle || ""}
+
+GENRE:
+${input.genre || ""}
+
+TARGET READER:
+${input.targetAudience || ""}
+
+TONE:
+${input.tone || ""}
+
+BLUEPRINT:
+Overview: ${blueprint?.overview || ""}
+Themes: ${(blueprint?.themes || []).join(", ")}
+Emotional arc: ${blueprint?.emotionalArc || ""}
+Chapters:
+${(blueprint?.chapterOutlines || []).map((c: any, i: number) => `${i + 1}. ${c.title} — ${c.summary}`).join("\n")}
+
+Create a CHARACTER BIBLE with 2-6 characters max.
+
+For each character include:
+Name:
+Surname:
+Age:
+Role:
+Physical description:
+Personality:
+Core wound:
+External desire:
+Internal need:
+Secret:
+Relationship to other characters:
+Strict continuity rules:
+
+ABSOLUTE RULES:
+- Once you choose a name, it is canon forever.
+- Do not create alternate versions of the same character.
+- If a dead spouse, ex, parent or rival exists, mark their role clearly.
+- Make the protagonist unmistakable.
+- Keep it concise but specific.
+`;
+
+  try {
+    const bible = await callDeepSeek(system, user, false, 0.55, 3500, "auto_character_bible", "deepseek-chat");
+    return String(bible || "").trim();
+  } catch (e) {
+    console.warn("[auto-character-bible] failed:", e);
+    return "";
+  }
+}
+
+
 function buildCharacterLockFromInput(input: OrchestratorInput): string {
   const raw = String(input.charactersText || "").trim();
   if (!raw) {
@@ -885,6 +984,19 @@ async function runPipeline(
     return failed;
   }
 
+  // STAGE 4.5: automatic Character Bible / Character Lock
+  const generatedCharacterBible = await withTimeout(
+    generateAutomaticCharacterBible(input, title, subtitle, blueprint),
+    35000,
+    "generateAutomaticCharacterBible",
+    "",
+  );
+
+  const inputForWriting: OrchestratorInput = {
+    ...input,
+    charactersText: String(input.charactersText || generatedCharacterBible || "").trim(),
+  };
+
   // STAGE 5: chapters with progressive context engine + length distribution
   const chapters: OrchestratorOutput["chapters"] = [];
   const total = blueprint.chapterOutlines.length;
@@ -938,7 +1050,7 @@ async function runPipeline(
         const adjustedTarget = writeAttempts === 1
           ? wordTargets[i]
           : Math.max(800, Math.floor(wordTargets[i] * (writeAttempts === 2 ? 0.7 : 0.5)));
-        draft = await writeChapter(input, title, subtitle, blueprint, i, {
+        draft = await writeChapter(inputForWriting, title, subtitle, blueprint, i, {
           targetWords: adjustedTarget,
           previousSummaries,
           coveredConcepts,
@@ -994,7 +1106,7 @@ Length: ~800 words. Self-contained, no preamble. Plain prose, no JSON.`;
     let refined: { finalText: string; coachReport?: any; voice?: any; rewriteConfidence: number; finalScore: number };
     try {
       refined = await withTimeout(
-        refineChapter(input, outline.title, draft),
+        refineChapter(inputForWriting, outline.title, draft),
         30_000,
         `refineChapter ch${i + 1}`,
         { finalText: draft, rewriteConfidence: 0.5, finalScore: 6 },
@@ -1052,6 +1164,7 @@ Length: ~800 words. Self-contained, no preamble. Plain prose, no JSON.`;
 
   const result: OrchestratorOutput = {
     title, subtitle, blueprint, chapters, finalScore, marketScore, status,
+    characterBible: String(inputForWriting?.charactersText || "").trim(),
     pipeline: {
       titleCandidates: allScored.map((c) => ({ title: c.title, subtitle: c.subtitle, marketScore: c.marketScore, verdict: c.verdict })),
       conceptVerdict, conceptRetries: retries, chapterCount: chapters.length,
