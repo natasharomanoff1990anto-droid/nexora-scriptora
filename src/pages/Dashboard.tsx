@@ -111,6 +111,20 @@ export default function Home() {
   // environment (DEV vs USER). Cross-scope ids are silently ignored.
   const lastProject = lastId ? projects.find(p => p.id === lastId) : null;
 
+  const deleteHomeProject = async (projectId: string, title?: string) => {
+    const name = title || "questo progetto";
+    const ok = window.confirm(`Eliminare "${name}" dalla home? Questa azione non si annulla.`);
+    if (!ok) return;
+
+    await deleteProjectAsync(projectId);
+    setProjects((items) => items.filter((p) => p.id !== projectId));
+    try {
+      if (getLastProjectId() === projectId) setLastProjectId("");
+      sessionStorage.removeItem("nexora-open-project");
+    } catch {}
+    window.dispatchEvent(new Event("nexora-projects-change"));
+  };
+
   const changeLang = (lang: UILanguage) => {
     setUILanguage(lang);
     setLangTick(p => p + 1);
