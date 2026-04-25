@@ -196,7 +196,7 @@ export function NicheTrendingPlaylist({ language = "Italian", onImport, initialF
           </div>
           <div>
             <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
-              Trending Niches Playlist
+              Radar Nicchie Vincenti
               {data?.groundingUsed && (
                 <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -295,7 +295,7 @@ export function NicheTrendingPlaylist({ language = "Italian", onImport, initialF
             {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
               : gate && !gate.allowed ? <Lock className="h-3.5 w-3.5" />
               : <Sparkles className="h-3.5 w-3.5" />}
-            {data ? "Ricarica" : "Scopri trend"}
+            {data ? "Ricarica" : "Scopri nicchie vincenti"}
             {gate?.reason === "paid" && (
               <span className="ml-1 px-1 rounded bg-background/20 text-[9px] font-bold">€{TRENDING_PRICE_EUR.toFixed(2)}</span>
             )}
@@ -343,7 +343,7 @@ export function NicheTrendingPlaylist({ language = "Italian", onImport, initialF
       {/* EMPTY STATES */}
       {tab === "trending" && !data && !loading && (
         <p className="text-xs text-muted-foreground text-center py-6">
-          Clicca <strong>Scopri trend</strong> per vedere le nicchie che stanno dominando ora.
+          Clicca <strong>Scopri nicchie vincenti</strong> per vedere le nicchie che stanno dominando ora.
         </p>
       )}
       {tab === "watchlist" && watchlist.length === 0 && (

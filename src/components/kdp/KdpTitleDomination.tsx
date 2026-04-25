@@ -1,5 +1,5 @@
 /**
- * KDP Title Domination — incremental section for /kdp-launch.
+ * Title Domination Studio — incremental section for /kdp-launch.
  * Performs real Brave Search market scan, then DeepSeek strategic analysis
  * to produce ORIGINAL, scored, sellable KDP titles.
  *
@@ -152,12 +152,12 @@ export function KdpTitleDomination({ onUseTitle, defaults }: Props) {
         <CardTitle className="flex items-center justify-between gap-2">
           <span className="flex items-center gap-2">
             <Crown className="h-4 w-4 text-primary" />
-            KDP Title Domination
+            Title Domination Studio
           </span>
           {result && <GroundingPill used={result.groundingUsed} count={result.groundingResultsCount} />}
         </CardTitle>
         <p className="text-xs text-muted-foreground">
-          Ricerca di mercato in tempo reale → analisi strategica avanzata → titoli originali ad alto potenziale commerciale.
+          Ricerca di mercato in tempo reale → titoli originali → progetto pronto da sviluppare in Scriptora.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -254,7 +254,7 @@ export function KdpTitleDomination({ onUseTitle, defaults }: Props) {
           </div>
           <Button onClick={() => run()} disabled={loading || !input.idea.trim()} size="lg">
             {loading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Target className="h-4 w-4 mr-2" />}
-            Cerca Titoli Vincenti
+            Trova titoli e prepara progetto
           </Button>
         </div>
 
@@ -290,8 +290,8 @@ export function KdpTitleDomination({ onUseTitle, defaults }: Props) {
                   <p className="text-xs italic">{winner.reason}</p>
                   <p className="text-[11px] text-muted-foreground">Best marketplace: <strong>{winner.bestMarketplace}</strong></p>
                   <div className="flex flex-wrap gap-2 pt-2">
-                    <Button size="sm" onClick={() => { onUseTitle?.(winner.title, winner.subtitle); toast.success("Titolo salvato nel progetto corrente"); }}>
-                      <Save className="h-3.5 w-3.5 mr-1.5" /> Usa questo titolo nel progetto
+                    <Button size="sm" onClick={() => { onUseTitle?.(winner.title, winner.subtitle); toast.success("Titolo pronto per il progetto"); }}>
+                      <Save className="h-3.5 w-3.5 mr-1.5" /> Crea progetto da questo titolo
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => run({ differentAngle: true })} disabled={loading}>
                       <RefreshCw className="h-3.5 w-3.5 mr-1.5" /> Rigenera con angolo diverso
@@ -374,8 +374,8 @@ export function KdpTitleDomination({ onUseTitle, defaults }: Props) {
                       </div>
                     </details>
                     <div className="mt-2 flex justify-end">
-                      <Button size="sm" variant="ghost" onClick={() => { onUseTitle?.(c.title, c.subtitle); toast.success("Titolo salvato nel progetto corrente"); }}>
-                        <Save className="h-3.5 w-3.5 mr-1.5" /> Usa questo
+                      <Button size="sm" variant="ghost" onClick={() => { onUseTitle?.(c.title, c.subtitle); toast.success("Titolo pronto per il progetto"); }}>
+                        <Save className="h-3.5 w-3.5 mr-1.5" /> Crea progetto
                       </Button>
                     </div>
                   </div>

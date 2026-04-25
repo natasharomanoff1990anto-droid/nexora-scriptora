@@ -127,8 +127,8 @@ export function TitleIntelligenceDialog({ open, onClose, initialTitle, initialGe
               <Sparkles className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-foreground">Intelligenza Titoli™</h2>
-              <p className="text-[11px] text-muted-foreground">Premium KDP + Apple Books · alta domanda · bassa concorrenza</p>
+              <h2 className="text-lg font-bold text-foreground">Title Domination Studio™</h2>
+              <p className="text-[11px] text-muted-foreground">KDP + Apple Books · trend reali · progetto pronto da scrivere</p>
             </div>
           </div>
           <button onClick={handleClose} className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
@@ -211,11 +211,11 @@ export function TitleIntelligenceDialog({ open, onClose, initialTitle, initialGe
 
               <button onClick={handleGenerate} disabled={!canSubmit}
                 className="w-full h-11 rounded-lg bg-gradient-to-r from-cyan-500 to-purple-500 text-white font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
-                {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Analisi mercato Amazon + Apple Books…</> : <><Sparkles className="h-4 w-4" /> Genera Intelligenza Titoli™</>}
+                {loading ? <><Loader2 className="h-4 w-4 animate-spin" /> Analisi mercato Amazon + Apple Books…</> : <><Sparkles className="h-4 w-4" /> Genera Title Domination Studio™</>}
               </button>
 
               <p className="text-[10px] text-muted-foreground text-center leading-relaxed">
-                Il sistema simula l'analisi dei bestseller Amazon KDP + Apple Books, identifica sotto-nicchie ad <span className="text-emerald-400 font-semibold">alta domanda / bassa concorrenza</span>, e costruisce titoli ottimizzati per quella gap di mercato.
+                Il sistema analizza KDP + Apple Books, identifica nicchie ad <span className="text-emerald-400 font-semibold">alta domanda / bassa concorrenza</span>, e costruisce titoli pensati per diventare un progetto scrivibile.
               </p>
 
               {error && <p className="text-xs text-destructive text-center">{error}</p>}
