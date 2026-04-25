@@ -16,6 +16,7 @@ import { saveProjectAsync } from "@/services/storageService";
 import { LeavePageDialog } from "@/components/AutoBestseller/LeavePageDialog";
 import { getBookProgress } from "@/lib/book-progress";
 import { ProgressBar } from "@/components/AutoBestseller/ProgressBar";
+import { BookConfig } from "@/types/book";
 
 const VARIATION_ANGLES = [
   "emotional / personal transformation angle",
@@ -31,6 +32,68 @@ const VARIATION_ANGLES = [
 ];
 
 const ACTIVE_RUN_KEY = "nexora-active-run";
+
+const ALLOWED_SETUP_GENRES = [
+  "self-help", "romance", "dark-romance", "thriller", "fantasy", "philosophy", "business", "memoir",
+];
+
+const ALLOWED_SETUP_LANGUAGES = ["English", "Italian", "Spanish", "French", "German"];
+
+function normalizeSetupGenre(value?: string): any {
+  const slug = String(value || "self-help").toLowerCase().trim().replace(/\s+/g, "-");
+  return ALLOWED_SETUP_GENRES.includes(slug) ? slug : "self-help";
+}
+
+function normalizeSetupLanguage(value?: string): any {
+  const raw = String(value || "English").trim();
+  const cap = raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase();
+  return ALLOWED_SETUP_LANGUAGES.includes(cap) ? cap : "English";
+}
+
+function charactersFromSetupText(text?: string): any[] {
+  const raw = String(text || "").trim();
+  if (!raw) return [];
+  return raw
+    .split(/\n{2,}|^\s*[-•]\s*/gm)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((block) => {
+      const firstLine = block.split("\n")[0]?.trim() || "";
+      const name = firstLine.replace(/^Nome[:\-]\s*/i, "").split(/[,.—-]/)[0]?.trim() || firstLine;
+      return {
+        name,
+        role: "",
+        personality: block,
+        strictRules: "Never rename this character. Preserve role, personality, relationships and continuity."
+      };
+    });
+}
+
+function autoBestsellerInputToBookConfig(input: AutoBestsellerInput): BookConfig {
+  const title = String(input.prefilledTitle || input.idea || "Untitled Book").trim().slice(0, 120);
+  const subtitle = String(input.prefilledSubtitle || input.readerPromise || "").trim().slice(0, 180);
+  const authorName = String(input.authorName || "").trim();
+
+  return {
+    title,
+    subtitle,
+    authorName,
+    author: authorName,
+    writerName: authorName,
+    tone: input.tone || "warm, insightful, bestseller-level",
+    authorStyle: input.tone || "",
+    language: normalizeSetupLanguage(input.language),
+    genre: normalizeSetupGenre(input.genre),
+    category: input.genre || "Self Help",
+    subcategory: input.subcategory || "",
+    chapterLength: "medium",
+    bookLength: "medium",
+    numberOfChapters: Math.max(3, Math.min(20, Number(input.numberOfChapters) || 8)),
+    subchaptersEnabled: false,
+    characters: charactersFromSetupText(input.charactersText),
+  } as any;
+}
+
 
 export default function AutoBestsellerPage() {
   const navigate = useNavigate();
@@ -129,51 +192,22 @@ export default function AutoBestsellerPage() {
     setLastInput(input);
     setAutoStart(false);
     setBriefCollapsed(true);
+
     try {
-      const result = await engine.start(input);
-      if (result) toast.success(`Generation complete — ${result.status}`);
-      setRecentKey((k) => k + 1);
+      const config = autoBestsellerInputToBookConfig(input);
+      sessionStorage.setItem("nexora-new-book", JSON.stringify(config));
+      sessionStorage.setItem("scriptora-setup-origin", "auto-bestseller");
+      toast.success("Progetto configurato — apertura stanza di scrittura…");
+      navigate("/app");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Generation failed");
+      toast.error(e instanceof Error ? e.message : "Preparazione progetto fallita");
     }
-  }, [engine]);
+  }, [navigate]);
 
-  const handleGenerateBatch = useCallback(async (baseInput: AutoBestsellerInput, count: number) => {
-    setSelectedBatchResult(null);
-    setLastInput(baseInput);
-    setAutoStart(false);
-    setBriefCollapsed(true);
-    const batchId = crypto.randomUUID();
-    const initialRuns: BatchRun[] = Array.from({ length: count }, (_, i) => ({
-      index: i,
-      variation: VARIATION_ANGLES[i % VARIATION_ANGLES.length],
-      status: "pending",
-    }));
-    setBatchRuns(initialRuns);
-    setBatchRunning(true);
-
-    for (let i = 0; i < count; i++) {
-      const angle = VARIATION_ANGLES[i % VARIATION_ANGLES.length];
-      const variantInput: AutoBestsellerInput = {
-        ...baseInput,
-        idea: `${baseInput.idea}\n\nAPPROACH ANGLE: ${angle}`,
-      };
-      setBatchRuns((prev) => prev.map((r) => r.index === i ? { ...r, status: "running" } : r));
-      try {
-        const result = await engine.start(variantInput, batchId);
-        setBatchRuns((prev) => prev.map((r) =>
-          r.index === i ? { ...r, status: result ? "done" : "error", result, error: result ? undefined : "no result" } : r
-        ));
-        setRecentKey((k) => k + 1);
-      } catch (e) {
-        setBatchRuns((prev) => prev.map((r) =>
-          r.index === i ? { ...r, status: "error", error: e instanceof Error ? e.message : "failed" } : r
-        ));
-      }
-    }
-    setBatchRunning(false);
-    toast.success(`Batch complete (${count} runs)`);
-  }, [engine]);
+  const handleGenerateBatch = useCallback(async (baseInput: AutoBestsellerInput, _count: number) => {
+    toast.info("La generazione multipla è temporaneamente disattivata. Scriptora prepara un progetto stabile alla volta.");
+    await handleGenerateOne(baseInput);
+  }, [handleGenerateOne]);
 
   const handleSaveAsProject = useCallback(async (result: AutoBestsellerResult) => {
     if (savingProject) return;

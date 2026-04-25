@@ -115,6 +115,7 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
     tone,
     language,
     numberOfChapters,
+    charactersText: charactersText.trim() || undefined,
   });
 
   // Auto-start once when conditions met (e.g. coming from Home with prefilled brief)
