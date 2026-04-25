@@ -248,7 +248,7 @@ export async function generatePdf(project: BookProject): Promise<Blob> {
   const normalizedProject = normalizeExportProject(project);
   const { config, frontMatter, chapters, backMatter } = normalizedProject;
   const doc = new jsPDF({ unit: "pt", format: [PAGE_W, PAGE_H], compress: true });
-  const author = config.authorStyle || "The Author";
+  const author = (config.authorName || config.author || config.writerName || "Antonino Campanella").trim();
 
   const state: PdfState = {
     doc, y: MARGIN_TOP, pageNum: 1,

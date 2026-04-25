@@ -298,7 +298,7 @@ export async function generateEpub(project: BookProject, coverDataUrl?: string):
     });
   }
 
-  const author = (config as any).authorStyle || "The Author";
+  const author = ((config as any).authorName || (config as any).author || (config as any).writerName || "Antonino Campanella").trim();
 
   // --- Half title (typographic tradition) ---
   entries.push({

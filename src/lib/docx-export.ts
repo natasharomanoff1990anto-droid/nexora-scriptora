@@ -144,7 +144,7 @@ function sectionH2(text: string): Paragraph {
 export async function generateDocx(project: BookProject): Promise<Blob> {
   const normalizedProject = normalizeExportProject(project);
   const { config, frontMatter, chapters, backMatter } = normalizedProject;
-  const author = config.authorStyle || "The Author";
+  const author = (config.authorName || config.author || config.writerName || "Antonino Campanella").trim();
   const bookTitle = config.title || "Untitled";
 
   const children: Paragraph[] = [];

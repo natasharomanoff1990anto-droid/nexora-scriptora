@@ -226,7 +226,11 @@ export function NewBookDialog({ open, onClose, onSubmit }: NewBookDialogProps) {
             className="h-9 px-4 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             {t("cancel")}
           </button>
-          <button onClick={() => { if (config.title) onSubmit(config); }} disabled={!config.title}
+          <button onClick={() => {
+            if (!config.title) return;
+            const authorName = (config.authorName || config.author || config.writerName || "Antonino Campanella").trim();
+            onSubmit({ ...config, authorName, author: authorName, writerName: authorName });
+          }} disabled={!config.title}
             className="h-9 px-6 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-40 transition-colors">
             {t("create_book")}
           </button>

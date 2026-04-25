@@ -26,12 +26,16 @@ export function autoBestsellerToProject(
   const now = new Date().toISOString();
   const genre = normalizeGenre(input?.genre);
   const language = normalizeLanguage(input?.language);
+  const authorName = (input?.authorName || "Antonino Campanella").trim();
 
   const config: BookConfig = {
     title: result.title || "Untitled Bestseller",
     subtitle: result.subtitle || "",
+    authorName,
+    author: authorName,
+    writerName: authorName,
     tone: input?.tone || "Engaging, authoritative, accessible",
-    authorStyle: "",
+    authorStyle: input?.tone || "",
     language,
     genre,
     category: "Self Help",
@@ -94,8 +98,11 @@ export function liveBookToPartialProject(
   const config: BookConfig = {
     title: liveBook.title || input?.prefilledTitle || "Generating…",
     subtitle: liveBook.subtitle || input?.prefilledSubtitle || "",
+    authorName,
+    author: authorName,
+    writerName: authorName,
     tone: input?.tone || "Engaging, authoritative, accessible",
-    authorStyle: "",
+    authorStyle: input?.tone || "",
     language,
     genre,
     category: "Self Help",

@@ -11,6 +11,7 @@ export interface AutoBestsellerInput {
   tone?: string;
   language?: string;
   numberOfChapters?: number;
+  authorName?: string;
   level?: "beginner" | "intermediate" | "advanced";
   readerPromise?: string;
   totalWordTarget?: number;

@@ -31,6 +31,7 @@ const LANGUAGES = ["English", "Italian", "Spanish", "French", "German", "Portugu
 
 export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, onGenerateBatch }: Props) {
   const [idea, setIdea] = useState(initialInput?.idea ?? "");
+  const [authorName, setAuthorName] = useState(initialInput?.authorName ?? "Antonino Campanella");
   const [genre, setGenre] = useState(initialInput?.genre ?? "self-help");
   const [subcategory, setSubcategory] = useState(initialInput?.subcategory ?? "");
   const [targetAudience, setTargetAudience] = useState(initialInput?.targetAudience ?? "");
@@ -42,6 +43,7 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
   useEffect(() => {
     if (!initialInput) return;
     if (initialInput.idea !== undefined) setIdea(initialInput.idea);
+    if (initialInput.authorName !== undefined) setAuthorName(initialInput.authorName);
     if (initialInput.genre !== undefined) setGenre(initialInput.genre);
     if (initialInput.subcategory !== undefined) setSubcategory(initialInput.subcategory ?? "");
     if (initialInput.targetAudience !== undefined) setTargetAudience(initialInput.targetAudience);
@@ -104,6 +106,7 @@ export function InputPanel({ isRunning, initialInput, autoStart, onGenerateOne, 
 
   const buildInput = (): AutoBestsellerInput => ({
     idea: idea.trim(),
+    authorName: authorName.trim() || "Antonino Campanella",
     genre,
     subcategory: subcategory.trim() || undefined,
     targetAudience: targetAudience.trim(),
