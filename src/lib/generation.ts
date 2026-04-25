@@ -569,6 +569,8 @@ export async function generateChapterChunked(
   const targetWords = getChapterTargetWords(config, chapterIndex, config.numberOfChapters, chapterLengthOverride);
   const contextMemory = buildContextMemory(config, blueprint, previousChapters, chapterIndex);
   const systemBase = getSystemPrompt(config, genreLock);
+  const scriptoraWritingBrain = buildScriptoraWritingBrain(config);
+  const characterLock = buildCharacterLock(config);
   const genreDirective = buildPromptByGenre({
     genre: genreLock?.genre || config.genre,
     subcategory: genreLock?.subcategory || (config as any).subcategory,

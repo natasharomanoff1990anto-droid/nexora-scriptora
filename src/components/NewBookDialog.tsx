@@ -13,6 +13,40 @@ interface NewBookDialogProps {
 }
 
 const LANGUAGES: Language[] = ["English", "Italian", "Spanish", "French", "German"];
+function normalizeCharacterStudioGenre(value?: string): Genre {
+  const g = String(value || "").toLowerCase().trim();
+
+  if (g.includes("dark") && g.includes("romance")) return "dark-romance";
+  if (g.includes("romance") || g.includes("romantasy")) return "romance";
+  if (g.includes("thriller") || g.includes("crime") || g.includes("mystery") || g.includes("suspense") || g.includes("noir")) return "thriller";
+  if (g.includes("fantasy")) return "fantasy";
+  if (g.includes("horror")) return "horror";
+  if (g.includes("sci") || g.includes("cyberpunk") || g.includes("dystop")) return "sci-fi";
+  if (g.includes("historical") || g.includes("storico")) return "historical";
+  if (g.includes("memoir")) return "memoir";
+
+  return "romance";
+}
+
+function normalizeCharacterStudioLanguage(value?: string): Language {
+  const l = String(value || "").toLowerCase().trim();
+  if (l.includes("ital")) return "Italian";
+  if (l.includes("span")) return "Spanish";
+  if (l.includes("french") || l.includes("franc")) return "French";
+  if (l.includes("german") || l.includes("ted")) return "German";
+  return "English";
+}
+
+function titleFromCharacterIdea(value?: string): string {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  return raw
+    .replace(/\s+/g, " ")
+    .slice(0, 70)
+    .replace(/[,.!?;:]?\s+[^\s]*$/, "")
+    .trim();
+}
+
 const GENRES: { value: Genre; label: string; group: string }[] = [
   { value: "self-help", label: "Self-Help", group: "Non-Fiction" },
   { value: "business", label: "Business", group: "Non-Fiction" },
@@ -50,9 +84,32 @@ export function NewBookDialog({ open, onClose, onSubmit }: NewBookDialogProps) {
 
   useEffect(() => {
     if (!open) return;
+
     try {
       const raw = sessionStorage.getItem(SCRIPTORA_CHARACTER_PROJECT_KEY) || localStorage.getItem(SCRIPTORA_CHARACTER_PROJECT_KEY);
-      setPendingCharacterProject(raw ? JSON.parse(raw) : null);
+      const pending = raw ? JSON.parse(raw) : null;
+      setPendingCharacterProject(pending);
+
+      if (pending?.characterBible) {
+        const nextGenre = normalizeCharacterStudioGenre(pending.genre);
+        const nextLanguage = normalizeCharacterStudioLanguage(pending.language);
+        const nextSubcategory = String(pending.subcategory || "").trim();
+        const nextTone = String(pending.tone || "").trim();
+        const ideaTitle = titleFromCharacterIdea(pending.idea);
+
+        setConfig(prev => ({
+          ...prev,
+          title: prev.title || ideaTitle || "Romanzo senza titolo",
+          subtitle: prev.subtitle || nextSubcategory || "",
+          language: nextLanguage,
+          genre: nextGenre,
+          category: "Fiction",
+          subcategory: nextSubcategory || prev.subcategory || "",
+          tone: nextTone || prev.tone || "poetico e cinematografico",
+          authorStyle: nextTone || prev.authorStyle || "cinematic, emotional, bestseller-level",
+          subchaptersEnabled: false,
+        } as BookConfig));
+      }
     } catch {
       setPendingCharacterProject(null);
     }

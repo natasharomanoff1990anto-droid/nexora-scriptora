@@ -197,6 +197,16 @@ export default function Home() {
     navigate("/app");
   };
 
+  useEffect(() => {
+    const openFromCharacterStudio = () => {
+      setShowCharacterStudio(false);
+      setShowNewBook(true);
+    };
+
+    window.addEventListener("scriptora-open-new-book-from-character-studio", openFromCharacterStudio);
+    return () => window.removeEventListener("scriptora-open-new-book-from-character-studio", openFromCharacterStudio);
+  }, []);
+
   const handleNewBook = (config: BookConfig) => {
     let finalConfig: BookConfig = config;
 

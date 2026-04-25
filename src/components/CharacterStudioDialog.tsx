@@ -429,8 +429,9 @@ export function CharacterStudioDialog({ open, onClose }: Props) {
     }
 
     window.dispatchEvent(new Event("scriptora-character-bible-change"));
+    window.dispatchEvent(new CustomEvent("scriptora-open-new-book-from-character-studio", { detail: payload }));
     setSaved(true);
-    toast.success("Personaggi collegati a Nuovo Libro. Ora apri Nuovo Libro: Scriptora userà cast, genere, filone e tono.");
+    toast.success("Personaggi collegati. Apro Nuovo Libro con cast, genere, filone e tono già pronti.");
   };
 
   const clear = () => {
