@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, BarChart3, BookOpen, Search, ShieldAlert, Sparkles, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { runBestsellerRadar } from "@/services/bestsellerRadarService";
 
 type RadarResult = {
   title: string;
@@ -104,14 +105,19 @@ export default function BestsellerRadarPage() {
   const [genre, setGenre] = useState("romance");
   const [keyword, setKeyword] = useState("");
   const [searched, setSearched] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [liveResults, setLiveResults] = useState<RadarResult[] | null>(null);
+  const [liveScore, setLiveScore] = useState<number | null>(null);
+  const [liveSummary, setLiveSummary] = useState("");
+  const [error, setError] = useState("");
 
   const results = useMemo(() => {
-    return sampleByGenre[genre] ?? fallbackResults;
+    return liveResults ?? sampleByGenre[genre] ?? fallbackResults;
   }, [genre]);
 
   const marketScore = useMemo(() => {
     const avg = results.reduce((sum, item) => sum + item.potential, 0) / results.length;
-    return avg.toFixed(1);
+    return liveScore !== null ? liveScore.toFixed(1) : avg.toFixed(1);
   }, [results]);
 
   return (
@@ -141,7 +147,7 @@ export default function BestsellerRadarPage() {
                   Studia il mercato prima di scrivere.
                 </h1>
                 <p className="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-                  Analizza titoli concorrenti, domanda, competizione e potenziale commerciale.
+                  {loading ? "Analisi..." : "Analizza"} titoli concorrenti, domanda, competizione e potenziale commerciale.
                   Non per copiare. Per capire dove colpire.
                 </p>
               </div>
@@ -164,7 +170,32 @@ export default function BestsellerRadarPage() {
                   className="h-11 rounded-xl border border-border bg-background px-3 text-sm outline-none"
                 />
 
-                <Button onClick={() => setSearched(true)} className="h-11 gap-2 rounded-xl">
+                <Button
+                  disabled={loading}
+                  onClick={async () => {
+                    setSearched(true);
+                    setLoading(true);
+                    setError("");
+                    try {
+                      const res = await runBestsellerRadar({
+                        genre,
+                        keyword,
+                        marketplace: "Amazon.it",
+                      });
+                      if (!res.ok) throw new Error(res.error || "Radar non disponibile");
+                      setLiveResults(res.results?.length ? res.results : null);
+                      setLiveScore(typeof res.marketScore === "number" ? res.marketScore : null);
+                      setLiveSummary(res.summary || "");
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : "Errore durante l’analisi");
+                      setLiveResults(null);
+                      setLiveScore(null);
+                    } finally {
+                      setLoading(false);
+                    }
+                  }}
+                  className="h-11 gap-2 rounded-xl"
+                >
                   <Search className="h-4 w-4" />
                   Analizza
                 </Button>
@@ -183,6 +214,18 @@ export default function BestsellerRadarPage() {
             </div>
           </div>
         </section>
+
+        {error && (
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
+        {liveSummary && (
+          <div className="rounded-2xl border border-primary/20 bg-primary/10 p-4 text-sm leading-6 text-muted-foreground">
+            {liveSummary}
+          </div>
+        )}
 
         {searched && (
           <section className="grid gap-4">
