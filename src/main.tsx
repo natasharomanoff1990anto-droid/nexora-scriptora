@@ -43,7 +43,11 @@ VITE_SUPABASE_PROJECT_ID=&lt;project-ref&gt;</pre>
       const keys: string[] = [];
       for (let i = 0; i < storage.length; i++) {
         const k = storage.key(i);
-        if (k && k.toLowerCase().startsWith("scriptora")) keys.push(k);
+        if (
+          k &&
+          k.toLowerCase().startsWith("scriptora") &&
+          !k.toLowerCase().includes("appearance")
+        ) keys.push(k);
       }
       for (const oldKey of keys) {
         const newKey = oldKey.replace(/^scriptora/i, (m) =>
@@ -62,6 +66,13 @@ VITE_SUPABASE_PROJECT_ID=&lt;project-ref&gt;</pre>
     /* ignore */
   }
 })();
+
+// Apply saved visual settings before first paint.
+try {
+  applyScriptoraAppearance();
+} catch {
+  /* ignore appearance boot errors */
+}
 
 // Render IMMEDIATELY — do not block first paint on IndexedDB or network.
 // Hydration runs in the background; pages refetch when ready.

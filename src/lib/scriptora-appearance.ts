@@ -1,4 +1,6 @@
-export const SCRIPTORA_APPEARANCE_KEY = "scriptora-appearance-v1";
+export const SCRIPTORA_APPEARANCE_KEY = "nexora-appearance-v1";
+export const SCRIPTORA_APPEARANCE_LEGACY_KEY = "scriptora-appearance-v1";
+export const SCRIPTORA_APPEARANCE_OLD_SETTINGS_KEY = "scriptora-appearance-settings";
 
 export type ScriptoraBackgroundId =
   | "midnight-ink" | "dark-academia" | "velvet-night" | "obsidian" | "storm-library"
@@ -50,11 +52,29 @@ export const DEFAULT_SCRIPTORA_APPEARANCE: ScriptoraAppearanceSettings = {
   writingFont: "system",
 };
 
+function normalizeAppearanceSettings(value: any): ScriptoraAppearanceSettings {
+  const backgroundId = SCRIPTORA_BACKGROUNDS.some((b) => b.id === value?.backgroundId)
+    ? value.backgroundId
+    : DEFAULT_SCRIPTORA_APPEARANCE.backgroundId;
+
+  const writingFont = WRITING_FONTS.some((f) => f.id === value?.writingFont)
+    ? value.writingFont
+    : DEFAULT_SCRIPTORA_APPEARANCE.writingFont;
+
+  return { backgroundId, writingFont };
+}
+
 export function loadScriptoraAppearance(): ScriptoraAppearanceSettings {
   try {
-    const raw = localStorage.getItem(SCRIPTORA_APPEARANCE_KEY);
+    const raw =
+      localStorage.getItem(SCRIPTORA_APPEARANCE_KEY) ||
+      localStorage.getItem(SCRIPTORA_APPEARANCE_LEGACY_KEY) ||
+      localStorage.getItem(SCRIPTORA_APPEARANCE_OLD_SETTINGS_KEY);
+
     if (!raw) return DEFAULT_SCRIPTORA_APPEARANCE;
-    return { ...DEFAULT_SCRIPTORA_APPEARANCE, ...JSON.parse(raw) };
+
+    const parsed = JSON.parse(raw);
+    return normalizeAppearanceSettings({ ...DEFAULT_SCRIPTORA_APPEARANCE, ...parsed });
   } catch {
     return DEFAULT_SCRIPTORA_APPEARANCE;
   }
@@ -69,6 +89,15 @@ export function applyScriptoraAppearance(settings: ScriptoraAppearanceSettings =
 }
 
 export function saveScriptoraAppearance(settings: ScriptoraAppearanceSettings) {
-  localStorage.setItem(SCRIPTORA_APPEARANCE_KEY, JSON.stringify(settings));
-  applyScriptoraAppearance(settings);
+  const normalized = normalizeAppearanceSettings(settings);
+  localStorage.setItem(SCRIPTORA_APPEARANCE_KEY, JSON.stringify(normalized));
+
+  // Manteniamo anche la vecchia chiave per compatibilità, ma la chiave vera ora è nexora-appearance-v1.
+  try {
+    localStorage.setItem(SCRIPTORA_APPEARANCE_LEGACY_KEY, JSON.stringify(normalized));
+  } catch {
+    /* ignore legacy save */
+  }
+
+  applyScriptoraAppearance(normalized);
 }
