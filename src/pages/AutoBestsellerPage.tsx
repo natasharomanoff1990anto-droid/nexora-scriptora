@@ -69,6 +69,7 @@ export default function AutoBestsellerPage() {
             readerPromise: parsed.readerPromise,
             prefilledTitle: parsed.prefilledTitle,
             prefilledSubtitle: parsed.prefilledSubtitle,
+            authorName: parsed.authorName,
             totalWordTarget: parsed.totalWordTarget,
           };
           handleGenerateOne(fullInput);

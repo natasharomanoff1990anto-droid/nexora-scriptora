@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTitleIntelligence, TitleCard, Level } from "@/hooks/useTitleIntelligence";
 import { supabase } from "@/integrations/supabase/client";
 import { getGenreProfile, resolveGenreKey } from "@/lib/genre-intelligence";
@@ -22,10 +23,12 @@ const UI_LANG_TO_NAME: Record<string, string> = {
 };
 
 export function TitleIntelligenceDialog({ open, onClose, initialTitle, initialGenre, onSelect }: Props) {
+  const navigate = useNavigate();
   const [bookTitle, setBookTitle] = useState(initialTitle || "");
   const [bookGenre, setBookGenre] = useState(initialGenre || "");
   const [targetAudience, setTargetAudience] = useState("");
   const [bookPromise, setBookPromise] = useState("");
+  const [authorName, setAuthorName] = useState("Antonino Campanella");
   const [tone, setTone] = useState<"professionale" | "emotivo" | "aggressivo">("professionale");
   // Default = system UI language, but user can override per-book (5 supported languages).
   const uiLang = getUILanguage();
@@ -101,8 +104,32 @@ export function TitleIntelligenceDialog({ open, onClose, initialTitle, initialGe
   };
 
   const handleSelect = (card: TitleCard) => {
-    onSelect?.(card.title, card.subtitle);
-    toast.success(`Titolo selezionato: ${card.title}`);
+    if (onSelect) {
+      onSelect(card.title, card.subtitle);
+      toast.success(`Titolo selezionato: ${card.title}`);
+      return;
+    }
+
+    sessionStorage.setItem("nexora-auto-brief", JSON.stringify({
+      idea: bookPromise || bookTitle || card.title,
+      genre: bookGenre || "Self-help",
+      subcategory: bookGenre || "",
+      targetAudience: targetAudience || "Lettori interessati a questo argomento",
+      tone,
+      language,
+      numberOfChapters: 8,
+      level: "intermediate",
+      readerPromise: bookPromise || card.subtitle,
+      prefilledTitle: card.title,
+      prefilledSubtitle: card.subtitle,
+      authorName: authorName.trim() || "Antonino Campanella",
+      autoStart: false,
+    }));
+
+    reset();
+    onClose();
+    toast.success("Progetto preparato — completa il brief e avvia la scrittura");
+    navigate("/auto-bestseller");
   };
 
   const copyTitle = (card: TitleCard) => {
@@ -186,6 +213,12 @@ export function TitleIntelligenceDialog({ open, onClose, initialTitle, initialGe
                   placeholder="Es. Aiutare il lettore a costruire abitudini durature in 30 giorni"
                   rows={3}
                   className="w-full px-3 py-2 text-sm rounded-md bg-background border border-border focus:border-primary outline-none resize-none" />
+              </Field>
+
+              <Field label="Nome autore / Pen name">
+                <input value={authorName} onChange={e => setAuthorName(e.target.value)}
+                  placeholder="Es. Antonino Campanella, Livia Emerson, Lua Galli"
+                  className="w-full px-3 py-2 text-sm rounded-md bg-background border border-border focus:border-primary outline-none" />
               </Field>
 
               <div className="grid grid-cols-2 gap-3">
