@@ -144,18 +144,21 @@ export function normalizeExportProject(project: AnyBookProject): AnyBookProject 
   );
 
   const chapters = Array.isArray(project?.chapters)
-    ? project.chapters.map((chapter: any) => ({
-        ...chapter,
-        title: cleanExportText(chapter?.title || ""),
-        content: cleanExportText(chapter?.content || ""),
-        subchapters: Array.isArray(chapter?.subchapters)
-          ? chapter.subchapters.map((sub: any) => ({
-              ...sub,
-              title: cleanExportText(sub?.title || ""),
-              content: cleanExportText(sub?.content || ""),
-            }))
-          : [],
-      }))
+    ? project.chapters.map((chapter: any, index: number) => {
+        const title = cleanExportText(chapter?.title || "");
+        return {
+          ...chapter,
+          title,
+          content: stripChapterEcho(chapter?.content || "", title, config.language, index + 1),
+          subchapters: Array.isArray(chapter?.subchapters)
+            ? chapter.subchapters.map((sub: any) => ({
+                ...sub,
+                title: cleanExportText(sub?.title || ""),
+                content: cleanExportText(sub?.content || ""),
+              }))
+            : [],
+        };
+      })
     : [];
 
   return {
@@ -165,6 +168,139 @@ export function normalizeExportProject(project: AnyBookProject): AnyBookProject 
     chapters,
     backMatter,
   };
+}
+
+
+export type ExportBlock =
+  | { type: "paragraph"; text: string }
+  | { type: "heading2"; text: string }
+  | { type: "heading3"; text: string }
+  | { type: "bullet"; items: string[] }
+  | { type: "numbered"; items: string[] }
+  | { type: "scene"; text?: string };
+
+export function cleanMarkdownInline(value: unknown): string {
+  return cleanExportText(value)
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/__(.+?)__/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
+    .replace(/_(.+?)_/g, "$1")
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/^\s*>\s?/gm, "")
+    .replace(/  +/g, " ")
+    .replace(/(^|[\s(])"/g, "$1\u201C")
+    .replace(/"/g, "\u201D")
+    .replace(/(^|[\s(])'/g, "$1\u2018")
+    .replace(/'/g, "\u2019")
+    .replace(/--/g, "\u2014")
+    .replace(/\.\.\./g, "\u2026")
+    .trim();
+}
+
+export function stripChapterEcho(content: unknown, title?: string, language?: string, chapterNumber?: number): string {
+  let text = cleanExportText(content);
+  const cleanTitle = cleanMarkdownInline(title || "");
+  const chapterLabel = exportLabel("chapter", language);
+
+  const lines = text.split("\n");
+  while (lines.length && !lines[0].trim()) lines.shift();
+
+  const killTop = () => {
+    while (lines.length && !lines[0].trim()) lines.shift();
+    if (lines.length) lines.shift();
+    while (lines.length && !lines[0].trim()) lines.shift();
+  };
+
+  for (let i = 0; i < 4 && lines.length; i++) {
+    const first = cleanMarkdownInline(lines[0]);
+    const isChapterLine =
+      !!chapterNumber &&
+      new RegExp(`^(${chapterLabel}|chapter|capitolo)\\s+${chapterNumber}\\b`, "i").test(first);
+    const isSameTitle =
+      !!cleanTitle &&
+      first.toLowerCase().replace(/\s+/g, " ").trim() === cleanTitle.toLowerCase().replace(/\s+/g, " ").trim();
+
+    if (isChapterLine || isSameTitle) killTop();
+    else break;
+  }
+
+  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+export function parseExportBlocks(value: unknown): ExportBlock[] {
+  const text = cleanExportText(value);
+  if (!text) return [];
+
+  const blocks: ExportBlock[] = [];
+  const lines = text.split("\n");
+  let paragraph: string[] = [];
+  let bullets: string[] = [];
+  let numbers: string[] = [];
+
+  const flushParagraph = () => {
+    const joined = paragraph.join(" ").replace(/\s+/g, " ").trim();
+    if (joined) blocks.push({ type: "paragraph", text: cleanMarkdownInline(joined) });
+    paragraph = [];
+  };
+  const flushBullets = () => {
+    if (bullets.length) blocks.push({ type: "bullet", items: bullets.map(cleanMarkdownInline).filter(Boolean) });
+    bullets = [];
+  };
+  const flushNumbers = () => {
+    if (numbers.length) blocks.push({ type: "numbered", items: numbers.map(cleanMarkdownInline).filter(Boolean) });
+    numbers = [];
+  };
+  const flushAll = () => {
+    flushParagraph();
+    flushBullets();
+    flushNumbers();
+  };
+
+  for (const raw of lines) {
+    const line = raw.trim();
+
+    if (!line) {
+      flushAll();
+      continue;
+    }
+
+    if (/^[-*_]{3,}$/.test(line) || /^[✦*#\u2022\u2014\-\s]+$/.test(line) && line.length < 12) {
+      flushAll();
+      blocks.push({ type: "scene" });
+      continue;
+    }
+
+    const h = line.match(/^(#{2,4})\s+(.+)$/);
+    if (h) {
+      flushAll();
+      blocks.push({ type: h[1].length >= 3 ? "heading3" : "heading2", text: cleanMarkdownInline(h[2]) });
+      continue;
+    }
+
+    const bullet = line.match(/^[-*•]\s+(.+)$/);
+    if (bullet) {
+      flushParagraph();
+      flushNumbers();
+      bullets.push(bullet[1]);
+      continue;
+    }
+
+    const numbered = line.match(/^\d+[\.)]\s+(.+)$/);
+    if (numbered) {
+      flushParagraph();
+      flushBullets();
+      numbers.push(numbered[1]);
+      continue;
+    }
+
+    flushBullets();
+    flushNumbers();
+    paragraph.push(line);
+  }
+
+  flushAll();
+  return blocks;
 }
 
 export function exportLabel(key: string, language?: string): string {

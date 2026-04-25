@@ -1,4 +1,4 @@
-import { normalizeExportProject, exportLabel, cleanExportText } from "@/lib/export-cleanup";
+import { normalizeExportProject, exportLabel, cleanExportText, parseExportBlocks, cleanMarkdownInline } from "@/lib/export-cleanup";
 import {
   Document, Packer, Paragraph, TextRun, HeadingLevel,
   AlignmentType, PageBreak, Header, Footer, PageNumber,
@@ -14,60 +14,87 @@ function safeText(text: unknown): string {
 }
 
 function cleanMarkdown(text: string): string {
-  return text
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/\*\*(.+?)\*\*/g, "$1")
-    .replace(/\*(.+?)\*/g, "$1")
-    .replace(/__(.+?)__/g, "$1")
-    .replace(/_(.+?)_/g, "$1")
-    .replace(/  +/g, " ")
-    .replace(/(^|[\s(])"/g, "$1\u201C")
-    .replace(/"/g, "\u201D")
-    .replace(/(^|[\s(])'/g, "$1\u2018")
-    .replace(/'/g, "\u2019")
-    .replace(/--/g, "\u2014")
-    .replace(/\.\.\./g, "\u2026")
-    .trim();
+  return cleanMarkdownInline(text);
 }
 
 function bodyParagraphs(text: string, opts?: { firstNoIndent?: boolean; dropCap?: boolean }): Paragraph[] {
-  const cleaned = cleanMarkdown(safeText(text));
-  if (!cleaned) return [];
-  const blocks = cleaned.split(/\n\n+/).filter(p => p.trim());
-  return blocks.map((block, i) => {
-    const isFirst = i === 0;
+  const blocks = parseExportBlocks(safeText(text));
+  if (blocks.length === 0) return [];
 
-    // Scene break
-    if (/^[\*#\u2022\u2014\-\s]+$/.test(block.trim()) && block.trim().length < 10) {
-      return new Paragraph({
+  const out: Paragraph[] = [];
+  let firstTextParagraph = true;
+
+  for (const block of blocks) {
+    if (block.type === "heading2") {
+      out.push(sectionH2(block.text));
+      firstTextParagraph = true;
+      continue;
+    }
+
+    if (block.type === "heading3") {
+      out.push(new Paragraph({
+        alignment: AlignmentType.LEFT,
+        spacing: { before: 360, after: 160 },
+        children: [new TextRun({ text: cleanMarkdown(block.text), font: "Garamond", size: 24, bold: true, italics: true })],
+      }));
+      firstTextParagraph = true;
+      continue;
+    }
+
+    if (block.type === "scene") {
+      out.push(new Paragraph({
         alignment: AlignmentType.CENTER,
         spacing: { before: 240, after: 240 },
         children: [new TextRun({ text: "✦  ✦  ✦", font: "Garamond", size: 22 })],
-      });
+      }));
+      firstTextParagraph = true;
+      continue;
     }
 
-    // Drop cap (first letter slightly larger and bold) on opening paragraph
-    if (opts?.dropCap && isFirst && block.length > 3) {
-      const firstChar = block.charAt(0);
-      const rest = block.slice(1);
-      return new Paragraph({
+    if (block.type === "bullet" || block.type === "numbered") {
+      block.items.forEach((item, idx) => {
+        out.push(new Paragraph({
+          alignment: AlignmentType.LEFT,
+          spacing: { after: 90, line: 300 },
+          indent: { left: 360, hanging: 220 },
+          children: [
+            new TextRun({ text: block.type === "bullet" ? "• " : `${idx + 1}. `, font: "Garamond", size: 22, bold: true }),
+            new TextRun({ text: item, font: "Garamond", size: 22 }),
+          ],
+        }));
+      });
+      firstTextParagraph = false;
+      continue;
+    }
+
+    const blockText = cleanMarkdown(block.text);
+    if (!blockText) continue;
+
+    if (opts?.dropCap && firstTextParagraph && blockText.length > 3) {
+      const firstChar = blockText.charAt(0);
+      const rest = blockText.slice(1);
+      out.push(new Paragraph({
         alignment: AlignmentType.JUSTIFIED,
         spacing: { after: 160, line: 320 },
         children: [
           new TextRun({ text: firstChar, font: "Garamond", size: 56, bold: true }),
           new TextRun({ text: rest, font: "Garamond", size: 22 }),
         ],
-      });
+      }));
+    } else {
+      const noIndent = firstTextParagraph && opts?.firstNoIndent !== false;
+      out.push(new Paragraph({
+        alignment: AlignmentType.JUSTIFIED,
+        spacing: { after: 120, line: 320 },
+        indent: noIndent ? undefined : { firstLine: 360 },
+        children: [new TextRun({ text: blockText, font: "Garamond", size: 22 })],
+      }));
     }
 
-    const noIndent = isFirst && opts?.firstNoIndent !== false;
-    return new Paragraph({
-      alignment: AlignmentType.JUSTIFIED,
-      spacing: { after: 120, line: 320 },
-      indent: noIndent ? undefined : { firstLine: 360 }, // 0.25" indent
-      children: [new TextRun({ text: block.trim(), font: "Garamond", size: 22 })],
-    });
-  });
+    firstTextParagraph = false;
+  }
+
+  return out;
 }
 
 function chapterOpener(num: number, title: string): Paragraph[] {

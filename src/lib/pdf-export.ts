@@ -1,4 +1,4 @@
-import { normalizeExportProject, exportLabel, cleanExportText } from "@/lib/export-cleanup";
+import { normalizeExportProject, exportLabel, cleanExportText, parseExportBlocks, cleanMarkdownInline } from "@/lib/export-cleanup";
 import jsPDF from "jspdf";
 import { BookProject } from "@/types/book";
 
@@ -10,23 +10,7 @@ function safeText(text: unknown): string {
 }
 
 function cleanMarkdown(text: string): string {
-  return text
-    .replace(/^#{1,6}\s+/gm, "")
-    .replace(/\*\*(.+?)\*\*/g, "$1")
-    .replace(/\*(.+?)\*/g, "$1")
-    .replace(/__(.+?)__/g, "$1")
-    .replace(/_(.+?)_/g, "$1")
-    .replace(/  +/g, " ")
-    // typographic quotes
-    .replace(/(^|[\s(])"/g, "$1\u201C")
-    .replace(/"/g, "\u201D")
-    .replace(/(^|[\s(])'/g, "$1\u2018")
-    .replace(/'/g, "\u2019")
-    // em-dash
-    .replace(/--/g, "\u2014")
-    // ellipsis
-    .replace(/\.\.\./g, "\u2026")
-    .trim();
+  return cleanMarkdownInline(text);
 }
 
 // 6x9 inch trim — KDP paperback standard
@@ -148,31 +132,67 @@ function writeSectionTitle(state: PdfState, text: string, size: number = 13) {
   state.y += size * 1.6;
 }
 
-function writeParagraphsWithDropCap(state: PdfState, text: string, useDropCap: boolean) {
-  const cleaned = cleanMarkdown(safeText(text));
-  if (!cleaned) return;
-  const paragraphs = cleaned.split(/\n\n+/).filter(p => p.trim());
-  if (paragraphs.length === 0) return;
+function writePlainLines(state: PdfState, text: string, opts?: { indent?: number; boldPrefix?: string }) {
+  const ml = getMarginLeft(state.pageNum);
+  const indent = opts?.indent || 0;
+  const prefix = opts?.boldPrefix || "";
+  const full = `${prefix}${text}`;
+  const lines = state.doc.splitTextToSize(full, CONTENT_W - indent);
+  state.doc.setFontSize(BODY_SIZE);
+  state.doc.setFont("times", "normal");
+  for (let li = 0; li < lines.length; li++) {
+    ensureSpace(state, LINE_HEIGHT);
+    state.doc.text(lines[li], ml + (li === 0 ? indent : indent), state.y, { maxWidth: CONTENT_W - indent });
+    state.y += LINE_HEIGHT;
+  }
+  state.y += 3;
+}
 
+function writeParagraphsWithDropCap(state: PdfState, text: string, useDropCap: boolean) {
+  const blocks = parseExportBlocks(safeText(text));
+  if (blocks.length === 0) return;
+
+  let firstTextParagraph = true;
   state.doc.setFontSize(BODY_SIZE);
   state.doc.setFont("times", "normal");
 
-  for (let pi = 0; pi < paragraphs.length; pi++) {
-    const para = paragraphs[pi].trim();
-    const isFirst = pi === 0;
-    const ml = getMarginLeft(state.pageNum);
+  for (const block of blocks) {
+    if (block.type === "heading2") {
+      writeSectionTitle(state, block.text, 13.5);
+      firstTextParagraph = true;
+      continue;
+    }
 
-    // Scene break (paragraph that's just *** or # or similar)
-    if (/^[\*#\u2022\u2014\-\s]+$/.test(para) && para.length < 10) {
+    if (block.type === "heading3") {
+      writeSectionTitle(state, block.text, 12);
+      firstTextParagraph = true;
+      continue;
+    }
+
+    if (block.type === "scene") {
+      const ml = getMarginLeft(state.pageNum);
       state.y += LINE_HEIGHT * 0.5;
       state.doc.setFontSize(BODY_SIZE);
       state.doc.text("✦  ✦  ✦", ml + CONTENT_W / 2, state.y, { align: "center" });
       state.y += LINE_HEIGHT * 1.5;
+      firstTextParagraph = true;
       continue;
     }
 
-    // Drop cap on first paragraph of chapter
-    if (useDropCap && isFirst && para.length > 5) {
+    if (block.type === "bullet" || block.type === "numbered") {
+      block.items.forEach((item, idx) => {
+        const prefix = block.type === "bullet" ? "• " : `${idx + 1}. `;
+        writePlainLines(state, item, { indent: 14, boldPrefix: prefix });
+      });
+      firstTextParagraph = false;
+      continue;
+    }
+
+    const para = cleanMarkdown(block.text);
+    if (!para) continue;
+    const ml = getMarginLeft(state.pageNum);
+
+    if (useDropCap && firstTextParagraph && para.length > 5) {
       const firstChar = para.charAt(0);
       const restOfPara = para.slice(1);
       const dropSize = 36;
@@ -180,13 +200,11 @@ function writeParagraphsWithDropCap(state: PdfState, text: string, useDropCap: b
 
       ensureSpace(state, dropHeight + LINE_HEIGHT);
 
-      // Draw drop cap
       state.doc.setFontSize(dropSize);
       state.doc.setFont("times", "bold");
       state.doc.text(firstChar, ml, state.y + dropHeight * 0.85);
       const dropWidth = state.doc.getTextWidth(firstChar) + 4;
 
-      // Wrap text around drop cap (3 lines indented)
       state.doc.setFontSize(BODY_SIZE);
       state.doc.setFont("times", "normal");
       const wrappedWidth = CONTENT_W - dropWidth;
@@ -196,13 +214,10 @@ function writeParagraphsWithDropCap(state: PdfState, text: string, useDropCap: b
 
       const startY = state.y;
       for (let li = 0; li < wrapLines.length; li++) {
-        state.doc.text(wrapLines[li], ml + dropWidth, startY + li * LINE_HEIGHT, {
-          maxWidth: wrappedWidth,
-        });
+        state.doc.text(wrapLines[li], ml + dropWidth, startY + li * LINE_HEIGHT, { maxWidth: wrappedWidth });
       }
       state.y = startY + Math.max(wrapLines.length, 3) * LINE_HEIGHT;
 
-      // Continue remaining text full width
       if (remainingLines.length > 0) {
         const remainingText = remainingLines.join(" ");
         const fullLines = state.doc.splitTextToSize(remainingText, CONTENT_W);
@@ -213,19 +228,19 @@ function writeParagraphsWithDropCap(state: PdfState, text: string, useDropCap: b
         }
       }
       state.y += 4;
-      continue;
+    } else {
+      const indent = firstTextParagraph ? 0 : 14;
+      const lines = state.doc.splitTextToSize(para, CONTENT_W - indent);
+      for (let li = 0; li < lines.length; li++) {
+        ensureSpace(state, LINE_HEIGHT);
+        const x = ml + (li === 0 ? indent : 0);
+        state.doc.text(lines[li], x, state.y, { maxWidth: CONTENT_W - (li === 0 ? indent : 0) });
+        state.y += LINE_HEIGHT;
+      }
+      state.y += 3;
     }
 
-    // Normal paragraph with first-line indent (skip first para after heading)
-    const indent = isFirst ? 0 : 14;
-    const lines = state.doc.splitTextToSize(para, CONTENT_W - indent);
-    for (let li = 0; li < lines.length; li++) {
-      ensureSpace(state, LINE_HEIGHT);
-      const x = ml + (li === 0 ? indent : 0);
-      state.doc.text(lines[li], x, state.y, { maxWidth: CONTENT_W - (li === 0 ? indent : 0) });
-      state.y += LINE_HEIGHT;
-    }
-    state.y += 3;
+    firstTextParagraph = false;
   }
 }
 

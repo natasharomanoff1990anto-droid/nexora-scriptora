@@ -1,4 +1,4 @@
-import { normalizeExportProject, exportLabel, cleanExportText } from "@/lib/export-cleanup";
+import { normalizeExportProject, exportLabel, cleanExportText, parseExportBlocks, cleanMarkdownInline } from "@/lib/export-cleanup";
 import { BookProject } from "@/types/book";
 
 function escapeXml(str: unknown): string {
@@ -22,20 +22,27 @@ function typographicQuotes(s: string): string {
 }
 
 function textToHtml(text: unknown, opts?: { dropCap?: boolean }): string {
-  const str = typeof text === "string" ? text
-    : text && typeof text === "object" ? JSON.stringify(text)
-    : String(text || "");
-  const cleaned = typographicQuotes(str);
-  const paragraphs = cleaned.split(/\n\n+/).map(p => p.trim()).filter(Boolean);
-  return paragraphs
-    .map((p, i) => {
-      if (/^[\*#\u2022\u2014\-\s]+$/.test(p) && p.length < 12) {
-        return `<p class="scene-break">\u2726 \u2726 \u2726</p>`;
-      }
-      const cls = i === 0 ? (opts?.dropCap ? "dropcap" : "first") : "";
-      return cls ? `<p class="${cls}">${escapeXml(p)}</p>` : `<p>${escapeXml(p)}</p>`;
-    })
-    .join("\n");
+  const blocks = parseExportBlocks(text);
+  let firstParagraph = true;
+
+  return blocks.map((block) => {
+    if (block.type === "heading2") return `<h2>${escapeXml(block.text)}</h2>`;
+    if (block.type === "heading3") return `<h3>${escapeXml(block.text)}</h3>`;
+    if (block.type === "scene") return `<p class="scene-break">✦ ✦ ✦</p>`;
+
+    if (block.type === "bullet") {
+      return `<ul>\n${block.items.map((i) => `<li>${escapeXml(i)}</li>`).join("\n")}\n</ul>`;
+    }
+
+    if (block.type === "numbered") {
+      return `<ol>\n${block.items.map((i) => `<li>${escapeXml(i)}</li>`).join("\n")}\n</ol>`;
+    }
+
+    const cls = firstParagraph ? (opts?.dropCap ? "dropcap" : "first") : "";
+    firstParagraph = false;
+    const clean = cleanMarkdownInline(block.text);
+    return cls ? `<p class="${cls}">${escapeXml(clean)}</p>` : `<p>${escapeXml(clean)}</p>`;
+  }).join("\n");
 }
 
 function createXhtml(title: string, body: string, cssPath = "style.css"): string {
@@ -250,8 +257,8 @@ function getTocLabel(lang: string): string {
 
 function getFrontMatterLabels(lang: string) {
   const labels: Record<string, Record<string, string>> = {
-    English: { titlePage: "Title Page", copyright: exportLabel("copyright", config.language), dedication: exportLabel("dedication", config.language), aboutAuthor: exportLabel("aboutAuthor", config.language), howToUse: exportLabel("howToUse", config.language), letterToReader: exportLabel("letterToReader", config.language) },
-    Italian: { titlePage: "Pagina del Titolo", copyright: exportLabel("copyright", config.language), dedication: "Dedica", aboutAuthor: "L'Autore", howToUse: "Come Usare Questo Libro", letterToReader: "Lettera al Lettore" },
+    English: { titlePage: "Title Page", copyright: exportLabel("copyright", lang), dedication: exportLabel("dedication", lang), aboutAuthor: exportLabel("aboutAuthor", lang), howToUse: exportLabel("howToUse", lang), letterToReader: exportLabel("letterToReader", lang) },
+    Italian: { titlePage: "Pagina del Titolo", copyright: exportLabel("copyright", lang), dedication: "Dedica", aboutAuthor: "L'Autore", howToUse: "Come Usare Questo Libro", letterToReader: "Lettera al Lettore" },
     Spanish: { titlePage: "Portada", copyright: "Derechos de Autor", dedication: "Dedicatoria", aboutAuthor: "Sobre el Autor", howToUse: "Cómo Usar Este Libro", letterToReader: "Carta al Lector" },
     French: { titlePage: "Page de Titre", copyright: "Droits d'Auteur", dedication: "Dédicace", aboutAuthor: "À Propos de l'Auteur", howToUse: "Comment Utiliser Ce Livre", letterToReader: "Lettre au Lecteur" },
     German: { titlePage: "Titelseite", copyright: "Urheberrecht", dedication: "Widmung", aboutAuthor: "Über den Autor", howToUse: "Wie Sie Dieses Buch Nutzen", letterToReader: "Brief an den Leser" },
@@ -261,10 +268,10 @@ function getFrontMatterLabels(lang: string) {
 
 function getBackMatterLabels(lang: string) {
   const labels: Record<string, Record<string, string>> = {
-    English: { conclusion: exportLabel("conclusion", config.language), authorNote: exportLabel("authorNote", config.language), callToAction: exportLabel("whatsNext", config.language), reviewRequest: exportLabel("smallRequest", config.language), otherBooks: exportLabel("otherBooks", config.language) },
+    English: { conclusion: exportLabel("conclusion", lang), authorNote: exportLabel("authorNote", lang), callToAction: exportLabel("whatsNext", lang), reviewRequest: exportLabel("smallRequest", lang), otherBooks: exportLabel("otherBooks", lang) },
     Italian: { conclusion: "Conclusione", authorNote: "Nota dell'Autore", callToAction: "E Adesso?", reviewRequest: "Una Piccola Richiesta", otherBooks: "Altri Libri" },
     Spanish: { conclusion: "Conclusión", authorNote: "Nota del Autor", callToAction: "¿Y Ahora Qué?", reviewRequest: "Una Pequeña Petición", otherBooks: "Otros Libros" },
-    French: { conclusion: exportLabel("conclusion", config.language), authorNote: "Note de l'Auteur", callToAction: "Et Maintenant?", reviewRequest: "Une Petite Demande", otherBooks: "Autres Livres" },
+    French: { conclusion: exportLabel("conclusion", lang), authorNote: "Note de l'Auteur", callToAction: "Et Maintenant?", reviewRequest: "Une Petite Demande", otherBooks: "Autres Livres" },
     German: { conclusion: "Fazit", authorNote: "Anmerkung des Autors", callToAction: "Was Kommt Als Nächstes?", reviewRequest: "Eine Kleine Bitte", otherBooks: "Weitere Bücher" },
   };
   return labels[lang] || labels.English;
