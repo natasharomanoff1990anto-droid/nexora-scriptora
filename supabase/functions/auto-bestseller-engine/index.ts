@@ -378,20 +378,33 @@ async function callDeepSeekJson(
   }
 }
 
-async function invokeFunction(name: string, payload: any) {
-  const r = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${SERVICE_ROLE}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-  if (!r.ok) {
-    const t = await r.text();
-    throw new Error(`${name} failed ${r.status}: ${t}`);
+async function invokeFunction(name: string, payload: any, timeoutMs = 30_000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+
+  try {
+    const r = await fetch(`${SUPABASE_URL}/functions/v1/${name}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${SERVICE_ROLE}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      signal: ctrl.signal,
+    });
+
+    if (!r.ok) {
+      const t = await r.text().catch(() => "");
+      throw new Error(`${name} failed ${r.status}: ${t}`);
+    }
+
+    return r.json();
+  } catch (e) {
+    const aborted = e instanceof DOMException && e.name === "AbortError";
+    throw new Error(`${name} ${aborted ? "timed out" : "failed"} after ${timeoutMs}ms`);
+  } finally {
+    clearTimeout(timer);
   }
-  return r.json();
 }
 
 function parseJson(raw: string): any {
@@ -665,7 +678,7 @@ async function refineChapter(input: OrchestratorInput, chapterTitle: string, cha
       chapterTitle, chapterText,
       language: input.language || "English",
       genreProfile: { genre: input.genre, subcategory: input.subcategory },
-    });
+    }, 18_000);
     coachReport = coach.parsed || coach;
     autoFixBlock = coachReport?.autoFixPromptBlock || coach?.autoFixPromptBlock || "";
   } catch (e) {
@@ -683,7 +696,7 @@ async function refineChapter(input: OrchestratorInput, chapterTitle: string, cha
       threshold: 8.5,
       iteration: 1,
       genreAutoFixBlock: autoFixBlock,
-    });
+    }, 25_000);
   } catch (e) {
     console.error("dominate-chapter failed:", e);
   }
@@ -866,7 +879,7 @@ Length: ~800 words. Self-contained, no preamble. Plain prose, no JSON.`;
     try {
       refined = await withTimeout(
         refineChapter(input, outline.title, draft),
-        75_000,
+        30_000,
         `refineChapter ch${i + 1}`,
         { finalText: draft, rewriteConfidence: 0.5, finalScore: 6 },
       );
